@@ -113,7 +113,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
 
               <div className="space-y-1 text-sm pt-2">
                 {item.qualidade && 
-                    <p><strong>Qualidade:</strong> <Badge variant="outline">{item.qualidade}</Badge></p>
+                    <div><strong>Qualidade:</strong> <Badge variant="outline">{item.qualidade}</Badge></div>
                 }
                 {item.contentType === 'series' && item.totalTemporadas !== undefined && item.totalTemporadas !== null && (
                   <p><strong>Temporadas:</strong> {item.totalTemporadas}</p>
