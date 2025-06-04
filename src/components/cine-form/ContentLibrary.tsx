@@ -41,6 +41,7 @@ export function ContentLibrary({ onEditItem }: ContentLibraryProps) {
     onSuccess: () => {
       toast({ title: "Item Excluído!", description: "O conteúdo foi removido da biblioteca." });
       queryClient.invalidateQueries({ queryKey: ['contentItems'] });
+      queryClient.invalidateQueries({ queryKey: ['contentItemsHomeAni'] }); // Invalidate homepage query
       setItemToDelete(null);
     },
     onError: (err) => {

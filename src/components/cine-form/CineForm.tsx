@@ -109,6 +109,7 @@ export function CineForm() {
         description: `"${variables.tituloOriginal}" foi ${editingItem ? 'atualizado' : 'salvo'} com sucesso.`,
       });
       queryClient.invalidateQueries({ queryKey: ['contentItems'] });
+      queryClient.invalidateQueries({ queryKey: ['contentItemsHomeAni'] }); // Invalidate homepage query
       form.reset(contentType === 'movie' ? defaultMovieValues : defaultSeriesValues);
       setEditingItem(null);
       setContentType('movie'); // Reset to default or last known good state
