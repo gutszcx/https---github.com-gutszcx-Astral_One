@@ -136,12 +136,12 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
               </div>
 
               {item.contentType === 'movie' && item.linkVideo && (
-                <Button 
-                  asChild 
+                <Button
+                  asChild
                   className="mt-4 w-full sm:w-auto"
                   size="lg"
                 >
-                  <a href={item.linkVideo} target="_blank" rel="noopener noreferrer">
+                  <a href={item.linkVideo} rel="noopener noreferrer">
                     <PlayCircle className="mr-2 h-5 w-5" /> Assistir Filme
                   </a>
                 </Button>
@@ -173,7 +173,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
                                     </div>
                                     {episode.linkVideo && (
                                        <Button asChild variant="outline" size="sm">
-                                        <a href={episode.linkVideo} target="_blank" rel="noopener noreferrer">
+                                        <a href={episode.linkVideo} rel="noopener noreferrer">
                                           <PlayCircle className="mr-1.5 h-4 w-4" /> Assistir
                                         </a>
                                       </Button>
