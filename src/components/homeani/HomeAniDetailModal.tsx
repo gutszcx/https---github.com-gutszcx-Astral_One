@@ -15,7 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { StoredCineItem, EpisodeFormValues, SeasonFormValues } from '@/types';
-import { Film, Tv, Clapperboard, Clock } from 'lucide-react';
+import { Film, Tv, Clapperboard, Clock, PlayCircle } from 'lucide-react';
 import {
   Accordion,
   AccordionContent,
@@ -135,7 +135,17 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
                 {item.dublagensDisponiveis && <p><strong>Dublagens:</strong> {item.dublagensDisponiveis}</p>}
               </div>
 
-              {/* "Assistir Filme" button removed for movies */}
+              {item.contentType === 'movie' && item.linkVideo && (
+                <Button 
+                  asChild 
+                  className="mt-4 w-full sm:w-auto"
+                  size="lg"
+                >
+                  <a href={item.linkVideo} target="_blank" rel="noopener noreferrer">
+                    <PlayCircle className="mr-2 h-5 w-5" /> Assistir Filme
+                  </a>
+                </Button>
+              )}
 
               {item.contentType === 'series' && item.temporadas && item.temporadas.length > 0 && (
                 <div className="mt-4">
@@ -161,7 +171,13 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
                                         </p>
                                       )}
                                     </div>
-                                    {/* "Assistir" button for episodes removed */}
+                                    {episode.linkVideo && (
+                                       <Button asChild variant="outline" size="sm">
+                                        <a href={episode.linkVideo} target="_blank" rel="noopener noreferrer">
+                                          <PlayCircle className="mr-1.5 h-4 w-4" /> Assistir
+                                        </a>
+                                      </Button>
+                                    )}
                                   </div>
                                   {episode.descricao && (
                                     <p className="text-xs text-muted-foreground mt-1.5 pt-1.5 border-t border-border/50">
