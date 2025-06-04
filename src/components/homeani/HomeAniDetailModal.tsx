@@ -14,7 +14,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { StoredCineItem } from '@/types';
-import { PlayCircle, Film, Tv } from 'lucide-react';
+import { PlayCircle, Film, Tv, Clapperboard, Clock } from 'lucide-react';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
 
 interface HomeAniDetailModalProps {
   item: StoredCineItem | null;
@@ -80,7 +86,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
                 {item.duracaoMedia && (
                   <>
                     <span className="text-xs">&bull;</span>
-                    <span>{item.duracaoMedia} min</span>
+                    <span>{item.duracaoMedia} min (média ep.)</span>
                   </>
                 )}
                 {item.classificacaoIndicativa && (
@@ -113,7 +119,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
 
               <div className="space-y-1 text-sm pt-2">
                 {item.qualidade && 
-                    <div><strong>Qualidade:</strong> <Badge variant="outline">{item.qualidade}</Badge></div>
+                    <div className="flex items-center"><strong>Qualidade:</strong> <Badge variant="outline" className="ml-2">{item.qualidade}</Badge></div>
                 }
                 {item.contentType === 'series' && item.totalTemporadas !== undefined && item.totalTemporadas !== null && (
                   <p><strong>Temporadas:</strong> {item.totalTemporadas}</p>
@@ -129,11 +135,58 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
                   </a>
                 </Button>
               )}
-              {/* Placeholder for series episodes/watch links */}
-              {item.contentType === 'series' && (
-                <Button disabled className="mt-4 w-full sm:w-auto" variant="outline">
-                  <PlayCircle className="mr-2 h-5 w-5" /> Ver Episódios (Em breve)
-                </Button>
+              
+              {item.contentType === 'series' && item.temporadas && item.temporadas.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="font-semibold text-md mb-2 text-primary">Temporadas e Episódios</h4>
+                  <Accordion type="single" collapsible className="w-full">
+                    {item.temporadas.sort((a, b) => a.numeroTemporada - b.numeroTemporada).map((season, seasonIndex) => (
+                      <AccordionItem value={`season-${season.numeroTemporada}`} key={`season-${season.id || seasonIndex}`}>
+                        <AccordionTrigger>Temporada {season.numeroTemporada}</AccordionTrigger>
+                        <AccordionContent>
+                          {season.episodios && season.episodios.length > 0 ? (
+                            <ul className="space-y-3 pl-2">
+                              {season.episodios.map((episode, episodeIndex) => (
+                                <li key={`episode-${episode.id || episodeIndex}`} className="p-3 border rounded-md bg-muted/30">
+                                  <div className="flex justify-between items-start">
+                                    <div>
+                                      <p className="font-medium text-sm flex items-center">
+                                        <Clapperboard className="mr-2 h-4 w-4 text-primary/80" />
+                                        Ep. {episodeIndex + 1}: {episode.titulo}
+                                      </p>
+                                      {episode.duracao && (
+                                        <p className="text-xs text-muted-foreground flex items-center mt-0.5">
+                                          <Clock className="mr-1.5 h-3 w-3" /> {episode.duracao} min
+                                        </p>
+                                      )}
+                                    </div>
+                                    {episode.linkVideo && (
+                                      <Button asChild size="sm" variant="outline" className="ml-2 shrink-0">
+                                        <a href={episode.linkVideo} target="_blank" rel="noopener noreferrer">
+                                          <PlayCircle className="mr-1.5 h-4 w-4" /> Assistir
+                                        </a>
+                                      </Button>
+                                    )}
+                                  </div>
+                                  {episode.descricao && (
+                                    <p className="text-xs text-muted-foreground mt-1.5 pt-1.5 border-t border-border/50">
+                                      {episode.descricao}
+                                    </p>
+                                  )}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="text-sm text-muted-foreground pl-2">Nenhum episódio cadastrado para esta temporada.</p>
+                          )}
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                </div>
+              )}
+              {item.contentType === 'series' && (!item.temporadas || item.temporadas.length === 0) && (
+                 <p className="text-sm text-muted-foreground mt-4">Nenhuma temporada ou episódio cadastrado.</p>
               )}
 
             </div>
