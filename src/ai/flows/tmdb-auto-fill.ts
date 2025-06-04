@@ -3,42 +3,64 @@
 'use server';
 
 /**
- * @fileOverview TMDB Auto-Fill Flow. This flow allows users to search for content in the TMDB database
- * and automatically populate the content metadata fields.
- *
- * - tmdbAutoFill - A function that handles the TMDB auto-fill process.
- * - TmdbAutoFillInput - The input type for the tmdbAutoFill function.
- * - TmdbAutoFillOutput - The return type for the tmdbAutoFill function.
+ * @fileOverview TMDB Search and Detail Fetching Flows.
+ * - searchTmdbContent: Searches TMDB for content and returns a list of results.
+ * - fetchTmdbContentDetails: Fetches detailed information for a specific TMDB content ID.
+ * - TmdbSearchInput - Input for searching content.
+ * - TmdbMultiSearchOutput - Output for search results.
+ * - TmdbFetchDetailsInput - Input for fetching detailed content.
+ * - TmdbDetailedContentOutput - Output for detailed content.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const TMDB_API_BASE_URL = 'https://api.themoviedb.org/3';
+const TMDB_IMAGE_BASE_URL_W185 = 'https://image.tmdb.org/t/p/w185';
 const TMDB_IMAGE_BASE_URL_W500 = 'https://image.tmdb.org/t/p/w500';
 const TMDB_IMAGE_BASE_URL_W1280 = 'https://image.tmdb.org/t/p/w1280';
 
-const TmdbAutoFillInputSchema = z.object({
+// Schemas for Multi-Search (listing results)
+const TmdbSearchInputSchema = z.object({
   contentName: z.string().describe('The name of the content to search for in TMDB.'),
 });
-export type TmdbAutoFillInput = z.infer<typeof TmdbAutoFillInputSchema>;
+export type TmdbSearchInput = z.infer<typeof TmdbSearchInputSchema>;
 
-const TmdbAutoFillOutputSchema = z.object({
+const TmdbSearchResultItemSchema = z.object({
+  id: z.number().describe('The TMDB ID of the content.'),
+  title: z.string().describe('The title of the content.'),
+  mediaType: z.enum(['movie', 'tv']).describe('The type of content (movie or tv).'),
+  posterUrl: z.string().url().or(z.string().startsWith('https://placehold.co')).describe('The URL of the content poster.'),
+  releaseYear: z.string().nullable().describe('The release year of the content.'),
+  overview: z.string().nullable().describe('A brief overview of the content.'),
+});
+export type TmdbSearchResultItem = z.infer<typeof TmdbSearchResultItemSchema>;
+
+const TmdbMultiSearchOutputSchema = z.array(TmdbSearchResultItemSchema);
+export type TmdbMultiSearchOutput = z.infer<typeof TmdbMultiSearchOutputSchema>;
+
+
+// Schemas for Fetching Detailed Content
+const TmdbFetchDetailsInputSchema = z.object({
+  id: z.number().describe('The TMDB ID of the content.'),
+  mediaType: z.enum(['movie', 'tv']).describe('The type of content (movie or tv).'),
+});
+export type TmdbFetchDetailsInput = z.infer<typeof TmdbFetchDetailsInputSchema>;
+
+const TmdbDetailedContentOutputSchema = z.object({
   title: z.string().describe('The title of the content.'),
   synopsis: z.string().describe('The synopsis of the content.'),
   genres: z.array(z.string()).describe('The genres of the content.'),
-  poster: z.string().describe('The URL of the content poster.'),
-  banner: z.string().describe('The URL of the content banner.'),
+  poster: z.string().url().or(z.string().startsWith('https://placehold.co')).describe('The URL of the content poster (w500).'),
+  banner: z.string().url().or(z.string().startsWith('https://placehold.co')).describe('The URL of the content banner (w1280).'),
   releaseDate: z.string().describe('The release date of the content.'),
   duration: z.number().optional().nullable().describe('The duration of the content in minutes.'),
   numberOfSeasons: z.number().optional().describe('The number of seasons for series content.'),
 });
-export type TmdbAutoFillOutput = z.infer<typeof TmdbAutoFillOutputSchema>;
+export type TmdbDetailedContentOutput = z.infer<typeof TmdbDetailedContentOutputSchema>;
 
-export async function tmdbAutoFill(input: TmdbAutoFillInput): Promise<TmdbAutoFillOutput> {
-  return tmdbAutoFillFlow(input);
-}
 
+// Helper for genre mapping
 interface Genre {
   id: number;
   name: string;
@@ -64,14 +86,17 @@ async function fetchGenreMap(apiKey: string, type: 'movie' | 'tv'): Promise<Map<
 }
 
 
-const tmdbSearchTool = ai.defineTool(
+// Flow 1: Search for content (multi-search)
+export async function searchTmdbContent(input: TmdbSearchInput): Promise<TmdbMultiSearchOutput> {
+  return tmdbMultiSearchFlow(input);
+}
+
+const tmdbMultiSearchTool = ai.defineTool(
   {
-    name: 'tmdbSearch',
-    description: 'Searches for content in the TMDB database and returns the content metadata.',
-    inputSchema: z.object({
-      contentName: z.string().describe('The name of the content to search for.'),
-    }),
-    outputSchema: TmdbAutoFillOutputSchema,
+    name: 'tmdbMultiSearch',
+    description: 'Searches TMDB for movies and TV shows based on a query and returns a list of results.',
+    inputSchema: TmdbSearchInputSchema,
+    outputSchema: TmdbMultiSearchOutputSchema,
   },
   async (input) => {
     const apiKey = process.env.TMDB_API_KEY;
@@ -79,50 +104,105 @@ const tmdbSearchTool = ai.defineTool(
       throw new Error('TMDB_API_KEY is not configured in environment variables.');
     }
 
-    // 1. Search for the content
-    const searchUrl = `${TMDB_API_BASE_URL}/search/multi?api_key=${apiKey}&query=${encodeURIComponent(input.contentName)}&language=pt-BR&page=1`;
+    const searchUrl = `${TMDB_API_BASE_URL}/search/multi?api_key=${apiKey}&query=${encodeURIComponent(input.contentName)}&language=pt-BR&page=1&include_adult=false`;
     const searchResponse = await fetch(searchUrl);
     if (!searchResponse.ok) {
       throw new Error(`Failed to search TMDB: ${searchResponse.statusText}`);
     }
     const searchData = await searchResponse.json();
 
-    const firstResult = searchData.results?.find((r: any) => r.media_type === 'movie' || r.media_type === 'tv');
+    if (!searchData.results) {
+      return [];
+    }
+    
+    const results: TmdbMultiSearchOutput = searchData.results
+      .filter((r: any) => r.media_type === 'movie' || r.media_type === 'tv')
+      .map((r: any) => {
+        const title = r.title || r.name || 'Título Desconhecido';
+        const releaseDate = r.release_date || r.first_air_date;
+        return {
+          id: r.id,
+          title: title,
+          mediaType: r.media_type,
+          posterUrl: r.poster_path 
+            ? `${TMDB_IMAGE_BASE_URL_W185}${r.poster_path}` 
+            : `https://placehold.co/185x278.png`,
+          releaseYear: releaseDate ? releaseDate.substring(0, 4) : null,
+          overview: r.overview ? (r.overview.length > 150 ? r.overview.substring(0, 147) + '...' : r.overview) : null,
+        };
+      });
+    return results;
+  }
+);
 
-    if (!firstResult) {
-      throw new Error(`No movie or TV show found for "${input.contentName}"`);
+const tmdbMultiSearchPrompt = ai.definePrompt({
+  name: 'tmdbMultiSearchPrompt',
+  tools: [tmdbMultiSearchTool],
+  input: {schema: TmdbSearchInputSchema},
+  output: {schema: TmdbMultiSearchOutputSchema},
+  prompt: `Use the tmdbMultiSearch tool to find movies and TV shows related to "{{{contentName}}}". Return all relevant results.`,
+});
+
+const tmdbMultiSearchFlow = ai.defineFlow(
+  {
+    name: 'tmdbMultiSearchFlow',
+    inputSchema: TmdbSearchInputSchema,
+    outputSchema: TmdbMultiSearchOutputSchema,
+  },
+  async input => {
+    const {output} = await tmdbMultiSearchPrompt(input);
+    if (!output) {
+        throw new Error('The TMDB multi-search tool did not return an output.');
+    }
+    return output;
+  }
+);
+
+
+// Flow 2: Fetch detailed information for a specific content ID
+export async function fetchTmdbContentDetails(input: TmdbFetchDetailsInput): Promise<TmdbDetailedContentOutput> {
+  return tmdbFetchDetailsFlow(input);
+}
+
+const tmdbFetchDetailsTool = ai.defineTool(
+  {
+    name: 'tmdbFetchDetails',
+    description: 'Fetches detailed information for a specific movie or TV show from TMDB using its ID and media type.',
+    inputSchema: TmdbFetchDetailsInputSchema,
+    outputSchema: TmdbDetailedContentOutputSchema,
+  },
+  async (input) => {
+    const apiKey = process.env.TMDB_API_KEY;
+    if (!apiKey) {
+      throw new Error('TMDB_API_KEY is not configured in environment variables.');
     }
 
-    const { media_type, id } = firstResult;
-
-    // 2. Fetch detailed information
-    const detailsUrl = `${TMDB_API_BASE_URL}/${media_type}/${id}?api_key=${apiKey}&language=pt-BR`;
+    const { id, mediaType } = input;
+    const detailsUrl = `${TMDB_API_BASE_URL}/${mediaType}/${id}?api_key=${apiKey}&language=pt-BR`;
     const detailsResponse = await fetch(detailsUrl);
     if (!detailsResponse.ok) {
-      throw new Error(`Failed to fetch details for ${media_type} ID ${id}: ${detailsResponse.statusText}`);
+      throw new Error(`Failed to fetch details for ${mediaType} ID ${id}: ${detailsResponse.statusText}`);
     }
     const detailsData = await detailsResponse.json();
 
-    // 3. Fetch and map genres
-    const currentGenreMap = await fetchGenreMap(apiKey, media_type);
+    const currentGenreMap = await fetchGenreMap(apiKey, mediaType);
     const genreNames = detailsData.genres?.map((g: Genre) => g.name) ?? 
                        (detailsData.genre_ids?.map((gid: number) => currentGenreMap.get(gid)).filter(Boolean) as string[] ?? []);
 
-
-    let output: TmdbAutoFillOutput = {
+    let output: TmdbDetailedContentOutput = {
       title: detailsData.title || detailsData.name || 'N/A',
       synopsis: detailsData.overview || '',
       genres: genreNames,
-      poster: detailsData.poster_path ? `${TMDB_IMAGE_BASE_URL_W500}${detailsData.poster_path}` : 'https://placehold.co/500x750.png?text=Sem+Poster',
-      banner: detailsData.backdrop_path ? `${TMDB_IMAGE_BASE_URL_W1280}${detailsData.backdrop_path}` : 'https://placehold.co/1280x720.png?text=Sem+Banner',
+      poster: detailsData.poster_path ? `${TMDB_IMAGE_BASE_URL_W500}${detailsData.poster_path}` : `https://placehold.co/500x750.png`,
+      banner: detailsData.backdrop_path ? `${TMDB_IMAGE_BASE_URL_W1280}${detailsData.backdrop_path}` : `https://placehold.co/1280x720.png`,
       releaseDate: detailsData.release_date || detailsData.first_air_date || '',
-      duration: null, // Default to null
-      numberOfSeasons: undefined, // Default to undefined
+      duration: null,
+      numberOfSeasons: undefined,
     };
     
-    if (media_type === 'movie') {
+    if (mediaType === 'movie') {
       output.duration = detailsData.runtime || null;
-    } else if (media_type === 'tv') {
+    } else if (mediaType === 'tv') {
       output.numberOfSeasons = detailsData.number_of_seasons || undefined;
       if (detailsData.episode_run_time && detailsData.episode_run_time.length > 0) {
         output.duration = detailsData.episode_run_time[0];
@@ -131,36 +211,32 @@ const tmdbSearchTool = ai.defineTool(
       }
     }
     
-    // Ensure all required string fields have a default if somehow null/undefined from API
     output.title = output.title || 'Título Indisponível';
     output.synopsis = output.synopsis || 'Sinopse Indisponível';
-    output.poster = output.poster || 'https://placehold.co/500x750.png?text=Sem+Poster';
-    output.banner = output.banner || 'https://placehold.co/1280x720.png?text=Sem+Banner';
     output.releaseDate = output.releaseDate || 'Data Indisponível';
-
 
     return output;
   }
 );
 
-const tmdbAutoFillPrompt = ai.definePrompt({
-  name: 'tmdbAutoFillPrompt',
-  tools: [tmdbSearchTool],
-  input: {schema: TmdbAutoFillInputSchema},
-  output: {schema: TmdbAutoFillOutputSchema},
-  prompt: `Use the tmdbSearch tool to find information about the content named "{{{contentName}}}". Return all the fields you get back from the tool.`,
+const tmdbFetchDetailsPrompt = ai.definePrompt({
+  name: 'tmdbFetchDetailsPrompt',
+  tools: [tmdbFetchDetailsTool],
+  input: {schema: TmdbFetchDetailsInputSchema},
+  output: {schema: TmdbDetailedContentOutputSchema},
+  prompt: `Use the tmdbFetchDetails tool to get detailed information for the content with ID {{id}} and media type '{{mediaType}}'. Return all details provided by the tool.`,
 });
 
-const tmdbAutoFillFlow = ai.defineFlow(
+const tmdbFetchDetailsFlow = ai.defineFlow(
   {
-    name: 'tmdbAutoFillFlow',
-    inputSchema: TmdbAutoFillInputSchema,
-    outputSchema: TmdbAutoFillOutputSchema,
+    name: 'tmdbFetchDetailsFlow',
+    inputSchema: TmdbFetchDetailsInputSchema,
+    outputSchema: TmdbDetailedContentOutputSchema,
   },
   async input => {
-    const {output} = await tmdbAutoFillPrompt(input);
+    const {output} = await tmdbFetchDetailsPrompt(input);
     if (!output) {
-        throw new Error('The TMDB auto-fill tool did not return an output.');
+        throw new Error('The TMDB fetch details tool did not return an output.');
     }
     return output;
   }
