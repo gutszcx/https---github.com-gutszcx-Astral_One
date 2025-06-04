@@ -1,7 +1,7 @@
 // src/components/homeani/HomeAniDetailModal.tsx
 'use client';
 
-import { useState } from 'react'; // Added useState
+import { useState } from 'react';
 import Image from 'next/image';
 import {
   Dialog,
@@ -15,7 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { StoredCineItem } from '@/types';
-import { PlayCircle, Film, Tv, Clapperboard, Clock, XCircle } from 'lucide-react'; // Added XCircle
+import { PlayCircle, Film, Tv, Clapperboard, Clock, XCircle } from 'lucide-react';
 import {
   Accordion,
   AccordionContent,
@@ -28,6 +28,19 @@ interface HomeAniDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
+
+const determineVideoType = (url: string): string => {
+  if (url.endsWith('.m3u8')) {
+    return 'application/vnd.apple.mpegurl';
+  }
+  if (url.endsWith('.mp4')) {
+    return 'video/mp4';
+  }
+  // For other types, you might add more checks or let the browser infer
+  // Returning a common type or an empty string if unsure
+  return 'video/mp4'; // Defaulting to mp4 if type is not obvious
+};
+
 
 export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModalProps) {
   const [currentVideoUrl, setCurrentVideoUrl] = useState<string | null>(null);
@@ -81,7 +94,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
           {currentVideoUrl && (
             <div className="p-4 md:p-6 bg-black">
               <video key={currentVideoUrl} width="100%" style={{ maxHeight: '60vh', aspectRatio: '16/9' }} controls autoPlay className="rounded-md">
-                <source src={currentVideoUrl} type="video/mp4" /> {/* Consider more types or a library for robustness */}
+                <source src={currentVideoUrl} type={determineVideoType(currentVideoUrl)} />
                 Seu navegador não suporta a tag de vídeo.
               </video>
               <Button variant="outline" size="sm" onClick={() => setCurrentVideoUrl(null)} className="mt-3 w-full">
