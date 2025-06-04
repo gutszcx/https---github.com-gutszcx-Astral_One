@@ -34,6 +34,13 @@ interface VideoInfo {
   url: string;
   storageKey: string;
   title: string;
+  subtitleUrl?: string | null;
+}
+
+interface ProgressData {
+  time: number;
+  duration: number;
+  lastSaved: number;
 }
 
 const determineVideoType = (url: string): string => {
@@ -51,9 +58,19 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
   const [currentVideoInfo, setCurrentVideoInfo] = useState<VideoInfo | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const handleWatchClick = (url: string | undefined | null, storageKey: string, title: string) => {
+  const handleWatchClick = (
+    url: string | undefined | null,
+    storageKey: string,
+    title: string,
+    subtitleLink?: string | undefined | null
+  ) => {
     if (url) {
-      setCurrentVideoInfo({ url, storageKey, title });
+      setCurrentVideoInfo({
+        url,
+        storageKey,
+        title,
+        subtitleUrl: subtitleLink ? subtitleLink : undefined,
+      });
     }
   };
 
@@ -61,7 +78,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
     const videoElement = videoRef.current;
     if (videoElement && currentVideoInfo?.storageKey && videoElement.currentTime > 0 && isFinite(videoElement.duration)) {
       try {
-        const progressData = {
+        const progressData: ProgressData = {
           time: videoElement.currentTime,
           duration: videoElement.duration,
           lastSaved: Date.now()
@@ -100,7 +117,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
       try {
         const savedProgressString = localStorage.getItem(currentVideoInfo.storageKey);
         if (savedProgressString) {
-          const savedProgress = JSON.parse(savedProgressString);
+          const savedProgress: ProgressData = JSON.parse(savedProgressString);
           if (savedProgress && typeof savedProgress.time === 'number') {
             videoElement.currentTime = savedProgress.time;
           }
@@ -126,7 +143,6 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
       handleLoadedMetadata();
     }
     
-    // Ensure video plays if currentVideoInfo is set
     if (currentVideoInfo) {
         videoElement.play().catch(error => console.error("Error attempting to play video:", error));
     }
@@ -135,7 +151,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
     return () => {
       isMounted = false;
       clearInterval(intervalId);
-      saveVideoProgress(); // Save one last time on unmount/source change
+      saveVideoProgress(); 
       if (videoElement) {
         videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
         videoElement.removeEventListener('pause', saveVideoProgress);
@@ -143,7 +159,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
         videoElement.removeEventListener('ended', saveVideoProgress);
       }
     };
-  }, [currentVideoInfo]); // Re-run effect if currentVideoInfo changes
+  }, [currentVideoInfo]);
 
 
   if (!item) return null;
@@ -185,14 +201,24 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
             <div className="relative p-4 md:p-6 bg-black rounded-lg mx-4 md:mx-6 my-4">
               <video
                 ref={videoRef}
-                key={currentVideoInfo.storageKey} // Use storageKey which includes item ID and S/E info
+                key={currentVideoInfo.storageKey}
                 width="100%"
                 style={{ maxHeight: '60vh', aspectRatio: '16/9', display: 'block' }}
                 controls
                 autoPlay
+                crossOrigin="anonymous" // Required for external subtitles
                 className="rounded-md"
               >
                 <source src={currentVideoInfo.url} type={determineVideoType(currentVideoInfo.url)} />
+                {currentVideoInfo.subtitleUrl && (
+                  <track
+                    src={currentVideoInfo.subtitleUrl}
+                    kind="subtitles"
+                    srcLang="pt" // Default to Portuguese, consider making this dynamic if language info is available
+                    label="Português"
+                    default
+                  />
+                )}
                 Seu navegador não suporta a tag de vídeo.
               </video>
               <Button
@@ -277,7 +303,8 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
                   onClick={() => handleWatchClick(
                     item.linkVideo,
                     `video-progress-${item.id}`,
-                    item.tituloOriginal
+                    item.tituloOriginal,
+                    item.linkLegendas
                   )}
                   className="mt-4 w-full sm:w-auto"
                 >
@@ -314,7 +341,8 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
                                         onClick={() => handleWatchClick(
                                           episode.linkVideo,
                                           `video-progress-${item.id}-s${season.numeroTemporada}-e${episodeIndex}`,
-                                          `${item.tituloOriginal} - T${season.numeroTemporada}E${episodeIndex + 1}: ${episode.titulo}`
+                                          `${item.tituloOriginal} - T${season.numeroTemporada}E${episodeIndex + 1}: ${episode.titulo}`,
+                                          episode.linkLegenda
                                         )}
                                         size="sm"
                                         variant="outline"
