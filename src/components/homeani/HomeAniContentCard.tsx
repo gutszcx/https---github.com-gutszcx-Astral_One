@@ -3,7 +3,7 @@
 'use client';
 
 import Image from 'next/image';
-import { Card, CardContent } from '@/components/ui/card'; // Removed CardHeader, CardTitle
+import { Card, CardContent } from '@/components/ui/card';
 import { Film, Tv, Star } from 'lucide-react';
 import type { StoredCineItem } from '@/types';
 import { Badge } from '@/components/ui/badge';
@@ -22,14 +22,14 @@ export function HomeAniContentCard({ item, onClick }: HomeAniContentCardProps) {
 
   return (
     <Card 
-      className="overflow-hidden shadow-md hover:shadow-xl focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 bg-card cursor-pointer group w-64 md:w-72 flex-shrink-0 rounded-lg transition-all duration-300 ease-in-out hover:scale-105"
+      className="overflow-hidden shadow-md hover:shadow-xl focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 bg-card cursor-pointer group w-40 sm:w-48 md:w-56 lg:w-60 xl:w-64 flex-shrink-0 rounded-lg transition-all duration-300 ease-in-out hover:scale-105"
       onClick={onClick}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick(); }}
       tabIndex={0}
       role="button"
       aria-label={`Ver detalhes de ${item.tituloOriginal}`}
     >
-      <div className="relative aspect-video w-full bg-muted/50"> {/* Changed to aspect-video */}
+      <div className="relative aspect-video w-full bg-muted/50">
         <Image
           src={item.capaPoster || `https://placehold.co/320x180.png?text=${encodeURIComponent(item.tituloOriginal)}`}
           alt={`Poster de ${item.tituloOriginal}`}
@@ -57,3 +57,4 @@ export function HomeAniContentCard({ item, onClick }: HomeAniContentCardProps) {
     </Card>
   );
 }
+

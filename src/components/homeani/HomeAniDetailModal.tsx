@@ -15,8 +15,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { StoredCineItem, SeasonFormValues, EpisodeFormValues } from '@/types';
-import { PlayCircle, Film, Tv, Clapperboard, Clock, X } from 'lucide-react'; // Changed XCircle to X
+import type { StoredCineItem } from '@/types';
+import { PlayCircle, Film, Tv, Clapperboard, Clock, X } from 'lucide-react';
 import {
   Accordion,
   AccordionContent,
@@ -30,6 +30,12 @@ interface HomeAniDetailModalProps {
   onClose: () => void;
 }
 
+interface VideoInfo {
+  url: string;
+  storageKey: string;
+  title: string;
+}
+
 const determineVideoType = (url: string): string => {
   if (url.endsWith('.m3u8')) {
     return 'application/vnd.apple.mpegurl';
@@ -37,12 +43,12 @@ const determineVideoType = (url: string): string => {
   if (url.endsWith('.mp4')) {
     return 'video/mp4';
   }
-  return 'video/mp4';
+  return 'video/mp4'; // Default or let the browser figure it out
 };
 
 
 export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModalProps) {
-  const [currentVideoInfo, setCurrentVideoInfo] = useState<{ url: string; storageKey: string; title: string } | null>(null);
+  const [currentVideoInfo, setCurrentVideoInfo] = useState<VideoInfo | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const handleWatchClick = (url: string | undefined | null, storageKey: string, title: string) => {
@@ -51,15 +57,24 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
     }
   };
 
-  const closePlayerAndSaveProgress = () => {
+  const saveVideoProgress = () => {
     const videoElement = videoRef.current;
     if (videoElement && currentVideoInfo?.storageKey && videoElement.currentTime > 0 && isFinite(videoElement.duration)) {
       try {
-        localStorage.setItem(currentVideoInfo.storageKey, String(videoElement.currentTime));
+        const progressData = {
+          time: videoElement.currentTime,
+          duration: videoElement.duration,
+          lastSaved: Date.now()
+        };
+        localStorage.setItem(currentVideoInfo.storageKey, JSON.stringify(progressData));
       } catch (e) {
         console.error("Error saving video progress to localStorage:", e);
       }
     }
+  };
+
+  const closePlayerAndSaveProgress = () => {
+    saveVideoProgress();
     setCurrentVideoInfo(null);
   };
 
@@ -80,22 +95,15 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
 
     let isMounted = true;
 
-    const saveProgress = () => {
-      if (videoElement && videoElement.currentTime > 0 && currentVideoInfo?.storageKey && isFinite(videoElement.duration)) {
-        try {
-          localStorage.setItem(currentVideoInfo.storageKey, String(videoElement.currentTime));
-        } catch (e) {
-          console.error("Error saving video progress to localStorage:", e);
-        }
-      }
-    };
-
     const handleLoadedMetadata = () => {
       if (!isMounted || !currentVideoInfo?.storageKey) return;
       try {
-        const savedTime = localStorage.getItem(currentVideoInfo.storageKey);
-        if (savedTime) {
-          videoElement.currentTime = parseFloat(savedTime);
+        const savedProgressString = localStorage.getItem(currentVideoInfo.storageKey);
+        if (savedProgressString) {
+          const savedProgress = JSON.parse(savedProgressString);
+          if (savedProgress && typeof savedProgress.time === 'number') {
+            videoElement.currentTime = savedProgress.time;
+          }
         }
       } catch (e) {
         console.error("Error loading video progress from localStorage:", e);
@@ -104,31 +112,38 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
 
     const intervalId = setInterval(() => {
       if (videoElement && !videoElement.paused && !videoElement.ended) {
-        saveProgress();
+        saveVideoProgress();
       }
-    }, 5000);
+    }, 5000); // Save every 5 seconds
 
     videoElement.addEventListener('loadedmetadata', handleLoadedMetadata);
-    videoElement.addEventListener('pause', saveProgress);
-    videoElement.addEventListener('seeked', saveProgress); 
-    videoElement.addEventListener('ended', saveProgress); // Save progress if video ends
+    videoElement.addEventListener('pause', saveVideoProgress);
+    videoElement.addEventListener('seeked', saveVideoProgress); 
+    videoElement.addEventListener('ended', saveVideoProgress);
 
+    // If metadata is already loaded (e.g., video element reused for same source), try loading progress
     if (videoElement.readyState >= videoElement.HAVE_METADATA) {
       handleLoadedMetadata();
     }
+    
+    // Ensure video plays if currentVideoInfo is set
+    if (currentVideoInfo) {
+        videoElement.play().catch(error => console.error("Error attempting to play video:", error));
+    }
+
 
     return () => {
       isMounted = false;
       clearInterval(intervalId);
-      saveProgress(); 
+      saveVideoProgress(); // Save one last time on unmount/source change
       if (videoElement) {
         videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
-        videoElement.removeEventListener('pause', saveProgress);
-        videoElement.removeEventListener('seeked', saveProgress);
-        videoElement.removeEventListener('ended', saveProgress);
+        videoElement.removeEventListener('pause', saveVideoProgress);
+        videoElement.removeEventListener('seeked', saveVideoProgress);
+        videoElement.removeEventListener('ended', saveVideoProgress);
       }
     };
-  }, [currentVideoInfo]);
+  }, [currentVideoInfo]); // Re-run effect if currentVideoInfo changes
 
 
   if (!item) return null;
@@ -170,7 +185,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
             <div className="relative p-4 md:p-6 bg-black rounded-lg mx-4 md:mx-6 my-4">
               <video
                 ref={videoRef}
-                key={currentVideoInfo.storageKey}
+                key={currentVideoInfo.storageKey} // Use storageKey which includes item ID and S/E info
                 width="100%"
                 style={{ maxHeight: '60vh', aspectRatio: '16/9', display: 'block' }}
                 controls
