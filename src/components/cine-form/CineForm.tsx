@@ -30,6 +30,7 @@ import { GeneralFields } from './GeneralFields';
 import { MovieFields } from './MovieFields';
 import { SeriesFields } from './SeriesFields';
 import { TmdbSearch } from './TmdbSearch';
+import { TmdbCastSearch } from './TmdbCastSearch'; // Added import
 import { useToast } from '@/hooks/use-toast';
 
 
@@ -41,16 +42,13 @@ export function CineForm() {
   const form = useForm<CineFormValues>({
     resolver: zodResolver(cineFormSchema),
     defaultValues: contentType === 'movie' ? defaultMovieValues : defaultSeriesValues,
-    mode: 'onChange', // Or 'onBlur'
+    mode: 'onChange', 
   });
 
   useEffect(() => {
-    // When content type changes, reset the form with appropriate defaults
-    // and preserve common fields if they exist and are valid.
     const currentValues = form.getValues();
     const newDefaults = contentType === 'movie' ? defaultMovieValues : defaultSeriesValues;
     
-    // Preserve common fields
     const preservedValues: Partial<CineFormValues> = {
       tmdbSearchQuery: currentValues.tmdbSearchQuery,
       tituloOriginal: currentValues.tituloOriginal,
@@ -77,16 +75,12 @@ export function CineForm() {
   const onSubmit = async (values: CineFormValues) => {
     setIsSubmitting(true);
     console.log('Form Data:', values);
-    // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1500));
     
-    // Here you would typically send data to Firebase (Firestore for metadata, Storage for files)
     toast({
       title: "Conteúdo Salvo!",
       description: `"${values.tituloOriginal}" foi salvo com sucesso.`,
     });
-    // Potentially reset form or navigate away
-    // form.reset(contentType === 'movie' ? defaultMovieValues : defaultSeriesValues);
     setIsSubmitting(false);
   };
 
@@ -144,6 +138,10 @@ export function CineForm() {
               />
 
               <TmdbSearch form={form} contentType={contentType} />
+
+              <Separator />
+
+              <TmdbCastSearch /> 
 
               <Separator />
               
