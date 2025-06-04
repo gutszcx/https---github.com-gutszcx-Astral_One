@@ -1,49 +1,57 @@
+
 // src/components/homeani/HomeAniContentCard.tsx
 'use client';
 
 import Image from 'next/image';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Film, Tv } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card'; // Removed CardHeader, CardTitle
+import { Film, Tv, Star } from 'lucide-react';
 import type { StoredCineItem } from '@/types';
+import { Badge } from '@/components/ui/badge';
 
 interface HomeAniContentCardProps {
   item: StoredCineItem;
-  onClick: () => void; // Added onClick prop
+  onClick: () => void;
 }
 
 export function HomeAniContentCard({ item, onClick }: HomeAniContentCardProps) {
   const mediaTypeIcon = item.contentType === 'movie' 
-    ? <Film className="h-4 w-4 text-muted-foreground" /> 
-    : <Tv className="h-4 w-4 text-muted-foreground" />;
+    ? <Film className="h-3 w-3 text-muted-foreground group-hover:text-primary transition-colors" /> 
+    : <Tv className="h-3 w-3 text-muted-foreground group-hover:text-primary transition-colors" />;
   
   const mediaTypeLabel = item.contentType === 'movie' ? 'Filme' : 'Série';
 
   return (
     <Card 
-      className="overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out flex flex-col h-full bg-card cursor-pointer group hover:scale-105 focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2"
-      onClick={onClick} // Added onClick handler to the Card
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick(); }} // Accessibility for keyboard
-      tabIndex={0} // Make it focusable
-      role="button" // ARIA role
+      className="overflow-hidden shadow-md hover:shadow-xl focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 bg-card cursor-pointer group w-64 md:w-72 flex-shrink-0 rounded-lg transition-all duration-300 ease-in-out hover:scale-105"
+      onClick={onClick}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick(); }}
+      tabIndex={0}
+      role="button"
       aria-label={`Ver detalhes de ${item.tituloOriginal}`}
     >
-      <CardHeader className="p-0 relative aspect-[2/3] w-full bg-muted/50">
+      <div className="relative aspect-video w-full bg-muted/50"> {/* Changed to aspect-video */}
         <Image
-          src={item.capaPoster || `https://placehold.co/300x450.png?text=${encodeURIComponent(item.tituloOriginal)}`}
+          src={item.capaPoster || `https://placehold.co/320x180.png?text=${encodeURIComponent(item.tituloOriginal)}`}
           alt={`Poster de ${item.tituloOriginal}`}
           layout="fill"
           objectFit="cover"
           className="rounded-t-md transition-transform duration-300 group-hover:brightness-110"
-          data-ai-hint={item.contentType === 'movie' ? "movie poster" : "tv show poster"}
+          data-ai-hint={item.contentType === 'movie' ? "movie thumbnail" : "tv show thumbnail"}
         />
-      </CardHeader>
-      <CardContent className="p-4 flex-grow">
-        <CardTitle className="text-lg font-semibold leading-tight truncate mb-1 group-hover:text-primary transition-colors" title={item.tituloOriginal}>
+        {item.destaqueHome && (
+           <Badge variant="destructive" className="absolute top-2 right-2 text-xs px-1.5 py-0.5 shadow-md">
+            <Star className="h-3 w-3 mr-1" /> Destaque
+           </Badge>
+        )}
+      </div>
+      <CardContent className="p-3">
+        <h3 className="text-sm font-semibold leading-tight truncate mb-0.5 group-hover:text-primary transition-colors" title={item.tituloOriginal}>
           {item.tituloOriginal}
-        </CardTitle>
-        <div className="flex items-center text-sm text-muted-foreground">
+        </h3>
+        <div className="flex items-center text-xs text-muted-foreground">
           {mediaTypeIcon}
-          <span className="ml-1.5">{mediaTypeLabel} {item.anoLancamento && `(${item.anoLancamento})`}</span>
+          <span className="ml-1">{mediaTypeLabel}</span>
+          {item.anoLancamento && <span className="ml-1.5">&bull; {item.anoLancamento}</span>}
         </div>
       </CardContent>
     </Card>
