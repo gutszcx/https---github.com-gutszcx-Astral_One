@@ -77,7 +77,7 @@ const tmdbCastSearchPrompt = ai.definePrompt({
   tools: [tmdbPersonSearchTool],
   input: {schema: TmdbCastSearchInputSchema},
   output: {schema: TmdbCastSearchOutputSchema},
-  prompt: `Use the tmdbPersonSearch tool to find cast members named "{{{castName}}}". Return all the details you get back from the tool.`,
+  prompt: `Use the tmdbPersonSearch tool to find cast members named "{{{castName}}}". Your response MUST be an array of cast members, conforming to the provided schema. If the tool returns an empty list of results (an empty array), you MUST return an empty array ([]). Do not return null or any other value if the tool finds no results but executes successfully.`,
 });
 
 const tmdbCastSearchFlow = ai.defineFlow(
@@ -88,8 +88,13 @@ const tmdbCastSearchFlow = ai.defineFlow(
   },
   async (input) => {
     const {output} = await tmdbCastSearchPrompt(input);
-    if (!output) {
-        throw new Error('The TMDB cast search tool did not return an output.');
+    // If 'output' is null/undefined here, it means the prompt's result (after LLM generation and Zod parsing)
+    // did not conform to the TmdbCastSearchOutputSchema (an array).
+    // The error "Provided data: null" for an array schema means the LLM likely produced 'null'.
+    // In such a case, to ensure the flow adheres to its own outputSchema, we default to an empty array.
+    if (!output || !Array.isArray(output)) {
+        // This explicitly handles the case where the LLM response, despite schema hints, was not a valid array.
+        return [];
     }
     return output;
   }
