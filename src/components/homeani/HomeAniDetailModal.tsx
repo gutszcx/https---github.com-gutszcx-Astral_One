@@ -1,6 +1,7 @@
 // src/components/homeani/HomeAniDetailModal.tsx
 'use client';
 
+import { useState } from 'react'; // Added useState
 import Image from 'next/image';
 import {
   Dialog,
@@ -14,7 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { StoredCineItem } from '@/types';
-import { PlayCircle, Film, Tv, Clapperboard, Clock } from 'lucide-react';
+import { PlayCircle, Film, Tv, Clapperboard, Clock, XCircle } from 'lucide-react'; // Added XCircle
 import {
   Accordion,
   AccordionContent,
@@ -29,6 +30,13 @@ interface HomeAniDetailModalProps {
 }
 
 export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModalProps) {
+  const [currentVideoUrl, setCurrentVideoUrl] = useState<string | null>(null);
+
+  const handleCloseModal = () => {
+    setCurrentVideoUrl(null); // Reset video URL when modal closes
+    onClose();
+  };
+
   if (!item) return null;
 
   const mediaTypeLabel = item.contentType === 'movie' ? 'Filme' : 'Série';
@@ -36,10 +44,16 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
     ? <Film className="mr-1.5 h-4 w-4 inline-block" /> 
     : <Tv className="mr-1.5 h-4 w-4 inline-block" />;
 
+  const handleWatchClick = (url: string | undefined | null) => {
+    if (url) {
+      setCurrentVideoUrl(url);
+    }
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleCloseModal}>
       <DialogContent className="sm:max-w-[600px] md:max-w-[800px] lg:max-w-[900px] p-0 max-h-[90vh] flex flex-col">
-        {item.bannerFundo && (
+        {item.bannerFundo && !currentVideoUrl && ( // Hide banner if video is playing
           <div className="relative h-48 md:h-64 w-full flex-shrink-0">
             <Image
               src={item.bannerFundo}
@@ -53,7 +67,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
           </div>
         )}
         <div className="flex-grow overflow-y-auto">
-          <DialogHeader className={`p-6 ${item.bannerFundo ? 'pt-2 sm:pt-4 -mt-16 sm:-mt-20 relative z-10' : 'pt-6'}`}>
+          <DialogHeader className={`p-6 ${item.bannerFundo && !currentVideoUrl ? 'pt-2 sm:pt-4 -mt-16 sm:-mt-20 relative z-10' : 'pt-6'}`}>
             <DialogTitle className="text-2xl md:text-3xl font-bold text-foreground drop-shadow-sm">
               {item.tituloOriginal}
             </DialogTitle>
@@ -63,7 +77,20 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
               </DialogDescription>
             )}
           </DialogHeader>
-          <div className="px-6 pb-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+
+          {currentVideoUrl && (
+            <div className="p-4 md:p-6 bg-black">
+              <video key={currentVideoUrl} width="100%" style={{ maxHeight: '60vh', aspectRatio: '16/9' }} controls autoPlay className="rounded-md">
+                <source src={currentVideoUrl} type="video/mp4" /> {/* Consider more types or a library for robustness */}
+                Seu navegador não suporta a tag de vídeo.
+              </video>
+              <Button variant="outline" size="sm" onClick={() => setCurrentVideoUrl(null)} className="mt-3 w-full">
+                <XCircle className="mr-2 h-4 w-4" /> Fechar Player
+              </Button>
+            </div>
+          )}
+
+          <div className={`px-6 pb-6 grid grid-cols-1 md:grid-cols-3 gap-6 ${currentVideoUrl ? 'pt-2' : ''}`}>
             <div className="md:col-span-1 flex-shrink-0">
               <Image
                 src={item.capaPoster || `https://placehold.co/300x450.png?text=${encodeURIComponent(item.tituloOriginal)}`}
@@ -86,7 +113,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
                 {item.duracaoMedia && (
                   <>
                     <span className="text-xs">&bull;</span>
-                    <span>{item.duracaoMedia} min (média ep.)</span>
+                    <span>{item.duracaoMedia} min {item.contentType === 'series' ? '(média ep.)' : ''}</span>
                   </>
                 )}
                 {item.classificacaoIndicativa && (
@@ -129,10 +156,8 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
               </div>
 
               {item.contentType === 'movie' && item.linkVideo && (
-                <Button asChild className="mt-4 w-full sm:w-auto">
-                  <a href={item.linkVideo} target="_blank" rel="noopener noreferrer">
-                    <PlayCircle className="mr-2 h-5 w-5" /> Assistir Filme
-                  </a>
+                <Button onClick={() => handleWatchClick(item.linkVideo)} className="mt-4 w-full sm:w-auto">
+                  <PlayCircle className="mr-2 h-5 w-5" /> Assistir Filme
                 </Button>
               )}
               
@@ -161,10 +186,8 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
                                       )}
                                     </div>
                                     {episode.linkVideo && (
-                                      <Button asChild size="sm" variant="outline" className="ml-2 shrink-0">
-                                        <a href={episode.linkVideo} target="_blank" rel="noopener noreferrer">
-                                          <PlayCircle className="mr-1.5 h-4 w-4" /> Assistir
-                                        </a>
+                                      <Button onClick={() => handleWatchClick(episode.linkVideo)} size="sm" variant="outline" className="ml-2 shrink-0">
+                                        <PlayCircle className="mr-1.5 h-4 w-4" /> Assistir
                                       </Button>
                                     )}
                                   </div>
@@ -194,7 +217,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
         </div>
         <DialogFooter className="p-4 border-t bg-muted/50 rounded-b-md flex-shrink-0">
           <DialogClose asChild>
-            <Button variant="outline">Fechar</Button>
+            <Button variant="outline" onClick={handleCloseModal}>Fechar</Button>
           </DialogClose>
         </DialogFooter>
       </DialogContent>
