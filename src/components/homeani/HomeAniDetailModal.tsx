@@ -1,3 +1,4 @@
+
 // src/components/homeani/HomeAniDetailModal.tsx
 'use client';
 
@@ -15,7 +16,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { StoredCineItem, SeasonFormValues, EpisodeFormValues } from '@/types';
-import { PlayCircle, Film, Tv, Clapperboard, Clock, XCircle } from 'lucide-react';
+import { PlayCircle, Film, Tv, Clapperboard, Clock, X } from 'lucide-react'; // Changed XCircle to X
 import {
   Accordion,
   AccordionContent,
@@ -36,7 +37,7 @@ const determineVideoType = (url: string): string => {
   if (url.endsWith('.mp4')) {
     return 'video/mp4';
   }
-  return 'video/mp4'; 
+  return 'video/mp4';
 };
 
 
@@ -49,10 +50,10 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
       setCurrentVideoInfo({ url, storageKey, title });
     }
   };
-  
+
   const closePlayerAndSaveProgress = () => {
     const videoElement = videoRef.current;
-    if (videoElement && currentVideoInfo?.storageKey && videoElement.currentTime > 0) {
+    if (videoElement && currentVideoInfo?.storageKey && videoElement.currentTime > 0 && isFinite(videoElement.duration)) {
       try {
         localStorage.setItem(currentVideoInfo.storageKey, String(videoElement.currentTime));
       } catch (e) {
@@ -80,7 +81,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
     let isMounted = true;
 
     const saveProgress = () => {
-      if (videoElement && videoElement.currentTime > 0 && currentVideoInfo?.storageKey) {
+      if (videoElement && videoElement.currentTime > 0 && currentVideoInfo?.storageKey && isFinite(videoElement.duration)) {
         try {
           localStorage.setItem(currentVideoInfo.storageKey, String(videoElement.currentTime));
         } catch (e) {
@@ -105,11 +106,12 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
       if (videoElement && !videoElement.paused && !videoElement.ended) {
         saveProgress();
       }
-    }, 5000); // Save every 5 seconds
+    }, 5000);
 
     videoElement.addEventListener('loadedmetadata', handleLoadedMetadata);
     videoElement.addEventListener('pause', saveProgress);
-    videoElement.addEventListener('seeked', saveProgress); // Save after user seeks/scrubs
+    videoElement.addEventListener('seeked', saveProgress); 
+    videoElement.addEventListener('ended', saveProgress); // Save progress if video ends
 
     if (videoElement.readyState >= videoElement.HAVE_METADATA) {
       handleLoadedMetadata();
@@ -118,11 +120,12 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
     return () => {
       isMounted = false;
       clearInterval(intervalId);
-      saveProgress(); // Save one last time on cleanup
+      saveProgress(); 
       if (videoElement) {
         videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
         videoElement.removeEventListener('pause', saveProgress);
         videoElement.removeEventListener('seeked', saveProgress);
+        videoElement.removeEventListener('ended', saveProgress);
       }
     };
   }, [currentVideoInfo]);
@@ -131,8 +134,8 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
   if (!item) return null;
 
   const mediaTypeLabel = item.contentType === 'movie' ? 'Filme' : 'Série';
-  const mediaTypeIcon = item.contentType === 'movie' 
-    ? <Film className="mr-1.5 h-4 w-4 inline-block" /> 
+  const mediaTypeIcon = item.contentType === 'movie'
+    ? <Film className="mr-1.5 h-4 w-4 inline-block" />
     : <Tv className="mr-1.5 h-4 w-4 inline-block" />;
 
   return (
@@ -164,21 +167,27 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
           </DialogHeader>
 
           {currentVideoInfo?.url && (
-            <div className="p-4 md:p-6 bg-black">
-              <video 
+            <div className="relative p-4 md:p-6 bg-black rounded-lg mx-4 md:mx-6 my-4">
+              <video
                 ref={videoRef}
-                key={currentVideoInfo.url} 
-                width="100%" 
-                style={{ maxHeight: '60vh', aspectRatio: '16/9' }} 
-                controls 
-                autoPlay 
+                key={currentVideoInfo.storageKey}
+                width="100%"
+                style={{ maxHeight: '60vh', aspectRatio: '16/9', display: 'block' }}
+                controls
+                autoPlay
                 className="rounded-md"
               >
                 <source src={currentVideoInfo.url} type={determineVideoType(currentVideoInfo.url)} />
                 Seu navegador não suporta a tag de vídeo.
               </video>
-              <Button variant="outline" size="sm" onClick={handleClosePlayerButton} className="mt-3 w-full">
-                <XCircle className="mr-2 h-4 w-4" /> Fechar Player
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleClosePlayerButton}
+                className="absolute top-1 right-1 md:top-2 md:right-2 z-10 h-8 w-8 bg-black/60 hover:bg-black/80 text-white rounded-full p-1"
+                aria-label="Fechar player"
+              >
+                <X className="h-5 w-5" />
               </Button>
             </div>
           )}
@@ -216,7 +225,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
                   </>
                 )}
               </div>
-              
+
               {item.sinopse && (
                 <div>
                   <h4 className="font-semibold text-md mb-1 text-primary">Sinopse</h4>
@@ -238,7 +247,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
               )}
 
               <div className="space-y-1 text-sm pt-2">
-                {item.qualidade && 
+                {item.qualidade &&
                     <div className="flex items-center"><strong>Qualidade:</strong> <Badge variant="outline" className="ml-2">{item.qualidade}</Badge></div>
                 }
                 {item.contentType === 'series' && item.totalTemporadas !== undefined && item.totalTemporadas !== null && (
@@ -249,18 +258,18 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
               </div>
 
               {item.contentType === 'movie' && item.linkVideo && (
-                <Button 
+                <Button
                   onClick={() => handleWatchClick(
-                    item.linkVideo, 
+                    item.linkVideo,
                     `video-progress-${item.id}`,
                     item.tituloOriginal
-                  )} 
+                  )}
                   className="mt-4 w-full sm:w-auto"
                 >
                   <PlayCircle className="mr-2 h-5 w-5" /> Assistir Filme
                 </Button>
               )}
-              
+
               {item.contentType === 'series' && item.temporadas && item.temporadas.length > 0 && (
                 <div className="mt-4">
                   <h4 className="font-semibold text-md mb-2 text-primary">Temporadas e Episódios</h4>
@@ -286,14 +295,14 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
                                       )}
                                     </div>
                                     {episode.linkVideo && (
-                                      <Button 
+                                      <Button
                                         onClick={() => handleWatchClick(
-                                          episode.linkVideo, 
+                                          episode.linkVideo,
                                           `video-progress-${item.id}-s${season.numeroTemporada}-e${episodeIndex}`,
                                           `${item.tituloOriginal} - T${season.numeroTemporada}E${episodeIndex + 1}: ${episode.titulo}`
-                                        )} 
-                                        size="sm" 
-                                        variant="outline" 
+                                        )}
+                                        size="sm"
+                                        variant="outline"
                                         className="ml-2 shrink-0"
                                       >
                                         <PlayCircle className="mr-1.5 h-4 w-4" /> Assistir
@@ -333,3 +342,4 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
     </Dialog>
   );
 }
+
