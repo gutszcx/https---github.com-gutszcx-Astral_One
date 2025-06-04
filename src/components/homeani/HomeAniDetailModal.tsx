@@ -2,7 +2,6 @@
 // src/components/homeani/HomeAniDetailModal.tsx
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import {
   Dialog,
@@ -16,7 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { StoredCineItem, EpisodeFormValues, SeasonFormValues } from '@/types';
-import { PlayCircle, Film, Tv, Clapperboard, Clock, X } from 'lucide-react';
+import { Film, Tv, Clapperboard, Clock } from 'lucide-react';
 import {
   Accordion,
   AccordionContent,
@@ -30,147 +29,11 @@ interface HomeAniDetailModalProps {
   onClose: () => void;
 }
 
-interface VideoInfo {
-  url: string;
-  storageKey: string;
-  title: string;
-  subtitleUrl?: string | null;
-}
-
-interface ProgressData {
-  time: number;
-  duration: number;
-  lastSaved: number;
-}
-
-const determineVideoType = (urlString: string): string => {
-  if (!urlString) return 'video/mp4'; // Default if URL is somehow undefined/empty
-  try {
-    const url = new URL(urlString); // Parse the URL
-    const pathname = url.pathname.toLowerCase();
-
-    if (pathname.endsWith('.m3u8')) {
-      return 'application/vnd.apple.mpegurl';
-    }
-    if (pathname.endsWith('.mp4')) {
-      return 'video/mp4';
-    }
-    // Add other types if needed, e.g., .webm, .ogg
-  } catch (e) {
-    // Fallback for non-absolute URLs or parsing errors, though URLs should be absolute.
-    const lowerUrlString = urlString.toLowerCase();
-    if (lowerUrlString.includes('.m3u8')) return 'application/vnd.apple.mpegurl';
-    if (lowerUrlString.includes('.mp4')) return 'video/mp4';
-    console.warn("Could not determine video type from URL, defaulting to video/mp4:", urlString);
-  }
-  return 'video/mp4'; // Default
-};
-
-
 export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModalProps) {
-  const [currentVideoInfo, setCurrentVideoInfo] = useState<VideoInfo | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  const handleWatchClick = (
-    url: string | undefined | null,
-    storageKey: string,
-    title: string,
-    subtitleLink?: string | undefined | null
-  ) => {
-    if (url) {
-      setCurrentVideoInfo({
-        url,
-        storageKey,
-        title,
-        subtitleUrl: subtitleLink ? subtitleLink : undefined,
-      });
-    }
-  };
-
-  const saveVideoProgress = () => {
-    const videoElement = videoRef.current;
-    if (videoElement && currentVideoInfo?.storageKey && videoElement.currentTime > 0 && isFinite(videoElement.duration)) {
-      try {
-        const progressData: ProgressData = {
-          time: videoElement.currentTime,
-          duration: videoElement.duration,
-          lastSaved: Date.now()
-        };
-        localStorage.setItem(currentVideoInfo.storageKey, JSON.stringify(progressData));
-      } catch (e) {
-        console.error("Error saving video progress to localStorage:", e);
-      }
-    }
-  };
-
-  const closePlayerAndSaveProgress = () => {
-    saveVideoProgress();
-    setCurrentVideoInfo(null);
-  };
 
   const handleCloseModal = () => {
-    closePlayerAndSaveProgress();
     onClose();
   };
-
-  const handleClosePlayerButton = () => {
-    closePlayerAndSaveProgress();
-  };
-
-  useEffect(() => {
-    const videoElement = videoRef.current;
-    if (!videoElement || !currentVideoInfo?.url || !currentVideoInfo?.storageKey) {
-      return;
-    }
-
-    let isMounted = true;
-
-    const handleLoadedMetadata = () => {
-      console.log('Video metadata loaded for:', currentVideoInfo?.url); // Debug log
-      if (!isMounted || !currentVideoInfo?.storageKey || !videoElement) return;
-      try {
-        const savedProgressString = localStorage.getItem(currentVideoInfo.storageKey);
-        if (savedProgressString) {
-          const savedProgress: ProgressData = JSON.parse(savedProgressString);
-          if (savedProgress && typeof savedProgress.time === 'number' && isFinite(savedProgress.time)) {
-             if(savedProgress.time < videoElement.duration) { // Ensure we don't seek past duration
-                videoElement.currentTime = savedProgress.time;
-             }
-          }
-        }
-      } catch (e) {
-        console.error("Error loading video progress from localStorage:", e);
-      }
-    };
-
-    const intervalId = setInterval(() => {
-      if (videoElement && !videoElement.paused && !videoElement.ended) {
-        saveVideoProgress();
-      }
-    }, 5000); // Save every 5 seconds
-
-    videoElement.addEventListener('loadedmetadata', handleLoadedMetadata);
-    videoElement.addEventListener('pause', saveVideoProgress);
-    videoElement.addEventListener('seeked', saveVideoProgress); 
-    videoElement.addEventListener('ended', saveVideoProgress);
-
-    if (videoElement.readyState >= videoElement.HAVE_METADATA) {
-      handleLoadedMetadata();
-    }
-    
-    return () => {
-      isMounted = false;
-      clearInterval(intervalId);
-      saveVideoProgress(); 
-      if (videoElement) {
-        videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
-        videoElement.removeEventListener('pause', saveVideoProgress);
-        videoElement.removeEventListener('seeked', saveVideoProgress);
-        videoElement.removeEventListener('ended', saveVideoProgress);
-      }
-    };
-  }, [currentVideoInfo]);
-
 
   if (!item) return null;
 
@@ -182,7 +45,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleCloseModal()}>
       <DialogContent className="sm:max-w-[600px] md:max-w-[800px] lg:max-w-[900px] p-0 max-h-[90vh] flex flex-col">
-        {item.bannerFundo && !currentVideoInfo?.url && (
+        {item.bannerFundo && (
           <div className="relative h-48 md:h-64 w-full flex-shrink-0">
             <Image
               src={item.bannerFundo}
@@ -196,54 +59,18 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
           </div>
         )}
         <div className="flex-grow overflow-y-auto">
-          <DialogHeader className={`p-6 ${item.bannerFundo && !currentVideoInfo?.url ? 'pt-2 sm:pt-4 -mt-16 sm:-mt-20 relative z-10' : 'pt-6'}`}>
+          <DialogHeader className={`p-6 ${item.bannerFundo ? 'pt-2 sm:pt-4 -mt-16 sm:-mt-20 relative z-10' : 'pt-6'}`}>
             <DialogTitle className="text-2xl md:text-3xl font-bold text-foreground drop-shadow-sm">
-              {currentVideoInfo?.title || item.tituloOriginal}
+              {item.tituloOriginal}
             </DialogTitle>
-            {!currentVideoInfo?.title && item.tituloLocalizado && item.tituloLocalizado !== item.tituloOriginal && (
+            {item.tituloLocalizado && item.tituloLocalizado !== item.tituloOriginal && (
               <DialogDescription className="text-lg text-muted-foreground drop-shadow-sm">
                 {item.tituloLocalizado}
               </DialogDescription>
             )}
           </DialogHeader>
 
-          {currentVideoInfo?.url && (
-            <div className="relative p-1 md:p-2 bg-black rounded-lg mx-2 md:mx-4 my-2">
-              <video
-                ref={videoRef}
-                key={currentVideoInfo.storageKey} // Important: remounts video element on source change
-                width="100%"
-                style={{ maxHeight: 'calc(80vh - 150px)', aspectRatio: '16/9', display: 'block' }}
-                controls
-                autoPlay
-                crossOrigin="anonymous" 
-                className="rounded-md"
-              >
-                <source src={currentVideoInfo.url} type={determineVideoType(currentVideoInfo.url)} />
-                {currentVideoInfo.subtitleUrl && (
-                  <track
-                    src={currentVideoInfo.subtitleUrl}
-                    kind="subtitles"
-                    srcLang="pt" 
-                    label="Português"
-                    default
-                  />
-                )}
-                Seu navegador não suporta a tag de vídeo.
-              </video>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleClosePlayerButton}
-                className="absolute top-2 right-2 z-20 h-8 w-8 bg-black/60 hover:bg-black/80 text-white rounded-full p-1"
-                aria-label="Fechar player"
-              >
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
-          )}
-
-          <div className={`px-6 pb-6 grid grid-cols-1 md:grid-cols-3 gap-6 ${currentVideoInfo?.url ? 'pt-2' : ''}`}>
+          <div className={`px-6 pb-6 grid grid-cols-1 md:grid-cols-3 gap-6`}>
             <div className="md:col-span-1 flex-shrink-0">
               <Image
                 src={item.capaPoster || `https://placehold.co/300x450.png?text=${encodeURIComponent(item.tituloOriginal)}`}
@@ -308,19 +135,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
                 {item.dublagensDisponiveis && <p><strong>Dublagens:</strong> {item.dublagensDisponiveis}</p>}
               </div>
 
-              {item.contentType === 'movie' && item.linkVideo && (
-                <Button
-                  onClick={() => handleWatchClick(
-                    item.linkVideo,
-                    `video-progress-${item.id}`,
-                    item.tituloOriginal,
-                    item.linkLegendas
-                  )}
-                  className="mt-4 w-full sm:w-auto"
-                >
-                  <PlayCircle className="mr-2 h-5 w-5" /> Assistir Filme
-                </Button>
-              )}
+              {/* "Assistir Filme" button removed for movies */}
 
               {item.contentType === 'series' && item.temporadas && item.temporadas.length > 0 && (
                 <div className="mt-4">
@@ -346,21 +161,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
                                         </p>
                                       )}
                                     </div>
-                                    {episode.linkVideo && (
-                                      <Button
-                                        onClick={() => handleWatchClick(
-                                          episode.linkVideo,
-                                          `video-progress-${item.id}-s${season.numeroTemporada}-e${episodeIndex + 1}`, // Ensure episodeIndex is 1-based for key if needed or consistent
-                                          `${item.tituloOriginal} - T${season.numeroTemporada}E${episodeIndex + 1}: ${episode.titulo}`,
-                                          episode.linkLegenda
-                                        )}
-                                        size="sm"
-                                        variant="outline"
-                                        className="ml-2 shrink-0"
-                                      >
-                                        <PlayCircle className="mr-1.5 h-4 w-4" /> Assistir
-                                      </Button>
-                                    )}
+                                    {/* "Assistir" button for episodes removed */}
                                   </div>
                                   {episode.descricao && (
                                     <p className="text-xs text-muted-foreground mt-1.5 pt-1.5 border-t border-border/50">
@@ -395,4 +196,3 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
     </Dialog>
   );
 }
-
