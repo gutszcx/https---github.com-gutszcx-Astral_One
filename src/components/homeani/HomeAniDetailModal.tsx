@@ -43,15 +43,27 @@ interface ProgressData {
   lastSaved: number;
 }
 
-const determineVideoType = (url: string): string => {
-  if (!url) return 'video/mp4'; // Default if URL is somehow undefined/empty
-  if (url.endsWith('.m3u8')) {
-    return 'application/vnd.apple.mpegurl';
+const determineVideoType = (urlString: string): string => {
+  if (!urlString) return 'video/mp4'; // Default if URL is somehow undefined/empty
+  try {
+    const url = new URL(urlString); // Parse the URL
+    const pathname = url.pathname.toLowerCase();
+
+    if (pathname.endsWith('.m3u8')) {
+      return 'application/vnd.apple.mpegurl';
+    }
+    if (pathname.endsWith('.mp4')) {
+      return 'video/mp4';
+    }
+    // Add other types if needed, e.g., .webm, .ogg
+  } catch (e) {
+    // Fallback for non-absolute URLs or parsing errors, though URLs should be absolute.
+    const lowerUrlString = urlString.toLowerCase();
+    if (lowerUrlString.includes('.m3u8')) return 'application/vnd.apple.mpegurl';
+    if (lowerUrlString.includes('.mp4')) return 'video/mp4';
+    console.warn("Could not determine video type from URL, defaulting to video/mp4:", urlString);
   }
-  if (url.endsWith('.mp4')) {
-    return 'video/mp4';
-  }
-  return 'video/mp4'; // Default or let the browser figure it out
+  return 'video/mp4'; // Default
 };
 
 
@@ -114,6 +126,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
     let isMounted = true;
 
     const handleLoadedMetadata = () => {
+      console.log('Video metadata loaded for:', currentVideoInfo?.url); // Debug log
       if (!isMounted || !currentVideoInfo?.storageKey || !videoElement) return;
       try {
         const savedProgressString = localStorage.getItem(currentVideoInfo.storageKey);
@@ -141,16 +154,10 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
     videoElement.addEventListener('seeked', saveVideoProgress); 
     videoElement.addEventListener('ended', saveVideoProgress);
 
-    // If metadata is already loaded (e.g., video element reused for same source), try loading progress
-    // This is particularly important if the `autoPlay` attribute is present.
     if (videoElement.readyState >= videoElement.HAVE_METADATA) {
       handleLoadedMetadata();
     }
     
-    // Rely on the `autoPlay` attribute of the <video> tag to initiate playback.
-    // Explicitly calling videoElement.play() here can conflict with autoPlay and
-    // browser policies, potentially leading to the "play() request was interrupted" error.
-
     return () => {
       isMounted = false;
       clearInterval(intervalId);
@@ -206,7 +213,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
                 ref={videoRef}
                 key={currentVideoInfo.storageKey} // Important: remounts video element on source change
                 width="100%"
-                style={{ maxHeight: 'calc(80vh - 150px)', aspectRatio: '16/9', display: 'block' }} // Adjusted maxHeight
+                style={{ maxHeight: 'calc(80vh - 150px)', aspectRatio: '16/9', display: 'block' }}
                 controls
                 autoPlay
                 crossOrigin="anonymous" 
@@ -343,7 +350,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
                                       <Button
                                         onClick={() => handleWatchClick(
                                           episode.linkVideo,
-                                          `video-progress-${item.id}-s${season.numeroTemporada}-e${episodeIndex}`,
+                                          `video-progress-${item.id}-s${season.numeroTemporada}-e${episodeIndex + 1}`, // Ensure episodeIndex is 1-based for key if needed or consistent
                                           `${item.tituloOriginal} - T${season.numeroTemporada}E${episodeIndex + 1}: ${episode.titulo}`,
                                           episode.linkLegenda
                                         )}
