@@ -1,7 +1,7 @@
 // src/components/homeani/HomeAniDetailModal.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import {
   Dialog,
@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { StoredCineItem } from '@/types';
+import type { StoredCineItem, SeasonFormValues, EpisodeFormValues } from '@/types';
 import { PlayCircle, Film, Tv, Clapperboard, Clock, XCircle } from 'lucide-react';
 import {
   Accordion,
@@ -36,19 +36,97 @@ const determineVideoType = (url: string): string => {
   if (url.endsWith('.mp4')) {
     return 'video/mp4';
   }
-  // For other types, you might add more checks or let the browser infer
-  // Returning a common type or an empty string if unsure
-  return 'video/mp4'; // Defaulting to mp4 if type is not obvious
+  return 'video/mp4'; 
 };
 
 
 export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModalProps) {
-  const [currentVideoUrl, setCurrentVideoUrl] = useState<string | null>(null);
+  const [currentVideoInfo, setCurrentVideoInfo] = useState<{ url: string; storageKey: string; title: string } | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const handleWatchClick = (url: string | undefined | null, storageKey: string, title: string) => {
+    if (url) {
+      setCurrentVideoInfo({ url, storageKey, title });
+    }
+  };
+  
+  const closePlayerAndSaveProgress = () => {
+    const videoElement = videoRef.current;
+    if (videoElement && currentVideoInfo?.storageKey && videoElement.currentTime > 0) {
+      try {
+        localStorage.setItem(currentVideoInfo.storageKey, String(videoElement.currentTime));
+      } catch (e) {
+        console.error("Error saving video progress to localStorage:", e);
+      }
+    }
+    setCurrentVideoInfo(null);
+  };
 
   const handleCloseModal = () => {
-    setCurrentVideoUrl(null); // Reset video URL when modal closes
+    closePlayerAndSaveProgress();
     onClose();
   };
+
+  const handleClosePlayerButton = () => {
+    closePlayerAndSaveProgress();
+  };
+
+  useEffect(() => {
+    const videoElement = videoRef.current;
+    if (!videoElement || !currentVideoInfo?.url || !currentVideoInfo?.storageKey) {
+      return;
+    }
+
+    let isMounted = true;
+
+    const saveProgress = () => {
+      if (videoElement && videoElement.currentTime > 0 && currentVideoInfo?.storageKey) {
+        try {
+          localStorage.setItem(currentVideoInfo.storageKey, String(videoElement.currentTime));
+        } catch (e) {
+          console.error("Error saving video progress to localStorage:", e);
+        }
+      }
+    };
+
+    const handleLoadedMetadata = () => {
+      if (!isMounted || !currentVideoInfo?.storageKey) return;
+      try {
+        const savedTime = localStorage.getItem(currentVideoInfo.storageKey);
+        if (savedTime) {
+          videoElement.currentTime = parseFloat(savedTime);
+        }
+      } catch (e) {
+        console.error("Error loading video progress from localStorage:", e);
+      }
+    };
+
+    const intervalId = setInterval(() => {
+      if (videoElement && !videoElement.paused && !videoElement.ended) {
+        saveProgress();
+      }
+    }, 5000); // Save every 5 seconds
+
+    videoElement.addEventListener('loadedmetadata', handleLoadedMetadata);
+    videoElement.addEventListener('pause', saveProgress);
+    videoElement.addEventListener('seeked', saveProgress); // Save after user seeks/scrubs
+
+    if (videoElement.readyState >= videoElement.HAVE_METADATA) {
+      handleLoadedMetadata();
+    }
+
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+      saveProgress(); // Save one last time on cleanup
+      if (videoElement) {
+        videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
+        videoElement.removeEventListener('pause', saveProgress);
+        videoElement.removeEventListener('seeked', saveProgress);
+      }
+    };
+  }, [currentVideoInfo]);
+
 
   if (!item) return null;
 
@@ -57,16 +135,10 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
     ? <Film className="mr-1.5 h-4 w-4 inline-block" /> 
     : <Tv className="mr-1.5 h-4 w-4 inline-block" />;
 
-  const handleWatchClick = (url: string | undefined | null) => {
-    if (url) {
-      setCurrentVideoUrl(url);
-    }
-  };
-
   return (
-    <Dialog open={isOpen} onOpenChange={handleCloseModal}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleCloseModal()}>
       <DialogContent className="sm:max-w-[600px] md:max-w-[800px] lg:max-w-[900px] p-0 max-h-[90vh] flex flex-col">
-        {item.bannerFundo && !currentVideoUrl && ( // Hide banner if video is playing
+        {item.bannerFundo && !currentVideoInfo?.url && (
           <div className="relative h-48 md:h-64 w-full flex-shrink-0">
             <Image
               src={item.bannerFundo}
@@ -80,30 +152,38 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
           </div>
         )}
         <div className="flex-grow overflow-y-auto">
-          <DialogHeader className={`p-6 ${item.bannerFundo && !currentVideoUrl ? 'pt-2 sm:pt-4 -mt-16 sm:-mt-20 relative z-10' : 'pt-6'}`}>
+          <DialogHeader className={`p-6 ${item.bannerFundo && !currentVideoInfo?.url ? 'pt-2 sm:pt-4 -mt-16 sm:-mt-20 relative z-10' : 'pt-6'}`}>
             <DialogTitle className="text-2xl md:text-3xl font-bold text-foreground drop-shadow-sm">
-              {item.tituloOriginal}
+              {currentVideoInfo?.title || item.tituloOriginal}
             </DialogTitle>
-            {item.tituloLocalizado && item.tituloLocalizado !== item.tituloOriginal && (
+            {!currentVideoInfo?.title && item.tituloLocalizado && item.tituloLocalizado !== item.tituloOriginal && (
               <DialogDescription className="text-lg text-muted-foreground drop-shadow-sm">
                 {item.tituloLocalizado}
               </DialogDescription>
             )}
           </DialogHeader>
 
-          {currentVideoUrl && (
+          {currentVideoInfo?.url && (
             <div className="p-4 md:p-6 bg-black">
-              <video key={currentVideoUrl} width="100%" style={{ maxHeight: '60vh', aspectRatio: '16/9' }} controls autoPlay className="rounded-md">
-                <source src={currentVideoUrl} type={determineVideoType(currentVideoUrl)} />
+              <video 
+                ref={videoRef}
+                key={currentVideoInfo.url} 
+                width="100%" 
+                style={{ maxHeight: '60vh', aspectRatio: '16/9' }} 
+                controls 
+                autoPlay 
+                className="rounded-md"
+              >
+                <source src={currentVideoInfo.url} type={determineVideoType(currentVideoInfo.url)} />
                 Seu navegador não suporta a tag de vídeo.
               </video>
-              <Button variant="outline" size="sm" onClick={() => setCurrentVideoUrl(null)} className="mt-3 w-full">
+              <Button variant="outline" size="sm" onClick={handleClosePlayerButton} className="mt-3 w-full">
                 <XCircle className="mr-2 h-4 w-4" /> Fechar Player
               </Button>
             </div>
           )}
 
-          <div className={`px-6 pb-6 grid grid-cols-1 md:grid-cols-3 gap-6 ${currentVideoUrl ? 'pt-2' : ''}`}>
+          <div className={`px-6 pb-6 grid grid-cols-1 md:grid-cols-3 gap-6 ${currentVideoInfo?.url ? 'pt-2' : ''}`}>
             <div className="md:col-span-1 flex-shrink-0">
               <Image
                 src={item.capaPoster || `https://placehold.co/300x450.png?text=${encodeURIComponent(item.tituloOriginal)}`}
@@ -169,7 +249,14 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
               </div>
 
               {item.contentType === 'movie' && item.linkVideo && (
-                <Button onClick={() => handleWatchClick(item.linkVideo)} className="mt-4 w-full sm:w-auto">
+                <Button 
+                  onClick={() => handleWatchClick(
+                    item.linkVideo, 
+                    `video-progress-${item.id}`,
+                    item.tituloOriginal
+                  )} 
+                  className="mt-4 w-full sm:w-auto"
+                >
                   <PlayCircle className="mr-2 h-5 w-5" /> Assistir Filme
                 </Button>
               )}
@@ -199,7 +286,16 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
                                       )}
                                     </div>
                                     {episode.linkVideo && (
-                                      <Button onClick={() => handleWatchClick(episode.linkVideo)} size="sm" variant="outline" className="ml-2 shrink-0">
+                                      <Button 
+                                        onClick={() => handleWatchClick(
+                                          episode.linkVideo, 
+                                          `video-progress-${item.id}-s${season.numeroTemporada}-e${episodeIndex}`,
+                                          `${item.tituloOriginal} - T${season.numeroTemporada}E${episodeIndex + 1}: ${episode.titulo}`
+                                        )} 
+                                        size="sm" 
+                                        variant="outline" 
+                                        className="ml-2 shrink-0"
+                                      >
                                         <PlayCircle className="mr-1.5 h-4 w-4" /> Assistir
                                       </Button>
                                     )}

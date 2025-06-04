@@ -1,10 +1,16 @@
 // src/types/index.ts
-import type { CineFormValues } from '@/lib/schemas';
-// Firebase Timestamp is not directly used here anymore for client-side typing
-// if it was, import type { Timestamp } from 'firebase/firestore'; 
+import type { CineFormValues, SeasonFormValues as OriginalSeasonFormValues, EpisodeFormValues as OriginalEpisodeFormValues } from '@/lib/schemas';
+
+// Re-export or redefine SeasonFormValues and EpisodeFormValues if they are needed by other parts of the app
+// that expect them directly from types. For HomeAniDetailModal, we can import them from schemas.
+export type { CineFormValues };
+
+export type EpisodeFormValues = OriginalEpisodeFormValues;
+export type SeasonFormValues = OriginalSeasonFormValues;
+
 
 export interface StoredCineItem extends CineFormValues {
   id: string;
-  createdAt?: string; // Changed from Timestamp to string (ISO string)
-  updatedAt?: string; // Changed from Timestamp to string (ISO string)
+  createdAt?: string; 
+  updatedAt?: string; 
 }
