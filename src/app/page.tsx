@@ -1,5 +1,5 @@
 
-// src/app/page.tsx (New HomeAni Homepage - Prime Video Style)
+// src/app/page.tsx (HomeAni Homepage - Netflix Style Genre Rows)
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -8,8 +8,8 @@ import { getContentItems } from '@/lib/firebaseService';
 import type { StoredCineItem } from '@/types';
 import { HomeAniContentCard } from '@/components/homeani/HomeAniContentCard';
 import { HomeAniDetailModal } from '@/components/homeani/HomeAniDetailModal';
-import { HomeAniHeroCard } from '@/components/homeani/HomeAniHeroCard'; // New Hero Card
-import { Loader2, AlertTriangle, Film, Tv, History, Flame } from 'lucide-react'; // Added icons
+import { HomeAniHeroCard } from '@/components/homeani/HomeAniHeroCard';
+import { Loader2, AlertTriangle, Flame, Tag } from 'lucide-react'; // Added Tag icon
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 
@@ -26,14 +26,41 @@ export default function HomeAniPage() {
   const heroItem = useMemo(() => {
     const featured = activeItems.find(item => item.destaqueHome === true);
     if (featured) return featured;
-    // Fallback: pick the most recently updated item if no featured item is found
     return activeItems.length > 0 
       ? [...activeItems].sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime())[0] 
       : null;
   }, [activeItems]);
 
-  const movies = useMemo(() => activeItems.filter(item => item.contentType === 'movie' && item.id !== heroItem?.id), [activeItems, heroItem]);
-  const series = useMemo(() => activeItems.filter(item => item.contentType === 'series' && item.id !== heroItem?.id), [activeItems, heroItem]);
+  const itemsForRows = useMemo(() => {
+    return activeItems.filter(item => item.id !== heroItem?.id);
+  }, [activeItems, heroItem]);
+
+  const genreRows = useMemo(() => {
+    if (!itemsForRows) return [];
+
+    const genresMap: Map<string, StoredCineItem[]> = new Map();
+
+    itemsForRows.forEach(item => {
+      const itemGenres = (item.generos || '')
+        .split(',')
+        .map(g => g.trim())
+        .filter(Boolean)
+        .map(g => g.charAt(0).toUpperCase() + g.slice(1).toLowerCase()); // Normalize to Title Case
+
+      itemGenres.forEach(genre => {
+        if (!genresMap.has(genre)) {
+          genresMap.set(genre, []);
+        }
+        genresMap.get(genre)!.push(item);
+      });
+    });
+    
+    // Convert map to array and sort by genre name
+    return Array.from(genresMap.entries())
+      .map(([genre, items]) => ({ title: genre, items }))
+      .sort((a, b) => a.title.localeCompare(b.title));
+
+  }, [itemsForRows]);
 
 
   const handleCardClick = (item: StoredCineItem) => {
@@ -76,23 +103,21 @@ export default function HomeAniPage() {
         )}
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 space-y-10 pb-12">
-          {/* Placeholder for "Continue Watching" - Requires user session & tracking */}
-          {/* <ContentRow title="Continuar Assistindo" items={[]} onCardClick={handleCardClick} icon={<History className="mr-2 h-6 w-6" />} /> */}
-
-          {movies.length > 0 && (
-            <ContentRow title="Filmes Populares" items={movies} onCardClick={handleCardClick} icon={<Film className="mr-2 h-6 w-6" />} />
-          )}
-
-          {series.length > 0 && (
-            <ContentRow title="Séries em Destaque" items={series} onCardClick={handleCardClick} icon={<Tv className="mr-2 h-6 w-6" />} />
-          )}
+          {genreRows.map(genreRow => (
+            <ContentRow 
+              key={genreRow.title}
+              title={genreRow.title}
+              items={genreRow.items}
+              onCardClick={handleCardClick}
+              icon={<Tag className="mr-2 h-6 w-6" />}
+            />
+          ))}
           
-          {!heroItem && movies.length === 0 && series.length === 0 && (
+          {!heroItem && genreRows.length === 0 && (
             <div className="text-center py-20">
               <Flame className="h-24 w-24 text-primary mx-auto mb-6 opacity-50" />
               <h2 className="text-2xl font-semibold text-foreground mb-2">Sua Cineteca Está Vazia!</h2>
               <p className="text-lg text-muted-foreground">Adicione filmes e séries na área de gerenciamento para começar.</p>
-              {/* Optional: Add a button to navigate to /manage */}
             </div>
           )}
         </div>
@@ -134,9 +159,9 @@ function ContentRow({ title, items, onCardClick, icon }: ContentRowProps) {
             />
           ))}
         </div>
-        {/* Optional: Add custom scroll buttons if needed later */}
       </div>
       <Separator className="my-8 bg-border/50" />
     </section>
   );
 }
+
