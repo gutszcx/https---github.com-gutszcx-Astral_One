@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { StoredCineItem } from '@/types';
+import type { StoredCineItem, EpisodeFormValues, SeasonFormValues } from '@/types';
 import { PlayCircle, Film, Tv, Clapperboard, Clock, X } from 'lucide-react';
 import {
   Accordion,
@@ -44,6 +44,7 @@ interface ProgressData {
 }
 
 const determineVideoType = (url: string): string => {
+  if (!url) return 'video/mp4'; // Default if URL is somehow undefined/empty
   if (url.endsWith('.m3u8')) {
     return 'application/vnd.apple.mpegurl';
   }
@@ -113,13 +114,15 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
     let isMounted = true;
 
     const handleLoadedMetadata = () => {
-      if (!isMounted || !currentVideoInfo?.storageKey) return;
+      if (!isMounted || !currentVideoInfo?.storageKey || !videoElement) return;
       try {
         const savedProgressString = localStorage.getItem(currentVideoInfo.storageKey);
         if (savedProgressString) {
           const savedProgress: ProgressData = JSON.parse(savedProgressString);
-          if (savedProgress && typeof savedProgress.time === 'number') {
-            videoElement.currentTime = savedProgress.time;
+          if (savedProgress && typeof savedProgress.time === 'number' && isFinite(savedProgress.time)) {
+             if(savedProgress.time < videoElement.duration) { // Ensure we don't seek past duration
+                videoElement.currentTime = savedProgress.time;
+             }
           }
         }
       } catch (e) {
@@ -139,14 +142,14 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
     videoElement.addEventListener('ended', saveVideoProgress);
 
     // If metadata is already loaded (e.g., video element reused for same source), try loading progress
+    // This is particularly important if the `autoPlay` attribute is present.
     if (videoElement.readyState >= videoElement.HAVE_METADATA) {
       handleLoadedMetadata();
     }
     
-    if (currentVideoInfo) {
-        videoElement.play().catch(error => console.error("Error attempting to play video:", error));
-    }
-
+    // Rely on the `autoPlay` attribute of the <video> tag to initiate playback.
+    // Explicitly calling videoElement.play() here can conflict with autoPlay and
+    // browser policies, potentially leading to the "play() request was interrupted" error.
 
     return () => {
       isMounted = false;
@@ -198,15 +201,15 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
           </DialogHeader>
 
           {currentVideoInfo?.url && (
-            <div className="relative p-4 md:p-6 bg-black rounded-lg mx-4 md:mx-6 my-4">
+            <div className="relative p-1 md:p-2 bg-black rounded-lg mx-2 md:mx-4 my-2">
               <video
                 ref={videoRef}
-                key={currentVideoInfo.storageKey}
+                key={currentVideoInfo.storageKey} // Important: remounts video element on source change
                 width="100%"
-                style={{ maxHeight: '60vh', aspectRatio: '16/9', display: 'block' }}
+                style={{ maxHeight: 'calc(80vh - 150px)', aspectRatio: '16/9', display: 'block' }} // Adjusted maxHeight
                 controls
                 autoPlay
-                crossOrigin="anonymous" // Required for external subtitles
+                crossOrigin="anonymous" 
                 className="rounded-md"
               >
                 <source src={currentVideoInfo.url} type={determineVideoType(currentVideoInfo.url)} />
@@ -214,7 +217,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
                   <track
                     src={currentVideoInfo.subtitleUrl}
                     kind="subtitles"
-                    srcLang="pt" // Default to Portuguese, consider making this dynamic if language info is available
+                    srcLang="pt" 
                     label="Português"
                     default
                   />
@@ -225,7 +228,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
                 variant="ghost"
                 size="icon"
                 onClick={handleClosePlayerButton}
-                className="absolute top-1 right-1 md:top-2 md:right-2 z-10 h-8 w-8 bg-black/60 hover:bg-black/80 text-white rounded-full p-1"
+                className="absolute top-2 right-2 z-20 h-8 w-8 bg-black/60 hover:bg-black/80 text-white rounded-full p-1"
                 aria-label="Fechar player"
               >
                 <X className="h-5 w-5" />
@@ -316,14 +319,14 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
                 <div className="mt-4">
                   <h4 className="font-semibold text-md mb-2 text-primary">Temporadas e Episódios</h4>
                   <Accordion type="single" collapsible className="w-full">
-                    {item.temporadas.sort((a, b) => a.numeroTemporada - b.numeroTemporada).map((season, seasonIndex) => (
-                      <AccordionItem value={`season-${season.numeroTemporada}`} key={`season-${season.id || seasonIndex}`}>
+                    {(item.temporadas as SeasonFormValues[]).sort((a, b) => a.numeroTemporada - b.numeroTemporada).map((season, seasonIndex) => (
+                      <AccordionItem value={`season-${season.numeroTemporada}`} key={`season-${season.id || `s${seasonIndex}`}`}>
                         <AccordionTrigger>Temporada {season.numeroTemporada}</AccordionTrigger>
                         <AccordionContent>
                           {season.episodios && season.episodios.length > 0 ? (
                             <ul className="space-y-3 pl-2">
-                              {season.episodios.map((episode, episodeIndex) => (
-                                <li key={`episode-${episode.id || episodeIndex}`} className="p-3 border rounded-md bg-muted/30">
+                              {(season.episodios as EpisodeFormValues[]).map((episode, episodeIndex) => (
+                                <li key={`episode-${episode.id || `e${episodeIndex}`}`} className="p-3 border rounded-md bg-muted/30">
                                   <div className="flex justify-between items-start">
                                     <div>
                                       <p className="font-medium text-sm flex items-center">
