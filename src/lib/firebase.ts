@@ -1,11 +1,6 @@
 // src/lib/firebase.ts
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
-// To enable other Firebase services, import them here
-// import { getAuth } from 'firebase/auth';
-// import { getFirestore } from 'firebase/firestore';
-// import { getStorage } from 'firebase/storage';
-// import { getAnalytics, isSupported } from "firebase/analytics";
-
+import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -25,21 +20,7 @@ if (!getApps().length) {
   app = getApp();
 }
 
-// Example of enabling Analytics (optional, and ensure it's supported in the environment)
-// let analytics;
-// if (typeof window !== 'undefined') {
-//   isSupported().then((supported) => {
-//     if (supported) {
-//       analytics = getAnalytics(app);
-//     }
-//   });
-// }
-
+const db = getFirestore(app);
 
 // Export the app instance, and other initialized services as needed
-export { app /*, analytics */ };
-
-// Example exports for other services:
-// export const auth = getAuth(app);
-// export const firestore = getFirestore(app);
-// export const storage = getStorage(app);
+export { app, db };
