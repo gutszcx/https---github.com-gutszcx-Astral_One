@@ -4,7 +4,7 @@
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Film, Tv, Edit3, Trash2, Eye } from 'lucide-react';
+import { Film, Tv, Edit3, Trash2 } from 'lucide-react';
 import type { StoredCineItem } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -22,7 +22,17 @@ export function ContentLibraryItem({ item, onEdit, onDelete, isDeleting }: Conte
     : <Tv className="h-4 w-4 text-muted-foreground" />;
   
   const mediaTypeLabel = item.contentType === 'movie' ? 'Filme' : 'Série';
-  const lastUpdated = item.updatedAt ? formatDistanceToNow(item.updatedAt.toDate(), { addSuffix: true, locale: ptBR }) : 'N/A';
+  
+  let lastUpdated = 'N/A';
+  if (item.updatedAt) {
+    try {
+      lastUpdated = formatDistanceToNow(new Date(item.updatedAt), { addSuffix: true, locale: ptBR });
+    } catch (e) {
+      console.error("Error formatting date for item:", item.id, item.updatedAt, e);
+      // lastUpdated remains 'N/A' or you can set a specific error message
+    }
+  }
+
 
   return (
     <Card className="overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-200 flex flex-col h-full">

@@ -11,10 +11,21 @@ const CONTENT_COLLECTION = 'contentItems';
 // Helper to convert Firestore data to StoredCineItem, ensuring all fields from CineFormValues are present
 function mapDocToStoredCineItem(document: ReturnType<typeof docSnap.data> & { id: string }): StoredCineItem {
     const data = document as any; // Cast to any to handle potential missing fields before assigning defaults
-    // Ensure all base schema fields are present, even if undefined in Firestore, to match CineFormValues
-    // This is important if schemas evolve or optional fields are not set.
-    // For simplicity, we are directly casting now, assuming data integrity or handling in components.
-    // A more robust solution would merge with default values from schemas.
+    
+    let createdAtISO: string | undefined = undefined;
+    if (data.createdAt && typeof data.createdAt.toDate === 'function') {
+      createdAtISO = data.createdAt.toDate().toISOString();
+    } else if (typeof data.createdAt === 'string') {
+      createdAtISO = data.createdAt; // Already a string
+    }
+
+    let updatedAtISO: string | undefined = undefined;
+    if (data.updatedAt && typeof data.updatedAt.toDate === 'function') {
+      updatedAtISO = data.updatedAt.toDate().toISOString();
+    } else if (typeof data.updatedAt === 'string') {
+      updatedAtISO = data.updatedAt; // Already a string
+    }
+    
     return {
         id: document.id,
         contentType: data.contentType,
@@ -38,9 +49,9 @@ function mapDocToStoredCineItem(document: ReturnType<typeof docSnap.data> & { id
         linkLegendas: data.contentType === 'movie' ? (data.linkLegendas || '') : undefined,
         totalTemporadas: data.contentType === 'series' ? (data.totalTemporadas !== undefined ? data.totalTemporadas : null) : undefined,
         temporadas: data.contentType === 'series' ? (data.temporadas || []) : undefined,
-        createdAt: data.createdAt as Timestamp,
-        updatedAt: data.updatedAt as Timestamp,
-    } as StoredCineItem;
+        createdAt: createdAtISO,
+        updatedAt: updatedAtISO,
+    } as StoredCineItem; // Cast needed as TS might not infer createdAt/updatedAt perfectly after conditional logic
 }
 
 
@@ -92,9 +103,7 @@ export async function getContentItemById(id: string): Promise<StoredCineItem | n
 export async function updateContentItem(id: string, itemData: CineFormValues): Promise<void> {
   try {
     const docRef = doc(db, CONTENT_COLLECTION, id);
-    // Ensure not to overwrite contentType if it's not part of partial update
     const updatePayload = { ...itemData };
-    // delete (updatePayload as any).contentType; // contentType should not change
 
     await updateDoc(docRef, {
       ...updatePayload,
