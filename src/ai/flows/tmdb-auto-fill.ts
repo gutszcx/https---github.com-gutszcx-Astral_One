@@ -85,12 +85,44 @@ async function fetchGenreMap(apiKey: string, type: 'movie' | 'tv'): Promise<Map<
   return map;
 }
 
+// Internal function for TMDB Multi-Search logic
+async function _fetchTmdbMultiSearchInternal(input: TmdbSearchInput): Promise<TmdbMultiSearchOutput> {
+  const apiKey = process.env.TMDB_API_KEY;
+  if (!apiKey) {
+    throw new Error('TMDB_API_KEY is not configured in environment variables.');
+  }
 
-// Flow 1: Search for content (multi-search)
-export async function searchTmdbContent(input: TmdbSearchInput): Promise<TmdbMultiSearchOutput> {
-  return tmdbMultiSearchFlow(input);
+  const searchUrl = `${TMDB_API_BASE_URL}/search/multi?api_key=${apiKey}&query=${encodeURIComponent(input.contentName)}&language=pt-BR&page=1&include_adult=false`;
+  const searchResponse = await fetch(searchUrl);
+  if (!searchResponse.ok) {
+    throw new Error(`Failed to search TMDB: ${searchResponse.statusText}`);
+  }
+  const searchData = await searchResponse.json();
+
+  if (!searchData.results) {
+    return [];
+  }
+  
+  const results: TmdbMultiSearchOutput = searchData.results
+    .filter((r: any) => r.media_type === 'movie' || r.media_type === 'tv')
+    .map((r: any) => {
+      const title = r.title || r.name || 'Título Desconhecido';
+      const releaseDate = r.release_date || r.first_air_date;
+      return {
+        id: r.id,
+        title: title,
+        mediaType: r.media_type,
+        posterUrl: r.poster_path 
+          ? `${TMDB_IMAGE_BASE_URL_W185}${r.poster_path}` 
+          : `https://placehold.co/185x278.png`,
+        releaseYear: releaseDate ? releaseDate.substring(0, 4) : null,
+        overview: r.overview ? (r.overview.length > 150 ? r.overview.substring(0, 147) + '...' : r.overview) : null,
+      };
+    });
+  return results;
 }
 
+// Tool definition (still useful if other AI prompts want to use it)
 const tmdbMultiSearchTool = ai.defineTool(
   {
     name: 'tmdbMultiSearch',
@@ -98,50 +130,13 @@ const tmdbMultiSearchTool = ai.defineTool(
     inputSchema: TmdbSearchInputSchema,
     outputSchema: TmdbMultiSearchOutputSchema,
   },
-  async (input) => {
-    const apiKey = process.env.TMDB_API_KEY;
-    if (!apiKey) {
-      throw new Error('TMDB_API_KEY is not configured in environment variables.');
-    }
-
-    const searchUrl = `${TMDB_API_BASE_URL}/search/multi?api_key=${apiKey}&query=${encodeURIComponent(input.contentName)}&language=pt-BR&page=1&include_adult=false`;
-    const searchResponse = await fetch(searchUrl);
-    if (!searchResponse.ok) {
-      throw new Error(`Failed to search TMDB: ${searchResponse.statusText}`);
-    }
-    const searchData = await searchResponse.json();
-
-    if (!searchData.results) {
-      return [];
-    }
-    
-    const results: TmdbMultiSearchOutput = searchData.results
-      .filter((r: any) => r.media_type === 'movie' || r.media_type === 'tv')
-      .map((r: any) => {
-        const title = r.title || r.name || 'Título Desconhecido';
-        const releaseDate = r.release_date || r.first_air_date;
-        return {
-          id: r.id,
-          title: title,
-          mediaType: r.media_type,
-          posterUrl: r.poster_path 
-            ? `${TMDB_IMAGE_BASE_URL_W185}${r.poster_path}` 
-            : `https://placehold.co/185x278.png`,
-          releaseYear: releaseDate ? releaseDate.substring(0, 4) : null,
-          overview: r.overview ? (r.overview.length > 150 ? r.overview.substring(0, 147) + '...' : r.overview) : null,
-        };
-      });
-    return results;
-  }
+  _fetchTmdbMultiSearchInternal // Use the extracted internal function
 );
 
-const tmdbMultiSearchPrompt = ai.definePrompt({
-  name: 'tmdbMultiSearchPrompt',
-  tools: [tmdbMultiSearchTool],
-  input: {schema: TmdbSearchInputSchema},
-  output: {schema: TmdbMultiSearchOutputSchema},
-  prompt: `Use the tmdbMultiSearch tool to find movies and TV shows related to "{{{contentName}}}". Return all relevant results.`,
-});
+// Flow 1: Search for content (multi-search) - directly calls the internal logic
+export async function searchTmdbContent(input: TmdbSearchInput): Promise<TmdbMultiSearchOutput> {
+  return tmdbMultiSearchFlow(input);
+}
 
 const tmdbMultiSearchFlow = ai.defineFlow(
   {
@@ -149,21 +144,70 @@ const tmdbMultiSearchFlow = ai.defineFlow(
     inputSchema: TmdbSearchInputSchema,
     outputSchema: TmdbMultiSearchOutputSchema,
   },
-  async input => {
-    const {output} = await tmdbMultiSearchPrompt(input);
-    if (!output) {
-        throw new Error('The TMDB multi-search tool did not return an output.');
+  async (input: TmdbSearchInput): Promise<TmdbMultiSearchOutput> => {
+    try {
+      return await _fetchTmdbMultiSearchInternal(input);
+    } catch (error: any) {
+      console.error("Error in tmdbMultiSearchFlow (direct call):", error);
+      // Propagate specific error messages if needed, or a generic one
+      if (error.message && (error.message.includes('503') || error.message.toLowerCase().includes('overloaded'))) {
+        throw new Error('The AI model (Gemini) is temporarily overloaded. Please try again later.');
+      }
+      throw new Error(error.message || 'Failed to process TMDB multi-search.');
     }
-    return output;
   }
 );
 
 
-// Flow 2: Fetch detailed information for a specific content ID
-export async function fetchTmdbContentDetails(input: TmdbFetchDetailsInput): Promise<TmdbDetailedContentOutput> {
-  return tmdbFetchDetailsFlow(input);
+// Internal function for TMDB Fetch Details logic
+async function _fetchTmdbContentDetailsInternal(input: TmdbFetchDetailsInput): Promise<TmdbDetailedContentOutput> {
+  const apiKey = process.env.TMDB_API_KEY;
+  if (!apiKey) {
+    throw new Error('TMDB_API_KEY is not configured in environment variables.');
+  }
+
+  const { id, mediaType } = input;
+  const detailsUrl = `${TMDB_API_BASE_URL}/${mediaType}/${id}?api_key=${apiKey}&language=pt-BR`;
+  const detailsResponse = await fetch(detailsUrl);
+  if (!detailsResponse.ok) {
+    throw new Error(`Failed to fetch details for ${mediaType} ID ${id}: ${detailsResponse.statusText}`);
+  }
+  const detailsData = await detailsResponse.json();
+
+  const currentGenreMap = await fetchGenreMap(apiKey, mediaType);
+  const genreNames = detailsData.genres?.map((g: Genre) => g.name) ?? 
+                     (detailsData.genre_ids?.map((gid: number) => currentGenreMap.get(gid)).filter(Boolean) as string[] ?? []);
+
+  let output: TmdbDetailedContentOutput = {
+    title: detailsData.title || detailsData.name || 'N/A',
+    synopsis: detailsData.overview || '',
+    genres: genreNames,
+    poster: detailsData.poster_path ? `${TMDB_IMAGE_BASE_URL_W500}${detailsData.poster_path}` : `https://placehold.co/500x750.png`,
+    banner: detailsData.backdrop_path ? `${TMDB_IMAGE_BASE_URL_W1280}${detailsData.backdrop_path}` : `https://placehold.co/1280x720.png`,
+    releaseDate: detailsData.release_date || detailsData.first_air_date || '',
+    duration: null,
+    numberOfSeasons: undefined,
+  };
+  
+  if (mediaType === 'movie') {
+    output.duration = detailsData.runtime || null;
+  } else if (mediaType === 'tv') {
+    output.numberOfSeasons = detailsData.number_of_seasons || undefined;
+    if (detailsData.episode_run_time && detailsData.episode_run_time.length > 0) {
+      output.duration = detailsData.episode_run_time[0];
+    } else {
+      output.duration = null;
+    }
+  }
+  
+  output.title = output.title || 'Título Indisponível';
+  output.synopsis = output.synopsis || 'Sinopse Indisponível';
+  output.releaseDate = output.releaseDate || 'Data Indisponível';
+
+  return output;
 }
 
+// Tool definition
 const tmdbFetchDetailsTool = ai.defineTool(
   {
     name: 'tmdbFetchDetails',
@@ -171,61 +215,13 @@ const tmdbFetchDetailsTool = ai.defineTool(
     inputSchema: TmdbFetchDetailsInputSchema,
     outputSchema: TmdbDetailedContentOutputSchema,
   },
-  async (input) => {
-    const apiKey = process.env.TMDB_API_KEY;
-    if (!apiKey) {
-      throw new Error('TMDB_API_KEY is not configured in environment variables.');
-    }
-
-    const { id, mediaType } = input;
-    const detailsUrl = `${TMDB_API_BASE_URL}/${mediaType}/${id}?api_key=${apiKey}&language=pt-BR`;
-    const detailsResponse = await fetch(detailsUrl);
-    if (!detailsResponse.ok) {
-      throw new Error(`Failed to fetch details for ${mediaType} ID ${id}: ${detailsResponse.statusText}`);
-    }
-    const detailsData = await detailsResponse.json();
-
-    const currentGenreMap = await fetchGenreMap(apiKey, mediaType);
-    const genreNames = detailsData.genres?.map((g: Genre) => g.name) ?? 
-                       (detailsData.genre_ids?.map((gid: number) => currentGenreMap.get(gid)).filter(Boolean) as string[] ?? []);
-
-    let output: TmdbDetailedContentOutput = {
-      title: detailsData.title || detailsData.name || 'N/A',
-      synopsis: detailsData.overview || '',
-      genres: genreNames,
-      poster: detailsData.poster_path ? `${TMDB_IMAGE_BASE_URL_W500}${detailsData.poster_path}` : `https://placehold.co/500x750.png`,
-      banner: detailsData.backdrop_path ? `${TMDB_IMAGE_BASE_URL_W1280}${detailsData.backdrop_path}` : `https://placehold.co/1280x720.png`,
-      releaseDate: detailsData.release_date || detailsData.first_air_date || '',
-      duration: null,
-      numberOfSeasons: undefined,
-    };
-    
-    if (mediaType === 'movie') {
-      output.duration = detailsData.runtime || null;
-    } else if (mediaType === 'tv') {
-      output.numberOfSeasons = detailsData.number_of_seasons || undefined;
-      if (detailsData.episode_run_time && detailsData.episode_run_time.length > 0) {
-        output.duration = detailsData.episode_run_time[0];
-      } else {
-        output.duration = null;
-      }
-    }
-    
-    output.title = output.title || 'Título Indisponível';
-    output.synopsis = output.synopsis || 'Sinopse Indisponível';
-    output.releaseDate = output.releaseDate || 'Data Indisponível';
-
-    return output;
-  }
+  _fetchTmdbContentDetailsInternal // Use the extracted internal function
 );
 
-const tmdbFetchDetailsPrompt = ai.definePrompt({
-  name: 'tmdbFetchDetailsPrompt',
-  tools: [tmdbFetchDetailsTool],
-  input: {schema: TmdbFetchDetailsInputSchema},
-  output: {schema: TmdbDetailedContentOutputSchema},
-  prompt: `Use the tmdbFetchDetails tool to get detailed information for the content with ID {{id}} and media type '{{mediaType}}'. Return all details provided by the tool.`,
-});
+// Flow 2: Fetch detailed information for a specific content ID - directly calls internal logic
+export async function fetchTmdbContentDetails(input: TmdbFetchDetailsInput): Promise<TmdbDetailedContentOutput> {
+  return tmdbFetchDetailsFlow(input);
+}
 
 const tmdbFetchDetailsFlow = ai.defineFlow(
   {
@@ -233,12 +229,15 @@ const tmdbFetchDetailsFlow = ai.defineFlow(
     inputSchema: TmdbFetchDetailsInputSchema,
     outputSchema: TmdbDetailedContentOutputSchema,
   },
-  async input => {
-    const {output} = await tmdbFetchDetailsPrompt(input);
-    if (!output) {
-        throw new Error('The TMDB fetch details tool did not return an output.');
+  async (input: TmdbFetchDetailsInput): Promise<TmdbDetailedContentOutput> => {
+    try {
+      return await _fetchTmdbContentDetailsInternal(input);
+    } catch (error: any) {
+        console.error("Error in tmdbFetchDetailsFlow (direct call):", error);
+        if (error.message && (error.message.includes('503') || error.message.toLowerCase().includes('overloaded'))) {
+            throw new Error('The AI model (Gemini) is temporarily overloaded. Please try again later.');
+        }
+        throw new Error(error.message || 'Failed to process TMDB detail fetch.');
     }
-    return output;
   }
 );
-
