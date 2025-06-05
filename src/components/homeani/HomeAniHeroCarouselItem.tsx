@@ -38,21 +38,21 @@ export function HomeAniHeroCarouselItem({ item, onViewDetailsClick, isPriority =
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent z-10"></div>
       <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-transparent to-transparent z-10 md:w-3/4 lg:w-2/3"></div>
       
-      <div className="relative z-20 p-6 md:p-10 lg:p-14 h-full flex flex-col justify-end">
-        <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-2 md:mb-3 drop-shadow-lg">
+      <div className="relative z-20 p-4 md:p-8 lg:p-10 h-full flex flex-col justify-end">
+        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-1 md:mb-2 drop-shadow-lg">
           {item.tituloOriginal}
         </h1>
         {item.tituloLocalizado && item.tituloLocalizado !== item.tituloOriginal && (
-            <h2 className="text-lg md:text-xl text-slate-200 mb-3 md:mb-4 drop-shadow-md">
+            <h2 className="text-base md:text-lg text-slate-200 mb-2 md:mb-3 drop-shadow-md">
                 {item.tituloLocalizado}
             </h2>
         )}
         {item.sinopse && (
-          <p className="text-xs md:text-sm lg:text-base text-slate-300 mb-3 md:mb-5 line-clamp-2 md:line-clamp-3 max-w-md lg:max-w-xl drop-shadow-md">
+          <p className="text-xs md:text-sm text-slate-300 mb-2 md:mb-4 line-clamp-2 max-w-sm lg:max-w-md drop-shadow-md">
             {item.sinopse}
           </p>
         )}
-        <div className="flex space-x-2 md:space-x-3">
+        <div className="flex space-x-2">
           <Button 
             size="default" 
             onClick={(e) => { e.stopPropagation(); onViewDetailsClick(item); }} 
@@ -75,3 +75,4 @@ export function HomeAniHeroCarouselItem({ item, onViewDetailsClick, isPriority =
     </div>
   );
 }
+

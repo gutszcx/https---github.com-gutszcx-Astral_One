@@ -38,7 +38,7 @@ export function HomeAniHeroCarousel({ items, onViewDetailsClick }: HomeAniHeroCa
         align: "start",
       }}
       plugins={[plugin.current]}
-      className="w-full h-[60vh] md:h-[75vh] mb-12 rounded-lg overflow-hidden"
+      className="w-full h-[50vh] md:h-[60vh] mb-10 rounded-lg overflow-hidden"
       onMouseEnter={plugin.current.stop}
       onMouseLeave={plugin.current.reset}
     >
@@ -57,3 +57,4 @@ export function HomeAniHeroCarousel({ items, onViewDetailsClick }: HomeAniHeroCa
     </Carousel>
   );
 }
+
