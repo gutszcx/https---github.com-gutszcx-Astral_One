@@ -9,7 +9,7 @@ import type { StoredCineItem } from '@/types';
 import { HomeAniContentCard } from '@/components/homeani/HomeAniContentCard';
 import { HomeAniDetailModal } from '@/components/homeani/HomeAniDetailModal';
 import { HomeAniHeroCard } from '@/components/homeani/HomeAniHeroCard';
-import { Loader2, AlertTriangle, Flame, Tag, PlaySquare } from 'lucide-react';
+import { Loader2, AlertTriangle, Flame, Tag, PlaySquare, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 
@@ -51,18 +51,16 @@ export default function HomeAniPage() {
           const progressString = localStorage.getItem(key);
           if (progressString) {
             const progressData: ProgressData = JSON.parse(progressString);
-            // Consider an item for "Continue Watching" if progress is between 5s and 95% of duration
-            // or if duration is unknown but progress > 5s.
-            const isMeaningfulProgress = progressData.time > 5 && 
+            const isMeaningfulProgress = progressData.time > 5 &&
                                         (progressData.duration ? progressData.time < progressData.duration * 0.98 : true);
 
             if (isMeaningfulProgress) {
               const itemIdMatch = key.match(/^video-progress-([a-zA-Z0-9]+)(?:-s\d+-e\d+)?$/);
               const itemId = itemIdMatch ? itemIdMatch[1] : null;
-              
+
               if (itemId) {
                 const matchingItem = activeItems.find(item => item.id === itemId);
-                if (matchingItem && !loadedContinueWatching.some(cw => cw.id === matchingItem.id)) { // Avoid duplicates if multiple episode progresses exist for one series
+                if (matchingItem && !loadedContinueWatching.some(cw => cw.id === matchingItem.id)) {
                   loadedContinueWatching.push({
                     ...matchingItem,
                     lastSaved: progressData.lastSaved,
@@ -78,23 +76,21 @@ export default function HomeAniPage() {
     } catch (e) {
       console.error("Error accessing localStorage for continue watching:", e);
     }
-    
-    // Sort by most recently saved progress
+
     loadedContinueWatching.sort((a, b) => b.lastSaved - a.lastSaved);
-    setContinueWatchingItems(loadedContinueWatching.slice(0, 10)); // Limit to e.g. 10 items
-  }, [activeItems]); // Re-run when activeItems are loaded/changed
+    setContinueWatchingItems(loadedContinueWatching.slice(0, 10));
+  }, [activeItems]);
 
 
   const heroItem = useMemo(() => {
     const featured = activeItems.find(item => item.destaqueHome === true);
     if (featured) return featured;
-    
-    // Fallback: most recent non-continue-watching item
+
     const nonContinueWatchingIds = new Set(continueWatchingItems.map(cw => cw.id));
     const sortedActiveItems = [...activeItems]
-        .filter(item => !nonContinueWatchingIds.has(item.id)) // Exclude items already in continue watching
+        .filter(item => !nonContinueWatchingIds.has(item.id))
         .sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
-    
+
     return sortedActiveItems.length > 0 ? sortedActiveItems[0] : (activeItems.length > 0 ? activeItems[0] : null);
   }, [activeItems, continueWatchingItems]);
 
@@ -110,28 +106,45 @@ export default function HomeAniPage() {
     if (!itemsForGenreRows) return [];
 
     const genresMap: Map<string, StoredCineItem[]> = new Map();
+    const miscellaneousItems: StoredCineItem[] = [];
 
     itemsForGenreRows.forEach(item => {
-      const itemGenres = (item.generos || '')
+      let itemGenres = (item.generos || '')
         .split(',')
         .map(g => g.trim())
         .filter(Boolean)
-        .map(g => g.charAt(0).toUpperCase() + g.slice(1).toLowerCase()); 
+        .map(g => g.charAt(0).toUpperCase() + g.slice(1).toLowerCase());
 
-      itemGenres.forEach(genre => {
-        if (!genresMap.has(genre)) {
-          genresMap.set(genre, []);
+      if (itemGenres.length === 0) {
+        // If no specific genres, add to a general list for a "Diversos" category
+        // Avoid duplicates in miscellaneousItems
+        if (!miscellaneousItems.find(i => i.id === item.id)) {
+            miscellaneousItems.push(item);
         }
-        // Add item if not already in the genre's list for this pass (though not strictly needed with current logic)
-        if (!genresMap.get(genre)!.find(i => i.id === item.id)) {
-            genresMap.get(genre)!.push(item);
-        }
-      });
+      } else {
+        itemGenres.forEach(genre => {
+          if (!genresMap.has(genre)) {
+            genresMap.set(genre, []);
+          }
+          // Add item if not already in the genre's list
+          if (!genresMap.get(genre)!.find(i => i.id === item.id)) {
+              genresMap.get(genre)!.push(item);
+          }
+        });
+      }
     });
-    
-    return Array.from(genresMap.entries())
-      .map(([genre, items]) => ({ title: genre, items }))
+
+    const sortedGenreRows = Array.from(genresMap.entries())
+      .map(([genre, items]) => ({ title: genre, items, icon: <Tag className="mr-2 h-6 w-6" /> }))
       .sort((a, b) => a.title.localeCompare(b.title));
+
+    if (miscellaneousItems.length > 0) {
+      // Add "Diversos" row at the end or beginning, or sort it with others
+      // Here, added at the end.
+      sortedGenreRows.push({ title: "Diversos", items: miscellaneousItems, icon: <Layers className="mr-2 h-6 w-6" /> });
+    }
+    
+    return sortedGenreRows;
 
   }, [itemsForGenreRows]);
 
@@ -192,7 +205,7 @@ export default function HomeAniPage() {
               title={genreRow.title}
               items={genreRow.items}
               onCardClick={handleCardClick}
-              icon={<Tag className="mr-2 h-6 w-6" />}
+              icon={genreRow.icon}
             />
           ))}
           
@@ -218,7 +231,7 @@ export default function HomeAniPage() {
 // Helper component for content rows
 interface ContentRowProps {
   title: string;
-  items: StoredCineItem[]; // Accepts StoredCineItem or ContinueWatchingItem
+  items: StoredCineItem[];
   onCardClick: (item: StoredCineItem) => void;
   icon?: React.ReactNode;
 }
@@ -236,12 +249,11 @@ function ContentRow({ title, items, onCardClick, icon }: ContentRowProps) {
         <div className="flex space-x-3 sm:space-x-4 pb-4 overflow-x-auto scrollbar-thin scrollbar-thumb-muted-foreground/50 scrollbar-track-transparent pl-2 sm:pl-0">
           {items.map((item) => (
             <HomeAniContentCard 
-              key={item.id + (item as ContinueWatchingItem).lastSaved || ''} // Ensure unique key for continue watching
+              key={item.id + ((item as ContinueWatchingItem).lastSaved || '')}
               item={item} 
               onClick={() => onCardClick(item)}
             />
           ))}
-           {/* Sentinel for scroll padding */}
           <div className="flex-shrink-0 w-px h-px" />
         </div>
       </div>
