@@ -185,9 +185,11 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
         hls.loadSource(videoSrc);
         hls.attachMedia(videoElement);
         hls.on(Hls.Events.ERROR, function (event, data) {
-          console.error('HLS.js error event:', event, 'data:', data);
+          // Log general HLS errors as warnings
+          console.warn('HLS.js error event:', event, 'data:', data); 
           if (data.fatal) {
-            console.error('HLS.js fatal error:', data.type, data.details);
+            // Log fatal error specifics as warnings to avoid Next.js overlay
+            console.warn('HLS.js fatal error details:', data.type, data.details);
             let userMessage = "Ocorreu um erro ao tentar reproduzir o vídeo. Tente novamente mais tarde.";
             if (data.type === Hls.ErrorTypes.NETWORK_ERROR && (data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR || data.details === Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT)) {
                 userMessage = "Erro ao carregar o vídeo (manifest). Verifique o link ou a sua conexão com a internet.";
@@ -197,9 +199,8 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
                userMessage = "Erro na reprodução do vídeo. O formato pode não ser suportado ou o arquivo está corrompido.";
             }
             toast({ title: "Erro de Reprodução (HLS)", description: userMessage, variant: "destructive" });
-          } else {
-            console.warn('HLS.js non-fatal error:', data.type, data.details);
           }
+          // Non-fatal errors were already console.warn, keeping that behavior implicitly by not being in data.fatal block
         });
       } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
         videoElement.src = videoSrc;
@@ -224,7 +225,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
       } catch (e) {
         console.error("Error loading video progress from localStorage:", e);
       }
-       videoElement.play().catch(error => console.warn("Autoplay prevented:", error));
+      // Rely on autoPlay attribute and remove explicit play() call here
     };
 
     const handlePause = () => {
@@ -363,7 +364,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
                                         <p className="font-medium text-sm flex items-center"><Clapperboard className="mr-2 h-4 w-4 text-primary/80" />Ep. {episodeIndex + 1}: {episode.titulo}</p>
                                         {episode.duracao && (<p className="text-xs text-muted-foreground flex items-center mt-0.5"><Clock className="mr-1.5 h-3 w-3" /> {episode.duracao} min</p>)}
                                       </div>
-                                      {episode.videoSources && episode.videoSources.length > 0 && (
+                                      {episode.videoSources && episode.videoSources.filter(vs => vs.url && vs.url.trim() !== '').length > 0 && (
                                          <Button 
                                             variant="outline" size="sm"
                                             onClick={() => promptOrPlay(episode.videoSources, `${item.tituloOriginal} - T${season.numeroTemporada}E${episodeIndex + 1}: ${episode.titulo}`, episode.linkLegenda, item.id, season.numeroTemporada, episodeIndex)}
@@ -429,7 +430,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
       )}
 
       {activePlayerInfo && (
-        <div className="fixed inset-0 bg-black/95 z-[100] flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="videoPlayerTitle">
+        <div className="fixed inset-0 bg-black/95 z-[100] flex items-center justify-center p-0" role="dialog" aria-modal="true" aria-labelledby="videoPlayerTitle">
           <div className="w-full max-w-5xl bg-black rounded-lg shadow-2xl overflow-hidden mx-2 sm:mx-4">
             <div className="flex justify-between items-center p-2 sm:p-3 bg-black border-b border-gray-700">
                 <h2 id="videoPlayerTitle" className="text-sm sm:text-lg font-semibold text-white truncate pl-2">{activePlayerInfo.title}</h2>
@@ -449,3 +450,4 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
     </>
   );
 }
+
