@@ -36,6 +36,7 @@ export function HomeAniHeroCarousel({ items, onViewDetailsClick }: HomeAniHeroCa
       opts={{
         loop: true,
         align: "start",
+        direction: 'ltr', // Explicitly set direction
       }}
       plugins={[plugin.current]}
       className="w-full h-[110vh] mb-8 rounded-lg overflow-hidden"
