@@ -27,7 +27,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { StoredCineItem, StoredMovieItem, StoredSeriesItem, VideoSource } from '@/types';
-import { Film, Tv, Clapperboard, Clock, PlayCircle, X, ListVideo } from 'lucide-react';
+import { Film, Tv, Clapperboard, Clock, PlayCircle, X, ListVideo, Loader2 } from 'lucide-react';
 import {
   Accordion,
   AccordionContent,
@@ -97,13 +97,13 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     setActivePlayerInfo(null);
     setServerSelectionInfo(null);
     hasTriggeredInitialPlay.current = false;
+    setProcessingInitialAction(false); // Ensure this is reset
     onClose();
   }, [activePlayerInfo, onClose, saveVideoProgress]);
 
   const handlePlayerClose = useCallback(() => {
     if (videoRef.current && activePlayerInfo) {
       saveVideoProgress(videoRef.current, activePlayerInfo.storageKey);
-      // Stop the video and clean up HLS if it was playing
       if (hlsRef.current) {
         hlsRef.current.stopLoad();
         hlsRef.current.detachMedia();
@@ -111,8 +111,8 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
         hlsRef.current = null;
       }
       videoRef.current.pause();
-      videoRef.current.removeAttribute('src'); // important to prevent Safari from holding onto the stream
-      videoRef.current.load(); // resets the media element
+      videoRef.current.removeAttribute('src'); 
+      videoRef.current.load(); 
     }
     setActivePlayerInfo(null);
   }, [activePlayerInfo, saveVideoProgress]);
@@ -173,14 +173,15 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     if (isOpen && initialAction === 'play' && !hasTriggeredInitialPlay.current) {
       setProcessingInitialAction(true);
     } else if (!isOpen) {
-      setProcessingInitialAction(false);
-      hasTriggeredInitialPlay.current = false;
+      setProcessingInitialAction(false); // Reset when modal is fully closed
+      hasTriggeredInitialPlay.current = false; 
     }
-  }, [isOpen, initialAction]);
+  }, [isOpen, initialAction]); // Only depends on isOpen and initialAction
 
   useEffect(() => {
+    // This effect handles the direct play action
     if (isOpen && initialAction === 'play' && item && !activePlayerInfo && !serverSelectionInfo && !hasTriggeredInitialPlay.current && processingInitialAction) {
-      hasTriggeredInitialPlay.current = true;
+      hasTriggeredInitialPlay.current = true; // Mark that we've attempted this
   
       const playData = item._playActionData;
       let initiatedPlayOrSelection = false;
@@ -206,11 +207,12 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
       }
   
       if (onInitialActionConsumed) {
-        onInitialActionConsumed();
+        onInitialActionConsumed(); // Signal to parent that action has been processed (resets initialAction to null)
       }
-      setProcessingInitialAction(false);
+      setProcessingInitialAction(false); // Done processing the initial action
     }
   
+    // if modal closed, or item becomes null, reset the primary flag
     if (!isOpen || !item) {
         hasTriggeredInitialPlay.current = false;
     }
@@ -235,11 +237,11 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
       return;
     }
 
-    if (hlsRef.current) { // Ensure previous HLS instance is destroyed before creating a new one
+    if (hlsRef.current) { 
       hlsRef.current.destroy();
       hlsRef.current = null;
     }
-    if(progressIntervalRef.current) { // Clear any existing progress interval
+    if(progressIntervalRef.current) { 
       clearInterval(progressIntervalRef.current);
       progressIntervalRef.current = null;
     }
@@ -254,7 +256,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
         hls.attachMedia(videoElement);
         hls.on(Hls.Events.ERROR, function (event, data) {
           if (data.fatal) {
-            console.warn('HLS.js fatal error:', data.type, data.details); 
+            console.warn('HLS.js fatal error:', data.type, data.details, data); 
             let userMessage = "Ocorreu um erro ao tentar reproduzir o vídeo. Tente novamente mais tarde.";
             if (data.type === Hls.ErrorTypes.NETWORK_ERROR && (data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR || data.details === Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT)) {
                 userMessage = "Erro ao carregar o vídeo (manifest). Verifique o link ou a sua conexão com a internet.";
@@ -277,8 +279,6 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
       videoElement.src = videoSrc;
     }
     
-    // videoElement.load(); // Calling load() explicitly can sometimes interfere with HLS.js or autoplay
-
     const handleLoadedMetadata = () => {
       try {
         const savedProgressString = localStorage.getItem(activePlayerInfo.storageKey);
@@ -335,7 +335,6 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
         clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
       }
-      // Save progress one last time when cleaning up, only if player was active and src was set
       if (videoElement.currentTime > 0 && activePlayerInfo && videoElement.src) { 
          saveVideoProgress(videoElement, activePlayerInfo.storageKey);
       }
@@ -352,12 +351,16 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
 
   return (
     <>
-      <Dialog open={isOpen && !processingInitialAction} onOpenChange={(open) => !open && handleModalClose()}>
+      <Dialog open={isOpen} onOpenChange={(open) => !open && handleModalClose()}>
         <DialogContent className="sm:max-w-[600px] md:max-w-[800px] lg:max-w-[900px] p-0 max-h-[90vh] flex flex-col bg-card">
-          {activePlayerInfo ? (
+          {processingInitialAction ? (
+             <div className="flex items-center justify-center h-full min-h-[300px] p-6">
+               {/* You can add a more specific loading indicator here if desired */}
+             </div>
+          ) : activePlayerInfo ? (
             // PLAYER VIEW
             <>
-              <div className="flex justify-between items-center p-3 sm:p-4 border-b bg-card-foreground/5">
+              <div className="flex justify-between items-center p-3 sm:p-4 border-b bg-card">
                 <DialogTitle className="text-lg sm:text-xl font-semibold text-foreground truncate">
                   {activePlayerInfo.title}
                 </DialogTitle>
@@ -365,14 +368,14 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
                   <X className="h-5 w-5 text-muted-foreground hover:text-foreground" />
                 </Button>
               </div>
-              <div className="aspect-video bg-black flex-grow relative w-full h-full"> {/* Ensure this container fills space */}
+              <div className="aspect-video bg-black flex-grow relative w-full overflow-hidden"> 
                 <video 
                   ref={videoRef} 
                   controls 
                   autoPlay 
                   playsInline 
                   crossOrigin="anonymous" 
-                  className="absolute top-0 left-0 w-full h-full" // Position absolutely to fill parent
+                  className="absolute top-0 left-0 w-full h-full" 
                 >
                   {activePlayerInfo.subtitleUrl && (<track kind="subtitles" src={activePlayerInfo.subtitleUrl} srcLang="pt" label="Português" default />)}
                   Seu navegador não suporta o elemento de vídeo.
@@ -506,7 +509,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
             <div className="flex flex-col space-y-2 max-h-60 overflow-y-auto py-2">
               {serverSelectionInfo.sources.map((source, index) => (
                 <Button
-                  key={source.id || `${source.url}-${index}`}
+                  key={source.id || `${source.url}-${index}`} 
                   variant="default" 
                   className="bg-neutral-800 hover:bg-neutral-700 text-white w-full justify-start text-left py-2.5 px-4"
                   onClick={() => initiatePlayback(
