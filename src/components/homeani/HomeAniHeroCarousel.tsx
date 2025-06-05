@@ -38,7 +38,7 @@ export function HomeAniHeroCarousel({ items, onViewDetailsClick }: HomeAniHeroCa
         align: "start",
       }}
       plugins={[plugin.current]}
-      className="w-full h-[70vh] md:h-[85vh] mb-8 rounded-lg overflow-hidden"
+      className="w-full h-[110vh] mb-8 rounded-lg overflow-hidden"
       onMouseEnter={plugin.current.stop}
       onMouseLeave={plugin.current.reset}
     >
