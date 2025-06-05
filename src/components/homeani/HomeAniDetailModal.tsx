@@ -97,7 +97,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     setActivePlayerInfo(null);
     setServerSelectionInfo(null);
     hasTriggeredInitialPlay.current = false;
-    setProcessingInitialAction(false); // Ensure this is reset
+    setProcessingInitialAction(false); 
     onClose();
   }, [activePlayerInfo, onClose, saveVideoProgress]);
 
@@ -170,18 +170,17 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
   }, [initiatePlayback, toast]);
 
   useEffect(() => {
-    if (isOpen && initialAction === 'play' && !hasTriggeredInitialPlay.current) {
+    if (isOpen && initialAction === 'play' && !hasTriggeredInitialPlay.current && item) {
       setProcessingInitialAction(true);
     } else if (!isOpen) {
-      setProcessingInitialAction(false); // Reset when modal is fully closed
+      setProcessingInitialAction(false);
       hasTriggeredInitialPlay.current = false; 
     }
-  }, [isOpen, initialAction]); // Only depends on isOpen and initialAction
+  }, [isOpen, initialAction, item]); 
 
   useEffect(() => {
-    // This effect handles the direct play action
     if (isOpen && initialAction === 'play' && item && !activePlayerInfo && !serverSelectionInfo && !hasTriggeredInitialPlay.current && processingInitialAction) {
-      hasTriggeredInitialPlay.current = true; // Mark that we've attempted this
+      hasTriggeredInitialPlay.current = true;
   
       const playData = item._playActionData;
       let initiatedPlayOrSelection = false;
@@ -207,12 +206,11 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
       }
   
       if (onInitialActionConsumed) {
-        onInitialActionConsumed(); // Signal to parent that action has been processed (resets initialAction to null)
+        onInitialActionConsumed(); 
       }
-      setProcessingInitialAction(false); // Done processing the initial action
+      setProcessingInitialAction(false);
     }
   
-    // if modal closed, or item becomes null, reset the primary flag
     if (!isOpen || !item) {
         hasTriggeredInitialPlay.current = false;
     }
@@ -349,41 +347,46 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     ? <Film className="mr-1.5 h-4 w-4 inline-block" />
     : <Tv className="mr-1.5 h-4 w-4 inline-block" />;
 
+  // Show player overlay if activePlayerInfo is set
+  if (activePlayerInfo) {
+    return (
+      <div className="fixed inset-0 z-[100] bg-black/95 flex flex-col items-center justify-center p-2 sm:p-4">
+        <div className="w-full max-w-4xl bg-neutral-900 rounded-lg shadow-2xl overflow-hidden">
+          <div className="flex justify-between items-center p-3 sm:p-4 border-b border-neutral-700">
+            <h2 className="text-lg sm:text-xl font-semibold text-white truncate">
+              {activePlayerInfo.title}
+            </h2>
+            <Button variant="ghost" size="icon" onClick={handlePlayerClose} aria-label="Fechar player">
+              <X className="h-5 w-5 text-neutral-400 hover:text-white" />
+            </Button>
+          </div>
+          <div className="aspect-video w-full">
+            <video 
+              ref={videoRef} 
+              controls 
+              autoPlay 
+              playsInline 
+              crossOrigin="anonymous" 
+              className="w-full h-full"
+            >
+              {activePlayerInfo.subtitleUrl && (<track kind="subtitles" src={activePlayerInfo.subtitleUrl} srcLang="pt" label="Português" default />)}
+              Seu navegador não suporta o elemento de vídeo.
+            </video>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={(open) => !open && handleModalClose()}>
+      <Dialog open={isOpen && !processingInitialAction && !activePlayerInfo && !serverSelectionInfo} onOpenChange={(open) => !open && handleModalClose()}>
         <DialogContent className="sm:max-w-[600px] md:max-w-[800px] lg:max-w-[900px] p-0 max-h-[90vh] flex flex-col bg-card">
-          {processingInitialAction ? (
+           {processingInitialAction ? (
              <div className="flex items-center justify-center h-full min-h-[300px] p-6">
-               {/* You can add a more specific loading indicator here if desired */}
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
              </div>
-          ) : activePlayerInfo ? (
-            // PLAYER VIEW
-            <>
-              <div className="flex justify-between items-center p-3 sm:p-4 border-b bg-card">
-                <DialogTitle className="text-lg sm:text-xl font-semibold text-foreground truncate">
-                  {activePlayerInfo.title}
-                </DialogTitle>
-                <Button variant="ghost" size="icon" onClick={handlePlayerClose} aria-label="Voltar aos detalhes">
-                  <X className="h-5 w-5 text-muted-foreground hover:text-foreground" />
-                </Button>
-              </div>
-              <div className="aspect-video bg-black flex-grow relative w-full overflow-hidden"> 
-                <video 
-                  ref={videoRef} 
-                  controls 
-                  autoPlay 
-                  playsInline 
-                  crossOrigin="anonymous" 
-                  className="absolute top-0 left-0 w-full h-full" 
-                >
-                  {activePlayerInfo.subtitleUrl && (<track kind="subtitles" src={activePlayerInfo.subtitleUrl} srcLang="pt" label="Português" default />)}
-                  Seu navegador não suporta o elemento de vídeo.
-                </video>
-              </div>
-            </>
-          ) : (
-            // DETAILS VIEW
+           ) : (
             <>
               {item.bannerFundo && (
                 <div className="relative h-48 md:h-64 w-full flex-shrink-0">
@@ -493,7 +496,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
                 <DialogClose asChild><Button variant="outline" onClick={handleModalClose}>Fechar</Button></DialogClose>
               </DialogFooter>
             </>
-          )}
+           )}
         </DialogContent>
       </Dialog>
 
@@ -509,7 +512,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
             <div className="flex flex-col space-y-2 max-h-60 overflow-y-auto py-2">
               {serverSelectionInfo.sources.map((source, index) => (
                 <Button
-                  key={source.id || `${source.url}-${index}`} 
+                  key={source.id || `${source.url}-${index}`}
                   variant="default" 
                   className="bg-neutral-800 hover:bg-neutral-700 text-white w-full justify-start text-left py-2.5 px-4"
                   onClick={() => initiatePlayback(
@@ -539,4 +542,4 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     </>
   );
 }
-
+    
