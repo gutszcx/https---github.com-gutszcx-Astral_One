@@ -1,32 +1,67 @@
+
 // src/types/index.ts
-import type { CineFormValues, SeasonFormValues as OriginalSeasonFormValues, EpisodeFormValues as OriginalEpisodeFormValues, VideoSource as OriginalVideoSource } from '@/lib/schemas';
+import type { CineFormValues, VideoSource as FormVideoSource, EpisodeFormValues as OriginalEpisodeFormValues, SeasonFormValues as OriginalSeasonFormValues } from '@/lib/schemas';
 
-export type VideoSource = OriginalVideoSource;
-export type EpisodeFormValues = OriginalEpisodeFormValues;
-export type SeasonFormValues = OriginalSeasonFormValues;
-export type { CineFormValues };
+// Re-define VideoSource for storage, ensuring consistency if schema changes
+export interface VideoSource {
+  id?: string; // Optional ID, typically from useFieldArray or if you assign one
+  serverName: string;
+  url: string;
+}
 
+export interface Episode {
+  id?: string; // Optional ID
+  titulo: string;
+  descricao: string; // Optional, but ensure it's string if present
+  duracao: number | null; // Optional
+  videoSources: VideoSource[];
+  linkLegenda: string; // Optional, but ensure it's string if present
+}
 
-// StoredCineItem needs to be compatible with the discriminated union
-// It might be better to define movie and series specific stored items if they diverge significantly
+export interface Season {
+  id?: string; // Optional ID
+  numeroTemporada: number;
+  episodios: Episode[];
+}
 
-export type StoredMovieItem = Extract<CineFormValues, { contentType: 'movie' }> & {
+// Base structure for all stored items
+interface StoredBaseCineItem {
   id: string;
-  createdAt?: string;
-  updatedAt?: string;
-  // Ensure videoSources is always present
-  videoSources: OriginalVideoSource[]; 
+  tmdbSearchQuery: string;
+  tituloOriginal: string;
+  tituloLocalizado: string;
+  sinopse: string;
+  generos: string;
+  idiomaOriginal: string;
+  dublagensDisponiveis: string;
+  anoLancamento: number | null;
+  duracaoMedia: number | null;
+  classificacaoIndicativa: string;
+  qualidade: string;
+  capaPoster: string;
+  bannerFundo: string;
+  tags: string;
+  destaqueHome: boolean;
+  status: 'ativo' | 'inativo';
+  createdAt?: string; // ISO string date
+  updatedAt?: string; // ISO string date
+}
+
+export type StoredMovieItem = StoredBaseCineItem & {
+  contentType: 'movie';
+  videoSources: VideoSource[];
+  linkLegendas: string;
 };
 
-export type StoredSeriesItem = Extract<CineFormValues, { contentType: 'series' }> & {
-  id: string;
-  createdAt?: string;
-  updatedAt?: string;
-  temporadas: Array<Omit<OriginalSeasonFormValues, 'episodios'> & {
-    episodios: Array<Omit<OriginalEpisodeFormValues, 'videoSources'> & {
-      videoSources: OriginalVideoSource[];
-    }>;
-  }>;
+export type StoredSeriesItem = StoredBaseCineItem & {
+  contentType: 'series';
+  totalTemporadas: number | null;
+  temporadas: Season[];
 };
 
 export type StoredCineItem = StoredMovieItem | StoredSeriesItem;
+
+// Export form types for use elsewhere if needed, but primarily we use Stored types for fetched data
+export type { CineFormValues, FormVideoSource, OriginalEpisodeFormValues, OriginalSeasonFormValues };
+
+    
