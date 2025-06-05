@@ -24,6 +24,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { useToast } from '@/hooks/use-toast'; // Added import
 
 interface HomeAniDetailModalProps {
   item: StoredCineItem | null;
@@ -49,6 +50,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const { toast } = useToast(); // Initialized toast
 
   const handleModalClose = () => {
     if (videoRef.current && activeVideoInfo) {
@@ -101,12 +103,10 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
       return;
     }
 
-    // Cleanup previous HLS instance if exists
     if (hlsRef.current) {
       hlsRef.current.destroy();
       hlsRef.current = null;
     }
-    // Clear previous progress interval
     if(progressIntervalRef.current) {
       clearInterval(progressIntervalRef.current);
       progressIntervalRef.current = null;
@@ -124,8 +124,26 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
           // Autoplay is handled by the video tag's autoplay attribute
         });
         hls.on(Hls.Events.ERROR, function (event, data) {
+          console.error('HLS.js error event:', event, 'data:', data); // Keep detailed log for devs
           if (data.fatal) {
             console.error('HLS.js fatal error:', data.type, data.details);
+            let userMessage = "Ocorreu um erro ao tentar reproduzir o vídeo. Tente novamente mais tarde.";
+            if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+              if (data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR || data.details === Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT) {
+                userMessage = "Erro ao carregar o vídeo. Verifique o link ou a sua conexão com a internet.";
+              } else {
+                userMessage = "Erro de rede ao carregar o vídeo. Verifique sua conexão.";
+              }
+            } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+               userMessage = "Erro na reprodução do vídeo. O formato pode não ser suportado ou o arquivo está corrompido.";
+            }
+            toast({
+              title: "Erro de Reprodução",
+              description: userMessage,
+              variant: "destructive",
+            });
+            // Optionally, close the player on fatal HLS errors
+            // setActiveVideoInfo(null); 
           } else {
             console.warn('HLS.js non-fatal error:', data.type, data.details);
           }
@@ -133,21 +151,23 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
       } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
         videoElement.src = videoSrc;
       } else {
-        console.error("HLS.js is not supported and native HLS playback is not available.");
-        alert("Seu navegador não suporta a reprodução deste formato de vídeo (HLS).");
+        toast({
+          title: "Formato Não Suportado",
+          description: "Seu navegador não suporta a reprodução deste formato de vídeo (HLS).",
+          variant: "destructive",
+        });
       }
-    } else { // For MP4 and other direct links
+    } else { 
       videoElement.src = videoSrc;
     }
     
-    videoElement.load(); // Ensure new source is loaded
+    videoElement.load(); 
 
     const handleLoadedMetadata = () => {
       try {
         const savedProgressString = localStorage.getItem(activeVideoInfo.storageKey);
         if (savedProgressString) {
           const savedProgress: ProgressData = JSON.parse(savedProgressString);
-          // Only set currentTime if it's a meaningful value and within duration
           if (savedProgress.time > 0 && savedProgress.time < videoElement.duration) {
             videoElement.currentTime = savedProgress.time;
           }
@@ -155,7 +175,6 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
       } catch (e) {
         console.error("Error loading video progress from localStorage:", e);
       }
-      // Autoplay is handled by the video tag's autoplay attribute
        videoElement.play().catch(error => console.warn("Autoplay prevented:", error));
     };
 
@@ -168,12 +187,12 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
       if(progressIntervalRef.current) clearInterval(progressIntervalRef.current);
       progressIntervalRef.current = setInterval(() => {
         saveVideoProgress(videoElement, activeVideoInfo.storageKey);
-      }, 5000); // Save every 5 seconds
+      }, 5000); 
     };
 
     const handleEnded = () => {
         try {
-            localStorage.removeItem(activeVideoInfo.storageKey); // Remove progress when video ends
+            localStorage.removeItem(activeVideoInfo.storageKey); 
         } catch(e) {
             console.error("Error removing progress on video end:", e);
         }
@@ -199,12 +218,11 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
         clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
       }
-      // Save progress one last time on cleanup if video was active
       if (videoElement.currentTime > 0 && activeVideoInfo && videoElement.src) {
          saveVideoProgress(videoElement, activeVideoInfo.storageKey);
       }
     };
-  }, [activeVideoInfo, saveVideoProgress]);
+  }, [activeVideoInfo, saveVideoProgress, toast]);
 
 
   if (!item) return null;
@@ -399,7 +417,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
                     <X className="h-5 w-5 sm:h-6 sm:w-6" />
                 </Button>
             </div>
-            <div className="aspect-video"> {/* Enforces 16:9 aspect ratio */}
+            <div className="aspect-video"> 
                 <video 
                     ref={videoRef} 
                     controls 
@@ -407,14 +425,14 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
                     playsInline
                     crossOrigin="anonymous" 
                     className="w-full h-full bg-black"
-                    key={activeVideoInfo.url} // Force re-render if URL changes
+                    key={activeVideoInfo.url} 
                 >
                     {activeVideoInfo.subtitleUrl && (
                     <track
                         kind="subtitles"
                         src={activeVideoInfo.subtitleUrl}
-                        srcLang="pt" // Consider making this dynamic if you have multi-language subs
-                        label="Português" // Same as above
+                        srcLang="pt" 
+                        label="Português" 
                         default
                     />
                     )}
@@ -427,3 +445,4 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
     </>
   );
 }
+
