@@ -37,9 +37,11 @@ import {
 import { useToast } from '@/hooks/use-toast';
 
 interface HomeAniDetailModalProps {
-  item: StoredCineItem | null;
+  item: (StoredCineItem & { _playActionData?: { seasonNumber: number; episodeIndex: number } }) | null;
   isOpen: boolean;
   onClose: () => void;
+  initialAction?: 'play' | null;
+  onInitialActionConsumed?: () => void;
 }
 
 interface PlayerInfo {
@@ -64,29 +66,33 @@ interface ProgressData {
   lastSaved: number;
 }
 
-export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModalProps) {
+export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onInitialActionConsumed }: HomeAniDetailModalProps) {
   const [activePlayerInfo, setActivePlayerInfo] = useState<PlayerInfo | null>(null);
   const [serverSelectionInfo, setServerSelectionInfo] = useState<ServerSelectionInfo | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
+  const hasTriggeredInitialPlay = useRef(false);
+  const [processingInitialAction, setProcessingInitialAction] = useState(false);
 
-  const handleModalClose = () => {
+  const handleModalClose = useCallback(() => {
     if (videoRef.current && activePlayerInfo) {
       saveVideoProgress(videoRef.current, activePlayerInfo.storageKey);
     }
     setActivePlayerInfo(null);
     setServerSelectionInfo(null);
+    hasTriggeredInitialPlay.current = false; // Reset for next opening
     onClose();
-  };
+  }, [activePlayerInfo, onClose, videoRef]); // Added videoRef to dependencies
 
-  const handlePlayerClose = () => {
+  const handlePlayerClose = useCallback(() => {
     if (videoRef.current && activePlayerInfo) {
       saveVideoProgress(videoRef.current, activePlayerInfo.storageKey);
     }
     setActivePlayerInfo(null);
-  };
+    // Do not reset hasTriggeredInitialPlay here, modal might still be "open" conceptually for details
+  }, [activePlayerInfo, videoRef]); // Added videoRef to dependencies
   
   const saveVideoProgress = useCallback((videoElement: HTMLVideoElement, storageKey: string) => {
     if (!videoElement || !storageKey || Number.isNaN(videoElement.currentTime) || Number.isNaN(videoElement.duration)) return;
@@ -102,7 +108,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
     }
   }, []);
 
-  const initiatePlayback = (
+  const initiatePlayback = useCallback((
     videoUrl: string, 
     title: string, 
     subtitleUrl?: string, 
@@ -121,10 +127,10 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
     }
     setActivePlayerInfo({ videoUrl, subtitleUrl, title, storageKey });
     setServerSelectionInfo(null); 
-  };
+  }, [toast]);
 
 
-  const promptOrPlay = (
+  const promptOrPlay = useCallback((
     sources: VideoSource[] | undefined, 
     title: string, 
     subtitleUrl?: string, 
@@ -134,16 +140,16 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
   ) => {
     if (!baseId) {
       toast({ title: "Conteúdo Inválido", description: "ID do conteúdo não encontrado.", variant: "destructive" });
-      return;
+      return false;
     }
     if (!sources || sources.length === 0) {
       toast({ title: "Sem Fontes de Vídeo", description: "Nenhum link de vídeo disponível para este conteúdo.", variant: "default" });
-      return;
+      return false;
     }
     const validSources = sources.filter(s => s.url && s.url.trim() !== '');
     if (validSources.length === 0) {
         toast({ title: "Sem Fontes de Vídeo Válidas", description: "Nenhum link de vídeo válido encontrado.", variant: "default" });
-        return;
+        return false;
     }
 
     if (validSources.length === 1) {
@@ -151,7 +157,67 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
     } else {
       setServerSelectionInfo({ sources: validSources, subtitleUrl, title, baseId, seasonNumber, episodeIndex });
     }
-  };
+    return true;
+  }, [initiatePlayback, toast]);
+
+  // Effect to set processingInitialAction flag
+  useEffect(() => {
+    if (isOpen && initialAction === 'play' && !hasTriggeredInitialPlay.current) {
+      setProcessingInitialAction(true);
+    } else if (!isOpen) { // Reset if modal is closed or if initialAction is not 'play'
+      setProcessingInitialAction(false);
+      hasTriggeredInitialPlay.current = false; // Ensure this is reset when modal closes
+    }
+  }, [isOpen, initialAction]);
+
+
+  // Effect to handle initial play action (e.g., from "Continue Watching")
+  useEffect(() => {
+    if (isOpen && initialAction === 'play' && item && !activePlayerInfo && !serverSelectionInfo && !hasTriggeredInitialPlay.current && processingInitialAction) {
+      hasTriggeredInitialPlay.current = true;
+  
+      const playData = item._playActionData;
+      let initiatedPlayOrSelection = false;
+  
+      if (item.contentType === 'movie') {
+        const movieItem = item as StoredMovieItem;
+        if (movieItem.videoSources && movieItem.videoSources.filter(vs => vs.url && vs.url.trim() !== '').length > 0) {
+          initiatedPlayOrSelection = promptOrPlay(movieItem.videoSources, movieItem.tituloOriginal, movieItem.linkLegendas, movieItem.id);
+        } else {
+          toast({ title: "Sem Fontes de Vídeo", description: "Nenhum link de vídeo disponível para este filme.", variant: "default" });
+        }
+      } else if (item.contentType === 'series' && playData) {
+        const seriesItem = item as StoredSeriesItem;
+        const season = seriesItem.temporadas?.find(s => s.numeroTemporada === playData.seasonNumber);
+        const episode = season?.episodios?.[playData.episodeIndex];
+        if (episode && episode.videoSources && episode.videoSources.filter(vs => vs.url && vs.url.trim() !== '').length > 0) {
+          initiatedPlayOrSelection = promptOrPlay(episode.videoSources, `${seriesItem.tituloOriginal} - T${season!.numeroTemporada}E${playData.episodeIndex + 1}: ${episode.titulo}`, episode.linkLegenda, seriesItem.id, season!.numeroTemporada, playData.episodeIndex);
+        } else {
+          toast({ title: "Sem Fontes de Vídeo", description: "Nenhum link de vídeo disponível para este episódio.", variant: "default" });
+        }
+      } else if (item.contentType === 'series') {
+        // This case implies a "Continue Watching" for a series, but _playActionData was missing or invalid.
+        // The modal should open normally to details.
+        console.warn("Continue watching for series, but specific episode data not found/resolved. Modal will open normally.");
+      }
+  
+      if (onInitialActionConsumed) {
+        onInitialActionConsumed(); // Always consume after attempting, parent resets initialModalAction
+      }
+      setProcessingInitialAction(false); // Done processing initial action
+    }
+  
+    // Reset hasTriggeredInitialPlay only if modal is truly closed or item context changes
+    // The processingInitialAction's own effect handles its reset on !isOpen
+    if (!isOpen || !item) {
+        hasTriggeredInitialPlay.current = false;
+    }
+  
+  }, [
+    isOpen, initialAction, item, activePlayerInfo, serverSelectionInfo,
+    promptOrPlay, onInitialActionConsumed, toast, processingInitialAction
+  ]);
+
 
   useEffect(() => {
     const videoElement = videoRef.current;
@@ -267,7 +333,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
         clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
       }
-      if (videoElement.currentTime > 0 && activePlayerInfo && videoElement.src) {
+      if (videoElement.currentTime > 0 && activePlayerInfo && videoElement.src) { // Check videoElement.src to ensure it's loaded
          saveVideoProgress(videoElement, activePlayerInfo.storageKey);
       }
     };
@@ -283,7 +349,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
 
   return (
     <>
-      <Dialog open={isOpen && !activePlayerInfo && !serverSelectionInfo} onOpenChange={(open) => !open && handleModalClose()}>
+      <Dialog open={isOpen && !processingInitialAction && !activePlayerInfo && !serverSelectionInfo} onOpenChange={(open) => !open && handleModalClose()}>
         <DialogContent className="sm:max-w-[600px] md:max-w-[800px] lg:max-w-[900px] p-0 max-h-[90vh] flex flex-col">
           {item.bannerFundo && (
             <div className="relative h-48 md:h-64 w-full flex-shrink-0">
@@ -332,7 +398,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
                 {item.generos && (<div><h4 className="font-semibold text-md mb-1.5 text-primary">Gêneros</h4><div className="flex flex-wrap gap-2">{item.generos.split(',').map(g => g.trim()).filter(Boolean).map(genre => (<Badge key={genre} variant="secondary">{genre}</Badge>))}</div></div>)}
                 <div className="space-y-1 text-sm pt-2">
                   {item.qualidade && <div className="flex items-center"><strong>Qualidade:</strong> <Badge variant="outline" className="ml-2">{item.qualidade}</Badge></div>}
-                  {item.contentType === 'series' && item.totalTemporadas !== undefined && item.totalTemporadas !== null && (<p><strong>Temporadas:</strong> {item.totalTemporadas}</p>)}
+                  {item.contentType === 'series' && (item as StoredSeriesItem).totalTemporadas !== undefined && (item as StoredSeriesItem).totalTemporadas !== null && (<p><strong>Temporadas:</strong> {(item as StoredSeriesItem).totalTemporadas}</p>)}
                   {item.idiomaOriginal && <p><strong>Idioma Original:</strong> {item.idiomaOriginal}</p>}
                   {item.dublagensDisponiveis && <p><strong>Dublagens:</strong> {item.dublagensDisponiveis}</p>}
                 </div>
@@ -340,7 +406,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
                 {item.contentType === 'movie' && (item as StoredMovieItem).videoSources && (item as StoredMovieItem).videoSources.filter(vs => vs.url && vs.url.trim() !== '').length > 0 && (
                   <Button
                     onClick={() => promptOrPlay((item as StoredMovieItem).videoSources, item.tituloOriginal, (item as StoredMovieItem).linkLegendas, item.id)}
-                    className="mt-4 w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white"
+                    className="mt-4 w-full sm:w-auto bg-white text-black hover:bg-neutral-200 font-semibold shadow-lg"
                     size="lg"
                   >
                     <PlayCircle className="mr-2 h-5 w-5" /> Assistir Filme
@@ -385,7 +451,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
                     </Accordion>
                   </div>
                 )}
-                {item.contentType === 'series' && (!item.temporadas || item.temporadas.length === 0) && (<p className="text-sm text-muted-foreground mt-4">Nenhuma temporada ou episódio cadastrado.</p>)}
+                {item.contentType === 'series' && (!(item as StoredSeriesItem).temporadas || (item as StoredSeriesItem).temporadas.length === 0) && (<p className="text-sm text-muted-foreground mt-4">Nenhuma temporada ou episódio cadastrado.</p>)}
               </div>
             </div>
           </div>
@@ -407,8 +473,8 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
             <div className="flex flex-col space-y-2 max-h-60 overflow-y-auto py-2">
               {serverSelectionInfo.sources.map((source, index) => (
                 <Button
-                  key={source.id || `${source.url}-${index}`} 
-                  variant="default"
+                  key={source.id || `${source.url}-${index}`}
+                  variant="default" 
                   className="bg-neutral-800 hover:bg-neutral-700 text-white w-full justify-start text-left py-2.5 px-4"
                   onClick={() => initiatePlayback(
                     source.url, 
@@ -462,4 +528,3 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
     </>
   );
 }
-
