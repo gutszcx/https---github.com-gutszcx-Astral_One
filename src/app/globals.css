@@ -151,3 +151,18 @@
     @apply ring-2 ring-offset-2 ring-[hsl(var(--cyberpunk-muted-foreground))] ring-offset-[hsl(var(--cyberpunk-bg-lighter))];
   }
 }
+
+@layer utilities {
+  .player-overlay-cyberpixel-bg {
+    --cp-pixel-size: 30px; /* Control "pixel" block size */
+    background-color: hsl(var(--cyberpunk-bg)); /* Dark base */
+    background-image:
+      repeating-conic-gradient(
+        hsl(var(--cyberpunk-primary-accent)/.25) 0% 25%,
+        hsl(var(--cyberpunk-secondary-accent)/.25) 25% 50%,
+        hsl(var(--cyberpunk-highlight)/.2) 50% 75%,
+        hsl(var(--cyberpunk-bg-lighter)/.2) 75% 100%
+      );
+    background-size: var(--cp-pixel-size) var(--cp-pixel-size);
+  }
+}

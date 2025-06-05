@@ -169,6 +169,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     return true;
   }, [initiatePlayback, toast]);
 
+
   useEffect(() => {
     if (isOpen && initialAction === 'play' && !hasTriggeredInitialPlay.current && item) {
       setProcessingInitialAction(true);
@@ -183,12 +184,12 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
       hasTriggeredInitialPlay.current = true;
   
       const playData = item._playActionData;
-      let initiatedPlayOrSelection = false;
+      // let initiatedPlayOrSelection = false; // Not strictly needed now for logic flow
   
       if (item.contentType === 'movie') {
         const movieItem = item as StoredMovieItem;
         if (movieItem.videoSources && movieItem.videoSources.filter(vs => vs.url && vs.url.trim() !== '').length > 0) {
-          initiatedPlayOrSelection = promptOrPlay(movieItem.videoSources, movieItem.tituloOriginal, movieItem.linkLegendas, movieItem.id);
+          promptOrPlay(movieItem.videoSources, movieItem.tituloOriginal, movieItem.linkLegendas, movieItem.id);
         } else {
           toast({ title: "Sem Fontes de Vídeo", description: "Nenhum link de vídeo disponível para este filme.", variant: "default" });
         }
@@ -197,7 +198,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
         const season = seriesItem.temporadas?.find(s => s.numeroTemporada === playData.seasonNumber);
         const episode = season?.episodios?.[playData.episodeIndex];
         if (episode && episode.videoSources && episode.videoSources.filter(vs => vs.url && vs.url.trim() !== '').length > 0) {
-          initiatedPlayOrSelection = promptOrPlay(episode.videoSources, `${seriesItem.tituloOriginal} - T${season!.numeroTemporada}E${playData.episodeIndex + 1}: ${episode.titulo}`, episode.linkLegenda, seriesItem.id, season!.numeroTemporada, playData.episodeIndex);
+          promptOrPlay(episode.videoSources, `${seriesItem.tituloOriginal} - T${season!.numeroTemporada}E${playData.episodeIndex + 1}: ${episode.titulo}`, episode.linkLegenda, seriesItem.id, season!.numeroTemporada, playData.episodeIndex);
         } else {
           toast({ title: "Sem Fontes de Vídeo", description: "Nenhum link de vídeo disponível para este episódio.", variant: "default" });
         }
@@ -208,11 +209,12 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
       if (onInitialActionConsumed) {
         onInitialActionConsumed(); 
       }
-      setProcessingInitialAction(false);
+      setProcessingInitialAction(false); // This should now allow the dialog to render player or details
     }
   
     if (!isOpen || !item) {
         hasTriggeredInitialPlay.current = false;
+        // setProcessingInitialAction(false); // ensure reset if modal is closed externally
     }
   
   }, [
@@ -347,17 +349,18 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     ? <Film className="mr-1.5 h-4 w-4 inline-block" />
     : <Tv className="mr-1.5 h-4 w-4 inline-block" />;
 
+
   // Show player overlay if activePlayerInfo is set
   if (activePlayerInfo) {
     return (
-      <div className="fixed inset-0 z-[100] bg-black/95 flex flex-col items-center justify-center p-2 sm:p-4">
-        <div className="w-full max-w-4xl bg-neutral-900 rounded-lg shadow-2xl overflow-hidden">
-          <div className="flex justify-between items-center p-3 sm:p-4 border-b border-neutral-700">
-            <h2 className="text-lg sm:text-xl font-semibold text-white truncate">
+      <div className="fixed inset-0 z-[100] player-overlay-cyberpixel-bg flex flex-col items-center justify-center p-2 sm:p-4">
+        <div className="w-full max-w-4xl bg-[hsl(var(--cyberpunk-bg-lighter))] rounded-lg shadow-[0_0_20px_5px_hsl(var(--cyberpunk-primary-accent)/0.5)] border-2 border-[hsl(var(--cyberpunk-primary-accent))] overflow-hidden">
+          <div className="flex justify-between items-center p-3 sm:p-4 border-b border-[hsl(var(--cyberpunk-border))]">
+            <h2 className="text-lg sm:text-xl font-semibold text-[hsl(var(--cyberpunk-highlight))] truncate">
               {activePlayerInfo.title}
             </h2>
             <Button variant="ghost" size="icon" onClick={handlePlayerClose} aria-label="Fechar player">
-              <X className="h-5 w-5 text-neutral-400 hover:text-white" />
+              <X className="h-5 w-5 text-[hsl(var(--cyberpunk-secondary-accent))] hover:text-[hsl(var(--cyberpunk-highlight))]" />
             </Button>
           </div>
           <div className="aspect-video w-full">
@@ -377,16 +380,18 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
       </div>
     );
   }
-
+  
+  // If processing initial action and it's a play action, show loader within Dialog.
+  // Dialog open prop is now simply `isOpen` to ensure it mounts.
   return (
     <>
-      <Dialog open={isOpen && !processingInitialAction && !activePlayerInfo && !serverSelectionInfo} onOpenChange={(open) => !open && handleModalClose()}>
+      <Dialog open={isOpen} onOpenChange={(open) => !open && handleModalClose()}>
         <DialogContent className="sm:max-w-[600px] md:max-w-[800px] lg:max-w-[900px] p-0 max-h-[90vh] flex flex-col bg-card">
-           {processingInitialAction ? (
+           {processingInitialAction ? ( // Show loader IF processing AND no player/server select yet
              <div className="flex items-center justify-center h-full min-h-[300px] p-6">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
              </div>
-           ) : (
+           ) : ( // Otherwise, show details view
             <>
               {item.bannerFundo && (
                 <div className="relative h-48 md:h-64 w-full flex-shrink-0">
@@ -443,7 +448,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
                     {item.contentType === 'movie' && (item as StoredMovieItem).videoSources && (item as StoredMovieItem).videoSources.filter(vs => vs.url && vs.url.trim() !== '').length > 0 && (
                       <Button
                         onClick={() => promptOrPlay((item as StoredMovieItem).videoSources, item.tituloOriginal, (item as StoredMovieItem).linkLegendas, item.id)}
-                        className="mt-4 w-full sm:w-auto bg-white text-black hover:bg-neutral-200 font-semibold shadow-lg"
+                        className="mt-4 w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90 font-semibold shadow-lg"
                         size="lg"
                       >
                         <PlayCircle className="mr-2 h-5 w-5" /> Assistir Filme
@@ -513,8 +518,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
               {serverSelectionInfo.sources.map((source, index) => (
                 <Button
                   key={source.id || `${source.url}-${index}`}
-                  variant="default" 
-                  className="bg-neutral-800 hover:bg-neutral-700 text-white w-full justify-start text-left py-2.5 px-4"
+                  className="cyberpunk-button-primary w-full justify-start text-left py-2.5 px-4"
                   onClick={() => initiatePlayback(
                     source.url, 
                     serverSelectionInfo.title, 
@@ -531,7 +535,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
             <AlertDialogFooter>
               <AlertDialogCancel 
                 onClick={() => setServerSelectionInfo(null)}
-                className="bg-transparent text-neutral-400 hover:text-white border-neutral-600 hover:border-neutral-500"
+                className="cyberpunk-button-cancel"
               >
                 Cancelar
               </AlertDialogCancel>
