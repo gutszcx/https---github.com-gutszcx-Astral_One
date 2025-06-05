@@ -1,3 +1,4 @@
+
 // src/components/homeani/HomeAniDetailModal.tsx
 'use client';
 
@@ -22,11 +23,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { StoredCineItem, StoredMovieItem, StoredSeriesItem, VideoSource, EpisodeFormValues, SeasonFormValues } from '@/types';
+import type { StoredCineItem, StoredMovieItem, StoredSeriesItem, VideoSource } from '@/types';
 import { Film, Tv, Clapperboard, Clock, PlayCircle, X, ListVideo } from 'lucide-react';
 import {
   Accordion,
@@ -110,7 +110,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
     seasonNumber?: number, 
     episodeIndex?: number
   ) => {
-    if (!baseId) { // Should always have baseId if we reach here
+    if (!baseId) { 
         console.error("Cannot initiate playback without a baseId for storageKey.");
         toast({ title: "Erro Interno", description: "Não foi possível identificar o conteúdo para salvar progresso.", variant: "destructive"});
         return;
@@ -120,7 +120,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
       storageKey += `-s${seasonNumber}-e${episodeIndex}`;
     }
     setActivePlayerInfo({ videoUrl, subtitleUrl, title, storageKey });
-    setServerSelectionInfo(null); // Close server selection dialog if open
+    setServerSelectionInfo(null); 
   };
 
 
@@ -128,7 +128,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
     sources: VideoSource[] | undefined, 
     title: string, 
     subtitleUrl?: string, 
-    baseId?: string, // item.id
+    baseId?: string, 
     seasonNumber?: number, 
     episodeIndex?: number 
   ) => {
@@ -266,7 +266,6 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
         clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
       }
-      // Ensure progress is saved if video is active when component unmounts or activePlayerInfo changes
       if (videoElement.currentTime > 0 && activePlayerInfo && videoElement.src) {
          saveVideoProgress(videoElement, activePlayerInfo.storageKey);
       }
@@ -406,7 +405,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
             <div className="flex flex-col space-y-2 max-h-60 overflow-y-auto py-2">
               {serverSelectionInfo.sources.map((source) => (
                 <Button
-                  key={source.id || source.url} // Use URL as part of key if ID isn't there from form context
+                  key={source.id || source.url} 
                   variant="outline"
                   onClick={() => initiatePlayback(
                     source.url, 
@@ -430,8 +429,8 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
       )}
 
       {activePlayerInfo && (
-        <div className="fixed inset-0 bg-black/95 flex flex-col items-center justify-center z-[100] p-2 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="videoPlayerTitle">
-          <div className="w-full max-w-5xl bg-black rounded-lg shadow-2xl overflow-hidden">
+        <div className="fixed inset-0 bg-black/95 z-[100] flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="videoPlayerTitle">
+          <div className="w-full max-w-5xl bg-black rounded-lg shadow-2xl overflow-hidden mx-2 sm:mx-4">
             <div className="flex justify-between items-center p-2 sm:p-3 bg-black border-b border-gray-700">
                 <h2 id="videoPlayerTitle" className="text-sm sm:text-lg font-semibold text-white truncate pl-2">{activePlayerInfo.title}</h2>
                 <Button variant="ghost" size="icon" onClick={handlePlayerClose} className="text-gray-300 hover:text-white hover:bg-gray-700 rounded-full" aria-label="Fechar player">
