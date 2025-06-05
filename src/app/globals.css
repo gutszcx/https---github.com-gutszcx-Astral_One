@@ -32,7 +32,7 @@
     --input: 228 40% 92%; /* Slightly lighter than border for input backgrounds */
     --ring: 231 48% 48%; /* Primary color for focus rings */
 
-    --radius: 0.5rem; /* Default */
+    --radius: 0rem; /* Changed from 0.5rem for pixelated look */
 
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
@@ -118,6 +118,13 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+  img {
+    image-rendering: pixelated; /* Ideal for pixel art scaling */
+    image-rendering: -moz-crisp-edges; /* Firefox */
+    image-rendering: -webkit-optimize-contrast; /* Webkit (Chrome, Safari) for sharper edges */
+    image-rendering: crisp-edges; /* General fallback */
+    -ms-interpolation-mode: nearest-neighbor; /* IE */
   }
 }
 
