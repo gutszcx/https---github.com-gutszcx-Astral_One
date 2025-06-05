@@ -185,10 +185,8 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
         hls.loadSource(videoSrc);
         hls.attachMedia(videoElement);
         hls.on(Hls.Events.ERROR, function (event, data) {
-          // Log general HLS errors as warnings
           console.warn('HLS.js error event:', event, 'data:', data); 
           if (data.fatal) {
-            // Log fatal error specifics as warnings to avoid Next.js overlay
             console.warn('HLS.js fatal error details:', data.type, data.details);
             let userMessage = "Ocorreu um erro ao tentar reproduzir o vídeo. Tente novamente mais tarde.";
             if (data.type === Hls.ErrorTypes.NETWORK_ERROR && (data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR || data.details === Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT)) {
@@ -200,7 +198,6 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
             }
             toast({ title: "Erro de Reprodução (HLS)", description: userMessage, variant: "destructive" });
           }
-          // Non-fatal errors were already console.warn, keeping that behavior implicitly by not being in data.fatal block
         });
       } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
         videoElement.src = videoSrc;
@@ -225,7 +222,6 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
       } catch (e) {
         console.error("Error loading video progress from localStorage:", e);
       }
-      // Rely on autoPlay attribute and remove explicit play() call here
     };
 
     const handlePause = () => {
@@ -396,18 +392,19 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
 
       {serverSelectionInfo && (
         <AlertDialog open={!!serverSelectionInfo} onOpenChange={(open) => !open && setServerSelectionInfo(null)}>
-          <AlertDialogContent>
+          <AlertDialogContent className="cyberpunk-alert-dialog-content">
             <AlertDialogHeader>
-              <AlertDialogTitle>Selecionar Servidor</AlertDialogTitle>
-              <AlertDialogDescription>
+              <AlertDialogTitle className="cyberpunk-alert-dialog-title">Selecionar Servidor</AlertDialogTitle>
+              <AlertDialogDescription className="cyberpunk-alert-dialog-description">
                 Escolha uma fonte para assistir: "{serverSelectionInfo.title}"
               </AlertDialogDescription>
             </AlertDialogHeader>
             <div className="flex flex-col space-y-2 max-h-60 overflow-y-auto py-2">
-              {serverSelectionInfo.sources.map((source) => (
+              {serverSelectionInfo.sources.map((source, index) => (
                 <Button
                   key={source.id || source.url} 
                   variant="outline"
+                  className={index % 2 === 0 ? "cyberpunk-button-primary w-full justify-start" : "cyberpunk-button-secondary w-full justify-start"}
                   onClick={() => initiatePlayback(
                     source.url, 
                     serverSelectionInfo.title, 
@@ -416,30 +413,40 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
                     serverSelectionInfo.seasonNumber,
                     serverSelectionInfo.episodeIndex
                   )}
-                  className="w-full justify-start"
                 >
                   <ListVideo className="mr-2 h-4 w-4" /> {source.serverName}
                 </Button>
               ))}
             </div>
             <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => setServerSelectionInfo(null)}>Cancelar</AlertDialogCancel>
+              <AlertDialogCancel 
+                onClick={() => setServerSelectionInfo(null)}
+                className="cyberpunk-button-cancel"
+              >
+                Cancelar
+              </AlertDialogCancel>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
       )}
 
       {activePlayerInfo && (
-        <div className="fixed inset-0 bg-black/95 z-[100] flex items-center justify-center p-0" role="dialog" aria-modal="true" aria-labelledby="videoPlayerTitle">
-          <div className="w-full max-w-5xl bg-black rounded-lg shadow-2xl overflow-hidden mx-2 sm:mx-4">
-            <div className="flex justify-between items-center p-2 sm:p-3 bg-black border-b border-gray-700">
-                <h2 id="videoPlayerTitle" className="text-sm sm:text-lg font-semibold text-white truncate pl-2">{activePlayerInfo.title}</h2>
-                <Button variant="ghost" size="icon" onClick={handlePlayerClose} className="text-gray-300 hover:text-white hover:bg-gray-700 rounded-full" aria-label="Fechar player">
+        <div className="fixed inset-0 bg-[hsl(var(--cyberpunk-bg)/0.98)] z-[100] flex items-center justify-center p-0" role="dialog" aria-modal="true" aria-labelledby="videoPlayerTitle">
+          <div className="w-full max-w-5xl bg-[hsl(var(--cyberpunk-bg-lighter))] rounded-lg shadow-2xl shadow-[hsl(var(--cyberpunk-primary-accent)/0.5)] overflow-hidden mx-2 sm:mx-4 border-2 border-[hsl(var(--cyberpunk-border))]">
+            <div className="flex justify-between items-center p-2 sm:p-3 bg-[hsl(var(--cyberpunk-bg-lighter))] border-b-2 border-[hsl(var(--cyberpunk-border))]">
+                <h2 id="videoPlayerTitle" className="text-sm sm:text-lg font-semibold text-[hsl(var(--cyberpunk-highlight))] truncate pl-2">{activePlayerInfo.title}</h2>
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={handlePlayerClose} 
+                    className="text-[hsl(var(--cyberpunk-primary-accent))] hover:text-[hsl(var(--cyberpunk-highlight))] hover:bg-[hsl(var(--cyberpunk-primary-accent)/0.2)] rounded-full" 
+                    aria-label="Fechar player"
+                >
                     <X className="h-5 w-5 sm:h-6 sm:w-6" />
                 </Button>
             </div>
             <div className="aspect-video"> 
-                <video ref={videoRef} controls autoPlay playsInline crossOrigin="anonymous" className="w-full h-full bg-black" key={activePlayerInfo.videoUrl}>
+                <video ref={videoRef} controls autoPlay playsInline crossOrigin="anonymous" className="w-full h-full bg-[hsl(var(--cyberpunk-bg))]" key={activePlayerInfo.videoUrl}>
                     {activePlayerInfo.subtitleUrl && (<track kind="subtitles" src={activePlayerInfo.subtitleUrl} srcLang="pt" label="Português" default />)}
                     Seu navegador não suporta o elemento de vídeo.
                 </video>
@@ -450,4 +457,3 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
     </>
   );
 }
-

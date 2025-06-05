@@ -49,6 +49,17 @@
     --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 228 30% 80%;
     --sidebar-ring: 231 48% 48%;
+
+    /* Cyberpunk Theme Colors */
+    --cyberpunk-bg: 260 30% 5%; /* Very dark desaturated purple */
+    --cyberpunk-bg-lighter: 260 30% 10%; /* Slightly lighter for surfaces */
+    --cyberpunk-foreground: 210 100% 90%; /* Pale cyan/white */
+    --cyberpunk-primary-accent: 320 100% 55%; /* Neon Pink/Magenta */
+    --cyberpunk-secondary-accent: 180 100% 50%; /* Electric Cyan */
+    --cyberpunk-highlight: 50 100% 55%; /* Bright Yellow/Gold */
+    --cyberpunk-border: 320 100% 35%; /* Darker pink for borders */
+    --cyberpunk-border-secondary: 180 100% 30%; /* Darker cyan for borders */
+    --cyberpunk-muted-foreground: 210 30% 60%; /* Muted cyan */
   }
 
   .dark {
@@ -95,6 +106,9 @@
     --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 220 15% 20%;
     --sidebar-ring: 231 48% 58%;
+
+    /* Cyberpunk Dark Theme Overrides (if needed, or use the same as light) */
+    /* For now, let's assume cyberpunk colors are distinct and don't need dark variants */
   }
 }
 
@@ -104,5 +118,36 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Cyberpunk specific component styles (can be opt-in via classes) */
+@layer components {
+  .cyberpunk-alert-dialog-content {
+    @apply bg-[hsl(var(--cyberpunk-bg-lighter))] border-[hsl(var(--cyberpunk-border))] shadow-xl shadow-[hsl(var(--cyberpunk-primary-accent)/0.3)];
+  }
+  .cyberpunk-alert-dialog-title {
+    @apply text-[hsl(var(--cyberpunk-primary-accent))] font-bold;
+  }
+  .cyberpunk-alert-dialog-description {
+    @apply text-[hsl(var(--cyberpunk-muted-foreground))];
+  }
+  .cyberpunk-button-primary {
+    @apply bg-transparent border border-[hsl(var(--cyberpunk-primary-accent))] text-[hsl(var(--cyberpunk-primary-accent))] hover:bg-[hsl(var(--cyberpunk-primary-accent)/20)] hover:text-[hsl(var(--cyberpunk-highlight))];
+  }
+   .cyberpunk-button-primary:focus-visible {
+    @apply ring-2 ring-offset-2 ring-[hsl(var(--cyberpunk-primary-accent))] ring-offset-[hsl(var(--cyberpunk-bg-lighter))];
+  }
+  .cyberpunk-button-secondary {
+    @apply bg-transparent border border-[hsl(var(--cyberpunk-secondary-accent))] text-[hsl(var(--cyberpunk-secondary-accent))] hover:bg-[hsl(var(--cyberpunk-secondary-accent)/20)] hover:text-[hsl(var(--cyberpunk-highlight))];
+  }
+  .cyberpunk-button-secondary:focus-visible {
+    @apply ring-2 ring-offset-2 ring-[hsl(var(--cyberpunk-secondary-accent))] ring-offset-[hsl(var(--cyberpunk-bg-lighter))];
+  }
+  .cyberpunk-button-cancel {
+    @apply bg-transparent border border-[hsl(var(--cyberpunk-muted-foreground))] text-[hsl(var(--cyberpunk-muted-foreground))] hover:bg-[hsl(var(--cyberpunk-muted-foreground)/20)] hover:text-[hsl(var(--cyberpunk-foreground))];
+  }
+   .cyberpunk-button-cancel:focus-visible {
+    @apply ring-2 ring-offset-2 ring-[hsl(var(--cyberpunk-muted-foreground))] ring-offset-[hsl(var(--cyberpunk-bg-lighter))];
   }
 }
