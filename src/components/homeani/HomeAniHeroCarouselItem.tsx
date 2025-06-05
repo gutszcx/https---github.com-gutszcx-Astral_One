@@ -38,7 +38,7 @@ export function HomeAniHeroCarouselItem({ item, onViewDetailsClick, isPriority =
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent z-10"></div>
       <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-transparent to-transparent z-10 md:w-3/4 lg:w-2/3"></div>
       
-      <div className="relative z-20 p-6 md:p-12 lg:p-16 h-full flex flex-col justify-end">
+      <div className="relative z-20 p-6 md:p-10 lg:p-14 h-full flex flex-col justify-end">
         <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-2 md:mb-3 drop-shadow-lg">
           {item.tituloOriginal}
         </h1>
@@ -48,27 +48,27 @@ export function HomeAniHeroCarouselItem({ item, onViewDetailsClick, isPriority =
             </h2>
         )}
         {item.sinopse && (
-          <p className="text-xs md:text-sm lg:text-base text-slate-300 mb-4 md:mb-6 line-clamp-2 md:line-clamp-3 max-w-md lg:max-w-xl drop-shadow-md">
+          <p className="text-xs md:text-sm lg:text-base text-slate-300 mb-3 md:mb-5 line-clamp-2 md:line-clamp-3 max-w-md lg:max-w-xl drop-shadow-md">
             {item.sinopse}
           </p>
         )}
         <div className="flex space-x-2 md:space-x-3">
           <Button 
-            size="lg" 
+            size="default" 
             onClick={(e) => { e.stopPropagation(); onViewDetailsClick(item); }} 
-            className="bg-white text-black hover:bg-neutral-200 font-semibold shadow-lg px-4 md:px-6 py-2 md:py-2.5 text-sm md:text-base"
+            className="bg-white text-black hover:bg-neutral-200 font-semibold shadow-lg"
             aria-label={`Ver detalhes e assistir ${item.tituloOriginal}`}
           >
-            <PlayCircle className="mr-1.5 h-4 w-4 md:h-5 md:w-5" /> Assistir
+            <PlayCircle className="mr-1.5 h-4 w-4" /> Assistir
           </Button>
           <Button 
             variant="default" 
-            size="lg" 
+            size="default" 
             onClick={(e) => { e.stopPropagation(); onViewDetailsClick(item); }}
-            className="bg-neutral-700/70 text-white hover:bg-neutral-600/70 font-semibold border-transparent shadow-lg px-4 md:px-6 py-2 md:py-2.5 text-sm md:text-base"
+            className="bg-neutral-700/70 text-white hover:bg-neutral-600/70 font-semibold border-transparent shadow-lg"
             aria-label={`Mais informações sobre ${item.tituloOriginal}`}
           >
-            <Info className="mr-1.5 h-4 w-4 md:h-5 md:w-5" /> Info
+            <Info className="mr-1.5 h-4 w-4" /> Info
           </Button>
         </div>
       </div>
