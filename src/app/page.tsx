@@ -94,42 +94,25 @@ export default function HomeAniPage() {
   const heroItems = useMemo(() => {
     if (!activeItems || activeItems.length === 0) return [];
 
-    let selectedHeroItems: StoredCineItem[] = [];
-    const featured = activeItems.filter(item => item.destaqueHome === true);
-    selectedHeroItems.push(...featured);
+    const featured = activeItems
+      .filter(item => item.destaqueHome === true)
+      .sort((a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime());
 
-    if (selectedHeroItems.length < 3) {
-      const numNeeded = 3 - selectedHeroItems.length;
-      const heroAndContinueWatchingIds = new Set([
-        ...selectedHeroItems.map(h => h.id),
-        ...continueWatchingItems.map(cw => cw.id)
-      ]);
-
-      const potentialFillers = activeItems
-        .filter(item => !heroAndContinueWatchingIds.has(item.id))
-        .sort((a, b) => {
-          const dateA = new Date(a.updatedAt || a.createdAt || 0).getTime();
-          const dateB = new Date(b.updatedAt || b.createdAt || 0).getTime();
-          return dateB - dateA;
-        });
-      
-      selectedHeroItems.push(...potentialFillers.slice(0, numNeeded));
-    }
-    
-    // If still no items after trying destacados and fillers, pick the absolute most recent active item
-    // if no specific logic filled it, and if there are active items.
-    if (selectedHeroItems.length === 0 && activeItems.length > 0) {
-        const sortedAllActive = [...activeItems].sort((a, b) => {
-          const dateA = new Date(a.updatedAt || a.createdAt || 0).getTime();
-          const dateB = new Date(b.updatedAt || b.createdAt || 0).getTime();
-          return dateB - dateA;
-        });
-        if (sortedAllActive.length > 0) {
-            selectedHeroItems.push(sortedAllActive[0]);
-        }
+    if (featured.length > 0) {
+      return featured.slice(0, 3); // Show up to 3 featured items
     }
 
-    return selectedHeroItems.slice(0, 3); // Ensure max 3 items
+    // If no featured items, pick the single most recent active item that's not in "Continue Watching"
+    const continueWatchingIds = new Set(continueWatchingItems.map(cw => cw.id));
+    const mostRecentActive = activeItems
+      .filter(item => !continueWatchingIds.has(item.id))
+      .sort((a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime());
+
+    if (mostRecentActive.length > 0) {
+      return [mostRecentActive[0]]; // Show only the most recent one
+    }
+
+    return []; // No hero items if no featured and no other active items
   }, [activeItems, continueWatchingItems]);
 
 
