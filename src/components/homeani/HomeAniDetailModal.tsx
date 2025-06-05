@@ -185,9 +185,8 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
         hls.loadSource(videoSrc);
         hls.attachMedia(videoElement);
         hls.on(Hls.Events.ERROR, function (event, data) {
-          console.warn('HLS.js error event:', event, 'data:', data); 
           if (data.fatal) {
-            console.warn('HLS.js fatal error details:', data.type, data.details);
+            console.warn('HLS.js fatal error:', data.type, data.details); 
             let userMessage = "Ocorreu um erro ao tentar reproduzir o vídeo. Tente novamente mais tarde.";
             if (data.type === Hls.ErrorTypes.NETWORK_ERROR && (data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR || data.details === Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT)) {
                 userMessage = "Erro ao carregar o vídeo (manifest). Verifique o link ou a sua conexão com a internet.";
@@ -197,6 +196,8 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
                userMessage = "Erro na reprodução do vídeo. O formato pode não ser suportado ou o arquivo está corrompido.";
             }
             toast({ title: "Erro de Reprodução (HLS)", description: userMessage, variant: "destructive" });
+          } else {
+            console.warn('HLS.js non-fatal error:', data.type, data.details);
           }
         });
       } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
@@ -222,6 +223,10 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
       } catch (e) {
         console.error("Error loading video progress from localStorage:", e);
       }
+      videoElement.play().catch(error => {
+          console.warn("Autoplay prevented or failed:", error);
+          // You might want to show a play button or inform the user that interaction is needed.
+      });
     };
 
     const handlePause = () => {
@@ -333,9 +338,9 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
                   {item.dublagensDisponiveis && <p><strong>Dublagens:</strong> {item.dublagensDisponiveis}</p>}
                 </div>
 
-                {item.contentType === 'movie' && item.videoSources && item.videoSources.length > 0 && (
+                {item.contentType === 'movie' && (item as StoredMovieItem).videoSources && (item as StoredMovieItem).videoSources.filter(vs => vs.url && vs.url.trim() !== '').length > 0 && (
                   <Button
-                    onClick={() => promptOrPlay(item.videoSources, item.tituloOriginal, item.linkLegendas, item.id)}
+                    onClick={() => promptOrPlay((item as StoredMovieItem).videoSources, item.tituloOriginal, (item as StoredMovieItem).linkLegendas, item.id)}
                     className="mt-4 w-full sm:w-auto"
                     size="lg"
                   >
@@ -343,11 +348,11 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
                   </Button>
                 )}
 
-                {item.contentType === 'series' && item.temporadas && item.temporadas.length > 0 && (
+                {item.contentType === 'series' && (item as StoredSeriesItem).temporadas && (item as StoredSeriesItem).temporadas.length > 0 && (
                   <div className="mt-4">
                     <h4 className="font-semibold text-md mb-2 text-primary">Temporadas e Episódios</h4>
                     <Accordion type="single" collapsible className="w-full">
-                      {(item.temporadas as StoredSeriesItem['temporadas']).sort((a, b) => a.numeroTemporada - b.numeroTemporada).map((season, seasonIndex) => (
+                      {((item as StoredSeriesItem).temporadas).sort((a, b) => a.numeroTemporada - b.numeroTemporada).map((season, seasonIndex) => (
                         <AccordionItem value={`season-${season.numeroTemporada}`} key={`season-${season.id || `s${seasonIndex}`}`}>
                           <AccordionTrigger>Temporada {season.numeroTemporada}</AccordionTrigger>
                           <AccordionContent>
@@ -402,7 +407,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
             <div className="flex flex-col space-y-2 max-h-60 overflow-y-auto py-2">
               {serverSelectionInfo.sources.map((source, index) => (
                 <Button
-                  key={source.id || source.url} 
+                  key={source.id || `${source.url}-${index}`} 
                   variant="outline"
                   className={index % 2 === 0 ? "cyberpunk-button-primary w-full justify-start" : "cyberpunk-button-secondary w-full justify-start"}
                   onClick={() => initiatePlayback(
@@ -414,7 +419,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
                     serverSelectionInfo.episodeIndex
                   )}
                 >
-                  <ListVideo className="mr-2 h-4 w-4" /> {source.serverName}
+                  <ListVideo className="mr-2 h-4 w-4" /> {source.serverName || `Servidor ${index + 1}`}
                 </Button>
               ))}
             </div>
@@ -431,7 +436,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
       )}
 
       {activePlayerInfo && (
-        <div className="fixed inset-0 bg-[hsl(var(--cyberpunk-bg)/0.98)] z-[100] flex items-center justify-center p-0" role="dialog" aria-modal="true" aria-labelledby="videoPlayerTitle">
+         <div className="fixed inset-0 bg-[hsl(var(--cyberpunk-bg)/0.98)] z-[100] flex items-center justify-center p-0" role="dialog" aria-modal="true" aria-labelledby="videoPlayerTitle">
           <div className="w-full max-w-5xl bg-[hsl(var(--cyberpunk-bg-lighter))] rounded-lg shadow-2xl shadow-[hsl(var(--cyberpunk-primary-accent)/0.5)] overflow-hidden mx-2 sm:mx-4 border-2 border-[hsl(var(--cyberpunk-border))]">
             <div className="flex justify-between items-center p-2 sm:p-3 bg-[hsl(var(--cyberpunk-bg-lighter))] border-b-2 border-[hsl(var(--cyberpunk-border))]">
                 <h2 id="videoPlayerTitle" className="text-sm sm:text-lg font-semibold text-[hsl(var(--cyberpunk-highlight))] truncate pl-2">{activePlayerInfo.title}</h2>
@@ -457,3 +462,4 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
     </>
   );
 }
+
