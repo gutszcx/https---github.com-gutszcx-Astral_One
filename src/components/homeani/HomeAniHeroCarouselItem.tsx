@@ -38,37 +38,37 @@ export function HomeAniHeroCarouselItem({ item, onViewDetailsClick, isPriority =
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent z-10"></div>
       <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-transparent to-transparent z-10 md:w-3/4 lg:w-2/3"></div>
       
-      <div className="relative z-20 p-6 md:p-12 lg:p-16 h-full flex flex-col justify-end">
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-3 md:mb-4 drop-shadow-lg">
+      <div className="relative z-20 p-8 md:p-14 lg:p-20 h-full flex flex-col justify-end">
+        <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-4 md:mb-5 drop-shadow-lg">
           {item.tituloOriginal}
         </h1>
         {item.tituloLocalizado && item.tituloLocalizado !== item.tituloOriginal && (
-            <h2 className="text-xl md:text-2xl text-slate-200 mb-4 drop-shadow-md">
+            <h2 className="text-2xl md:text-3xl text-slate-200 mb-5 drop-shadow-md">
                 {item.tituloLocalizado}
             </h2>
         )}
         {item.sinopse && (
-          <p className="text-sm md:text-base lg:text-lg text-slate-300 mb-6 md:mb-8 line-clamp-2 md:line-clamp-3 max-w-xl lg:max-w-2xl drop-shadow-md">
+          <p className="text-base md:text-lg lg:text-xl text-slate-300 mb-8 md:mb-10 line-clamp-2 md:line-clamp-3 max-w-2xl lg:max-w-3xl drop-shadow-md">
             {item.sinopse}
           </p>
         )}
-        <div className="flex space-x-3 md:space-x-4">
+        <div className="flex space-x-4 md:space-x-5">
           <Button 
             size="lg" 
             onClick={(e) => { e.stopPropagation(); onViewDetailsClick(item); }} 
-            className="bg-white text-black hover:bg-neutral-200 font-semibold shadow-lg"
+            className="bg-white text-black hover:bg-neutral-200 font-semibold shadow-lg text-base"
             aria-label={`Ver detalhes e assistir ${item.tituloOriginal}`}
           >
-            <PlayCircle className="mr-2 h-5 w-5 md:h-6 md:w-6" /> Assistir
+            <PlayCircle className="mr-2.5 h-6 w-6 md:h-7 md:w-7" /> Assistir
           </Button>
           <Button 
             variant="default" 
             size="lg" 
             onClick={(e) => { e.stopPropagation(); onViewDetailsClick(item); }}
-            className="bg-neutral-700/70 text-white hover:bg-neutral-600/70 font-semibold border-transparent shadow-lg"
+            className="bg-neutral-700/70 text-white hover:bg-neutral-600/70 font-semibold border-transparent shadow-lg text-base"
             aria-label={`Mais informações sobre ${item.tituloOriginal}`}
           >
-            <Info className="mr-2 h-5 w-5 md:h-6 md:w-6" /> Info
+            <Info className="mr-2.5 h-6 w-6 md:h-7 md:w-7" /> Info
           </Button>
         </div>
       </div>
