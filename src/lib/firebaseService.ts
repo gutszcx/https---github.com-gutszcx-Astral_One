@@ -3,32 +3,30 @@
 
 import { db } from './firebase';
 import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, getDoc, serverTimestamp, query, orderBy, Timestamp } from 'firebase/firestore';
-import type { CineFormValues } from './schemas';
-import type { StoredCineItem } from '@/types';
+import type { CineFormValues, VideoSource, EpisodeFormValues, SeasonFormValues } from './schemas';
+import type { StoredCineItem, StoredMovieItem, StoredSeriesItem } from '@/types';
 
 const CONTENT_COLLECTION = 'contentItems';
 
-// Helper to convert Firestore data to StoredCineItem, ensuring all fields from CineFormValues are present
 function mapDocToStoredCineItem(document: ReturnType<typeof docSnap.data> & { id: string }): StoredCineItem {
-    const data = document as any; // Cast to any to handle potential missing fields before assigning defaults
+    const data = document as any; 
     
     let createdAtISO: string | undefined = undefined;
     if (data.createdAt && typeof data.createdAt.toDate === 'function') {
       createdAtISO = data.createdAt.toDate().toISOString();
     } else if (typeof data.createdAt === 'string') {
-      createdAtISO = data.createdAt; // Already a string
+      createdAtISO = data.createdAt;
     }
 
     let updatedAtISO: string | undefined = undefined;
     if (data.updatedAt && typeof data.updatedAt.toDate === 'function') {
       updatedAtISO = data.updatedAt.toDate().toISOString();
     } else if (typeof data.updatedAt === 'string') {
-      updatedAtISO = data.updatedAt; // Already a string
+      updatedAtISO = data.updatedAt;
     }
     
-    return {
+    const baseMappedItem = {
         id: document.id,
-        contentType: data.contentType,
         tmdbSearchQuery: data.tmdbSearchQuery || '',
         tituloOriginal: data.tituloOriginal || '',
         tituloLocalizado: data.tituloLocalizado || '',
@@ -45,17 +43,45 @@ function mapDocToStoredCineItem(document: ReturnType<typeof docSnap.data> & { id
         tags: data.tags || '',
         destaqueHome: data.destaqueHome || false,
         status: data.status || 'ativo',
-        linkVideo: data.contentType === 'movie' ? (data.linkVideo || '') : undefined,
-        linkLegendas: data.contentType === 'movie' ? (data.linkLegendas || '') : undefined,
-        totalTemporadas: data.contentType === 'series' ? (data.totalTemporadas !== undefined ? data.totalTemporadas : null) : undefined,
-        temporadas: data.contentType === 'series' ? (data.temporadas || []) : undefined,
         createdAt: createdAtISO,
         updatedAt: updatedAtISO,
-    } as StoredCineItem; // Cast needed as TS might not infer createdAt/updatedAt perfectly after conditional logic
+    };
+
+    if (data.contentType === 'movie') {
+        return {
+            ...baseMappedItem,
+            contentType: 'movie',
+            videoSources: (data.videoSources || []) as VideoSource[],
+            linkLegendas: data.linkLegendas || '',
+        } as StoredMovieItem;
+    } else if (data.contentType === 'series') {
+        const mappedTemporadas = (Array.isArray(data.temporadas) ? data.temporadas : []).map((season: any) => ({
+            id: season.id || undefined,
+            numeroTemporada: season.numeroTemporada || 0,
+            episodios: (Array.isArray(season.episodios) ? season.episodios : []).map((ep: any) => ({
+                id: ep.id || undefined,
+                titulo: ep.titulo || '',
+                descricao: ep.descricao || '',
+                duracao: ep.duracao !== undefined ? ep.duracao : null,
+                videoSources: (ep.videoSources || []) as VideoSource[],
+                linkLegenda: ep.linkLegenda || '',
+            })),
+        }));
+        return {
+            ...baseMappedItem,
+            contentType: 'series',
+            totalTemporadas: data.totalTemporadas !== undefined ? data.totalTemporadas : null,
+            temporadas: mappedTemporadas,
+        } as StoredSeriesItem;
+    }
+    // Fallback for unknown or missing contentType, though schema should prevent this
+    // For safety, we can return a base structure or throw an error.
+    // Here, we'll assume contentType is always 'movie' or 'series'.
+    // To satisfy TypeScript, we need a default or throw. Let's throw for clarity on bad data.
+    throw new Error(`Unknown content type: ${data.contentType} for document ID: ${document.id}`);
 }
 
 
-// Add a new content item
 export async function addContentItem(itemData: CineFormValues): Promise<string> {
   try {
     const docRef = await addDoc(collection(db, CONTENT_COLLECTION), {
@@ -70,7 +96,6 @@ export async function addContentItem(itemData: CineFormValues): Promise<string> 
   }
 }
 
-// Get all content items
 export async function getContentItems(): Promise<StoredCineItem[]> {
   try {
     const q = query(collection(db, CONTENT_COLLECTION), orderBy('updatedAt', 'desc'));
@@ -82,7 +107,6 @@ export async function getContentItems(): Promise<StoredCineItem[]> {
   }
 }
 
-// Get a single content item by ID
 export async function getContentItemById(id: string): Promise<StoredCineItem | null> {
   try {
     const docRef = doc(db, CONTENT_COLLECTION, id);
@@ -99,7 +123,6 @@ export async function getContentItemById(id: string): Promise<StoredCineItem | n
   }
 }
 
-// Update an existing content item
 export async function updateContentItem(id: string, itemData: CineFormValues): Promise<void> {
   try {
     const docRef = doc(db, CONTENT_COLLECTION, id);
@@ -115,7 +138,6 @@ export async function updateContentItem(id: string, itemData: CineFormValues): P
   }
 }
 
-// Delete a content item
 export async function deleteContentItem(id: string): Promise<void> {
   try {
     await deleteDoc(doc(db, CONTENT_COLLECTION, id));

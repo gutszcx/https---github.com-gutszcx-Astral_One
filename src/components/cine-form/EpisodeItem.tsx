@@ -2,6 +2,7 @@
 'use client';
 
 import type { Control, UseFieldArrayRemove, UseFormRegister } from 'react-hook-form';
+import { useFieldArray } from 'react-hook-form';
 import {
   FormControl,
   FormField,
@@ -12,8 +13,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Trash2 } from 'lucide-react';
+import { Trash2, PlusCircle, Film } from 'lucide-react';
 import type { SeriesFormValues } from '@/lib/schemas';
+import { Separator } from '@/components/ui/separator';
 
 interface EpisodeItemProps {
   control: Control<SeriesFormValues>;
@@ -24,6 +26,11 @@ interface EpisodeItemProps {
 }
 
 export function EpisodeItem({ control, seasonIndex, episodeIndex, removeEpisode, register }: EpisodeItemProps) {
+  const { fields: videoSourceFields, append: appendVideoSource, remove: removeVideoSource } = useFieldArray({
+    control,
+    name: `temporadas.${seasonIndex}.episodios.${episodeIndex}.videoSources`,
+  });
+
   return (
     <div className="p-4 border rounded-md space-y-4 bg-background shadow-sm">
       <div className="flex justify-between items-center">
@@ -34,8 +41,9 @@ export function EpisodeItem({ control, seasonIndex, episodeIndex, removeEpisode,
           size="icon"
           onClick={() => removeEpisode(episodeIndex)}
           aria-label="Remover episódio"
+          className="text-destructive hover:text-destructive/80"
         >
-          <Trash2 className="h-4 w-4 text-destructive" />
+          <Trash2 className="h-4 w-4" />
         </Button>
       </div>
 
@@ -65,8 +73,8 @@ export function EpisodeItem({ control, seasonIndex, episodeIndex, removeEpisode,
           </FormItem>
         )}
       />
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <FormField
+      
+      <FormField
           control={control}
           name={`temporadas.${seasonIndex}.episodios.${episodeIndex}.duracao`}
           render={({ field }) => (
@@ -79,34 +87,86 @@ export function EpisodeItem({ control, seasonIndex, episodeIndex, removeEpisode,
             </FormItem>
           )}
         />
-        <FormField
-          control={control}
-          name={`temporadas.${seasonIndex}.episodios.${episodeIndex}.linkVideo`}
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Link do Vídeo</FormLabel>
-              <FormControl>
-                <Input type="url" placeholder="https://exemplo.com/ep1.mp4" {...field} value={field.value ?? ''}/>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={control}
-          name={`temporadas.${seasonIndex}.episodios.${episodeIndex}.linkLegenda`}
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Link da Legenda (Opcional)</FormLabel>
-              <FormControl>
-                <Input type="url" placeholder="https://exemplo.com/ep1.vtt" {...field} value={field.value ?? ''}/>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+
+      <Separator />
+      <div>
+        <div className="flex justify-between items-center mb-2">
+          <h5 className="text-sm font-medium flex items-center">
+            <Film className="mr-2 h-4 w-4 text-primary/70" /> Fontes de Vídeo do Episódio
+          </h5>
+          <Button
+            type="button"
+            variant="outline"
+            size="xs" 
+            onClick={() => appendVideoSource({ serverName: '', url: '' })}
+          >
+            <PlusCircle className="mr-1 h-3 w-3" /> Adicionar Fonte
+          </Button>
+        </div>
+        {videoSourceFields.length === 0 && (
+          <p className="text-xs text-muted-foreground text-center py-1">Nenhuma fonte de vídeo para este episódio.</p>
+        )}
+        <div className="space-y-3">
+          {videoSourceFields.map((sourceField, sourceIndex) => (
+            <div key={sourceField.id} className="p-3 border rounded-md space-y-2 bg-muted/30">
+              <div className="flex justify-between items-center">
+                <FormLabel className="text-xs">Fonte {sourceIndex + 1}</FormLabel>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 text-destructive hover:text-destructive/80"
+                  onClick={() => removeVideoSource(sourceIndex)}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
+              <FormField
+                control={control}
+                name={`temporadas.${seasonIndex}.episodios.${episodeIndex}.videoSources.${sourceIndex}.serverName`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs">Nome do Servidor</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ex: Servidor A (HD)" {...field} className="text-xs h-8" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={control}
+                name={`temporadas.${seasonIndex}.episodios.${episodeIndex}.videoSources.${sourceIndex}.url`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs">URL do Vídeo</FormLabel>
+                    <FormControl>
+                      <Input type="url" placeholder="https://exemplo.com/ep1.mp4" {...field} className="text-xs h-8" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          ))}
+        </div>
       </div>
-       {/* Upload individual de episódios (vídeo e legenda) - Placeholder */}
+      
+      <Separator />
+
+      <FormField
+        control={control}
+        name={`temporadas.${seasonIndex}.episodios.${episodeIndex}.linkLegenda`}
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Link da Legenda (Global para Episódio - Opcional)</FormLabel>
+            <FormControl>
+              <Input type="url" placeholder="https://exemplo.com/ep1.vtt" {...field} value={field.value ?? ''}/>
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
     </div>
   );
 }

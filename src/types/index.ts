@@ -1,16 +1,32 @@
 // src/types/index.ts
-import type { CineFormValues, SeasonFormValues as OriginalSeasonFormValues, EpisodeFormValues as OriginalEpisodeFormValues } from '@/lib/schemas';
+import type { CineFormValues, SeasonFormValues as OriginalSeasonFormValues, EpisodeFormValues as OriginalEpisodeFormValues, VideoSource as OriginalVideoSource } from '@/lib/schemas';
 
-// Re-export or redefine SeasonFormValues and EpisodeFormValues if they are needed by other parts of the app
-// that expect them directly from types. For HomeAniDetailModal, we can import them from schemas.
-export type { CineFormValues };
-
+export type VideoSource = OriginalVideoSource;
 export type EpisodeFormValues = OriginalEpisodeFormValues;
 export type SeasonFormValues = OriginalSeasonFormValues;
+export type { CineFormValues };
 
 
-export interface StoredCineItem extends CineFormValues {
+// StoredCineItem needs to be compatible with the discriminated union
+// It might be better to define movie and series specific stored items if they diverge significantly
+
+export type StoredMovieItem = Extract<CineFormValues, { contentType: 'movie' }> & {
   id: string;
-  createdAt?: string; 
-  updatedAt?: string; 
-}
+  createdAt?: string;
+  updatedAt?: string;
+  // Ensure videoSources is always present
+  videoSources: OriginalVideoSource[]; 
+};
+
+export type StoredSeriesItem = Extract<CineFormValues, { contentType: 'series' }> & {
+  id: string;
+  createdAt?: string;
+  updatedAt?: string;
+  temporadas: Array<Omit<OriginalSeasonFormValues, 'episodios'> & {
+    episodios: Array<Omit<OriginalEpisodeFormValues, 'videoSources'> & {
+      videoSources: OriginalVideoSource[];
+    }>;
+  }>;
+};
+
+export type StoredCineItem = StoredMovieItem | StoredSeriesItem;

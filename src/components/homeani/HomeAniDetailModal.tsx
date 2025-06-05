@@ -1,4 +1,3 @@
-
 // src/components/homeani/HomeAniDetailModal.tsx
 'use client';
 
@@ -14,17 +13,28 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { StoredCineItem, EpisodeFormValues, SeasonFormValues } from '@/types';
-import { Film, Tv, Clapperboard, Clock, PlayCircle, X } from 'lucide-react';
+import type { StoredCineItem, StoredMovieItem, StoredSeriesItem, VideoSource, EpisodeFormValues, SeasonFormValues } from '@/types';
+import { Film, Tv, Clapperboard, Clock, PlayCircle, X, ListVideo } from 'lucide-react';
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { useToast } from '@/hooks/use-toast'; // Added import
+import { useToast } from '@/hooks/use-toast';
 
 interface HomeAniDetailModalProps {
   item: StoredCineItem | null;
@@ -32,11 +42,20 @@ interface HomeAniDetailModalProps {
   onClose: () => void;
 }
 
-interface ActiveVideoInfo {
-  url: string;
-  storageKey: string;
+interface PlayerInfo {
+  videoUrl: string;
   subtitleUrl?: string;
   title: string;
+  storageKey: string;
+}
+
+interface ServerSelectionInfo {
+  sources: VideoSource[];
+  subtitleUrl?: string;
+  title: string;
+  baseId: string;
+  seasonNumber?: number;
+  episodeIndex?: number;
 }
 
 interface ProgressData {
@@ -46,25 +65,27 @@ interface ProgressData {
 }
 
 export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModalProps) {
-  const [activeVideoInfo, setActiveVideoInfo] = useState<ActiveVideoInfo | null>(null);
+  const [activePlayerInfo, setActivePlayerInfo] = useState<PlayerInfo | null>(null);
+  const [serverSelectionInfo, setServerSelectionInfo] = useState<ServerSelectionInfo | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const { toast } = useToast(); // Initialized toast
+  const { toast } = useToast();
 
   const handleModalClose = () => {
-    if (videoRef.current && activeVideoInfo) {
-      saveVideoProgress(videoRef.current, activeVideoInfo.storageKey);
+    if (videoRef.current && activePlayerInfo) {
+      saveVideoProgress(videoRef.current, activePlayerInfo.storageKey);
     }
-    setActiveVideoInfo(null); // Close player
-    onClose(); // Close modal
+    setActivePlayerInfo(null);
+    setServerSelectionInfo(null);
+    onClose();
   };
 
   const handlePlayerClose = () => {
-    if (videoRef.current && activeVideoInfo) {
-      saveVideoProgress(videoRef.current, activeVideoInfo.storageKey);
+    if (videoRef.current && activePlayerInfo) {
+      saveVideoProgress(videoRef.current, activePlayerInfo.storageKey);
     }
-    setActiveVideoInfo(null);
+    setActivePlayerInfo(null);
   };
   
   const saveVideoProgress = useCallback((videoElement: HTMLVideoElement, storageKey: string) => {
@@ -81,17 +102,60 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
     }
   }, []);
 
-  const handleWatchClick = (videoUrl: string, subtitleUrl: string | undefined, title: string, baseId: string, seasonNumber?: number, episodeIndex?: number) => {
+  const initiatePlayback = (
+    videoUrl: string, 
+    title: string, 
+    subtitleUrl?: string, 
+    baseId?: string, 
+    seasonNumber?: number, 
+    episodeIndex?: number
+  ) => {
+    if (!baseId) { // Should always have baseId if we reach here
+        console.error("Cannot initiate playback without a baseId for storageKey.");
+        toast({ title: "Erro Interno", description: "Não foi possível identificar o conteúdo para salvar progresso.", variant: "destructive"});
+        return;
+    }
     let storageKey = `video-progress-${baseId}`;
     if (typeof seasonNumber === 'number' && typeof episodeIndex === 'number') {
       storageKey += `-s${seasonNumber}-e${episodeIndex}`;
     }
-    setActiveVideoInfo({ url: videoUrl, subtitleUrl, title, storageKey });
+    setActivePlayerInfo({ videoUrl, subtitleUrl, title, storageKey });
+    setServerSelectionInfo(null); // Close server selection dialog if open
+  };
+
+
+  const promptOrPlay = (
+    sources: VideoSource[] | undefined, 
+    title: string, 
+    subtitleUrl?: string, 
+    baseId?: string, // item.id
+    seasonNumber?: number, 
+    episodeIndex?: number 
+  ) => {
+    if (!baseId) {
+      toast({ title: "Conteúdo Inválido", description: "ID do conteúdo não encontrado.", variant: "destructive" });
+      return;
+    }
+    if (!sources || sources.length === 0) {
+      toast({ title: "Sem Fontes de Vídeo", description: "Nenhum link de vídeo disponível para este conteúdo.", variant: "default" });
+      return;
+    }
+    const validSources = sources.filter(s => s.url && s.url.trim() !== '');
+    if (validSources.length === 0) {
+        toast({ title: "Sem Fontes de Vídeo Válidas", description: "Nenhum link de vídeo válido encontrado.", variant: "default" });
+        return;
+    }
+
+    if (validSources.length === 1) {
+      initiatePlayback(validSources[0].url, title, subtitleUrl, baseId, seasonNumber, episodeIndex);
+    } else {
+      setServerSelectionInfo({ sources: validSources, subtitleUrl, title, baseId, seasonNumber, episodeIndex });
+    }
   };
 
   useEffect(() => {
     const videoElement = videoRef.current;
-    if (!videoElement || !activeVideoInfo) {
+    if (!videoElement || !activePlayerInfo) {
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
@@ -112,38 +176,27 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
       progressIntervalRef.current = null;
     }
 
-    const videoSrc = activeVideoInfo.url;
+    const videoSrc = activePlayerInfo.videoUrl;
 
-    if (videoSrc.endsWith('.m3u8')) {
+    if (videoSrc.endsWith('.m3u8') || videoSrc.includes('.m3u8?')) {
       if (Hls.isSupported()) {
         const hls = new Hls();
         hlsRef.current = hls;
         hls.loadSource(videoSrc);
         hls.attachMedia(videoElement);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          // Autoplay is handled by the video tag's autoplay attribute
-        });
         hls.on(Hls.Events.ERROR, function (event, data) {
-          console.error('HLS.js error event:', event, 'data:', data); // Keep detailed log for devs
+          console.error('HLS.js error event:', event, 'data:', data);
           if (data.fatal) {
             console.error('HLS.js fatal error:', data.type, data.details);
             let userMessage = "Ocorreu um erro ao tentar reproduzir o vídeo. Tente novamente mais tarde.";
-            if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-              if (data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR || data.details === Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT) {
-                userMessage = "Erro ao carregar o vídeo. Verifique o link ou a sua conexão com a internet.";
-              } else {
+            if (data.type === Hls.ErrorTypes.NETWORK_ERROR && (data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR || data.details === Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT)) {
+                userMessage = "Erro ao carregar o vídeo (manifest). Verifique o link ou a sua conexão com a internet.";
+            } else if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
                 userMessage = "Erro de rede ao carregar o vídeo. Verifique sua conexão.";
-              }
             } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
                userMessage = "Erro na reprodução do vídeo. O formato pode não ser suportado ou o arquivo está corrompido.";
             }
-            toast({
-              title: "Erro de Reprodução",
-              description: userMessage,
-              variant: "destructive",
-            });
-            // Optionally, close the player on fatal HLS errors
-            // setActiveVideoInfo(null); 
+            toast({ title: "Erro de Reprodução (HLS)", description: userMessage, variant: "destructive" });
           } else {
             console.warn('HLS.js non-fatal error:', data.type, data.details);
           }
@@ -151,11 +204,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
       } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
         videoElement.src = videoSrc;
       } else {
-        toast({
-          title: "Formato Não Suportado",
-          description: "Seu navegador não suporta a reprodução deste formato de vídeo (HLS).",
-          variant: "destructive",
-        });
+        toast({ title: "Formato Não Suportado", description: "Seu navegador não suporta a reprodução deste formato de vídeo (HLS).", variant: "destructive" });
       }
     } else { 
       videoElement.src = videoSrc;
@@ -165,7 +214,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
 
     const handleLoadedMetadata = () => {
       try {
-        const savedProgressString = localStorage.getItem(activeVideoInfo.storageKey);
+        const savedProgressString = localStorage.getItem(activePlayerInfo.storageKey);
         if (savedProgressString) {
           const savedProgress: ProgressData = JSON.parse(savedProgressString);
           if (savedProgress.time > 0 && savedProgress.time < videoElement.duration) {
@@ -179,20 +228,20 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
     };
 
     const handlePause = () => {
-      saveVideoProgress(videoElement, activeVideoInfo.storageKey);
+      saveVideoProgress(videoElement, activePlayerInfo.storageKey);
        if(progressIntervalRef.current) clearInterval(progressIntervalRef.current);
     };
     
     const handlePlay = () => {
       if(progressIntervalRef.current) clearInterval(progressIntervalRef.current);
       progressIntervalRef.current = setInterval(() => {
-        saveVideoProgress(videoElement, activeVideoInfo.storageKey);
+        saveVideoProgress(videoElement, activePlayerInfo.storageKey);
       }, 5000); 
     };
 
     const handleEnded = () => {
         try {
-            localStorage.removeItem(activeVideoInfo.storageKey); 
+            localStorage.removeItem(activePlayerInfo.storageKey); 
         } catch(e) {
             console.error("Error removing progress on video end:", e);
         }
@@ -203,7 +252,6 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
     videoElement.addEventListener('pause', handlePause);
     videoElement.addEventListener('play', handlePlay);
     videoElement.addEventListener('ended', handleEnded);
-
 
     return () => {
       videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
@@ -218,11 +266,12 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
         clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
       }
-      if (videoElement.currentTime > 0 && activeVideoInfo && videoElement.src) {
-         saveVideoProgress(videoElement, activeVideoInfo.storageKey);
+      // Ensure progress is saved if video is active when component unmounts or activePlayerInfo changes
+      if (videoElement.currentTime > 0 && activePlayerInfo && videoElement.src) {
+         saveVideoProgress(videoElement, activePlayerInfo.storageKey);
       }
     };
-  }, [activeVideoInfo, saveVideoProgress, toast]);
+  }, [activePlayerInfo, saveVideoProgress, toast]);
 
 
   if (!item) return null;
@@ -234,7 +283,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
 
   return (
     <>
-      <Dialog open={isOpen && !activeVideoInfo} onOpenChange={(open) => !open && handleModalClose()}>
+      <Dialog open={isOpen && !activePlayerInfo && !serverSelectionInfo} onOpenChange={(open) => !open && handleModalClose()}>
         <DialogContent className="sm:max-w-[600px] md:max-w-[800px] lg:max-w-[900px] p-0 max-h-[90vh] flex flex-col">
           {item.bannerFundo && (
             <div className="relative h-48 md:h-64 w-full flex-shrink-0">
@@ -275,60 +324,22 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
               <div className="md:col-span-2 space-y-4">
                 <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground items-center">
                   <span>{mediaTypeIcon}{mediaTypeLabel}</span>
-                  {item.anoLancamento && (
-                    <>
-                      <span className="text-xs">&bull;</span>
-                      <span>{item.anoLancamento}</span>
-                    </>
-                  )}
-                  {item.duracaoMedia && (
-                    <>
-                      <span className="text-xs">&bull;</span>
-                      <span>{item.duracaoMedia} min {item.contentType === 'series' ? '(média ep.)' : ''}</span>
-                    </>
-                  )}
-                  {item.classificacaoIndicativa && (
-                    <>
-                      <span className="text-xs">&bull;</span>
-                      <Badge variant="outline" className="text-xs px-1.5 py-0.5">{item.classificacaoIndicativa}</Badge>
-                    </>
-                  )}
+                  {item.anoLancamento && (<><span className="text-xs">&bull;</span><span>{item.anoLancamento}</span></>)}
+                  {item.duracaoMedia && (<><span className="text-xs">&bull;</span><span>{item.duracaoMedia} min {item.contentType === 'series' ? '(média ep.)' : ''}</span></>)}
+                  {item.classificacaoIndicativa && (<><span className="text-xs">&bull;</span><Badge variant="outline" className="text-xs px-1.5 py-0.5">{item.classificacaoIndicativa}</Badge></>)}
                 </div>
-
-                {item.sinopse && (
-                  <div>
-                    <h4 className="font-semibold text-md mb-1 text-primary">Sinopse</h4>
-                    <p className="text-sm text-foreground/90 leading-relaxed max-h-40 overflow-y-auto pr-2">
-                      {item.sinopse}
-                    </p>
-                  </div>
-                )}
-
-                {item.generos && (
-                  <div>
-                    <h4 className="font-semibold text-md mb-1.5 text-primary">Gêneros</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {item.generos.split(',').map(genre => genre.trim()).filter(Boolean).map(genre => (
-                        <Badge key={genre} variant="secondary">{genre}</Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
+                {item.sinopse && (<div><h4 className="font-semibold text-md mb-1 text-primary">Sinopse</h4><p className="text-sm text-foreground/90 leading-relaxed max-h-40 overflow-y-auto pr-2">{item.sinopse}</p></div>)}
+                {item.generos && (<div><h4 className="font-semibold text-md mb-1.5 text-primary">Gêneros</h4><div className="flex flex-wrap gap-2">{item.generos.split(',').map(g => g.trim()).filter(Boolean).map(genre => (<Badge key={genre} variant="secondary">{genre}</Badge>))}</div></div>)}
                 <div className="space-y-1 text-sm pt-2">
-                  {item.qualidade &&
-                      <div className="flex items-center"><strong>Qualidade:</strong> <Badge variant="outline" className="ml-2">{item.qualidade}</Badge></div>
-                  }
-                  {item.contentType === 'series' && item.totalTemporadas !== undefined && item.totalTemporadas !== null && (
-                    <p><strong>Temporadas:</strong> {item.totalTemporadas}</p>
-                  )}
+                  {item.qualidade && <div className="flex items-center"><strong>Qualidade:</strong> <Badge variant="outline" className="ml-2">{item.qualidade}</Badge></div>}
+                  {item.contentType === 'series' && item.totalTemporadas !== undefined && item.totalTemporadas !== null && (<p><strong>Temporadas:</strong> {item.totalTemporadas}</p>)}
                   {item.idiomaOriginal && <p><strong>Idioma Original:</strong> {item.idiomaOriginal}</p>}
                   {item.dublagensDisponiveis && <p><strong>Dublagens:</strong> {item.dublagensDisponiveis}</p>}
                 </div>
 
-                {item.contentType === 'movie' && item.linkVideo && (
+                {item.contentType === 'movie' && item.videoSources && item.videoSources.length > 0 && (
                   <Button
-                    onClick={() => handleWatchClick(item.linkVideo!, item.linkLegendas, item.tituloOriginal, item.id)}
+                    onClick={() => promptOrPlay(item.videoSources, item.tituloOriginal, item.linkLegendas, item.id)}
                     className="mt-4 w-full sm:w-auto"
                     size="lg"
                   >
@@ -340,102 +351,96 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
                   <div className="mt-4">
                     <h4 className="font-semibold text-md mb-2 text-primary">Temporadas e Episódios</h4>
                     <Accordion type="single" collapsible className="w-full">
-                      {(item.temporadas as SeasonFormValues[]).sort((a, b) => a.numeroTemporada - b.numeroTemporada).map((season, seasonIndex) => (
+                      {(item.temporadas as StoredSeriesItem['temporadas']).sort((a, b) => a.numeroTemporada - b.numeroTemporada).map((season, seasonIndex) => (
                         <AccordionItem value={`season-${season.numeroTemporada}`} key={`season-${season.id || `s${seasonIndex}`}`}>
                           <AccordionTrigger>Temporada {season.numeroTemporada}</AccordionTrigger>
                           <AccordionContent>
                             {season.episodios && season.episodios.length > 0 ? (
                               <ul className="space-y-3 pl-2">
-                                {(season.episodios as EpisodeFormValues[]).map((episode, episodeIndex) => (
+                                {season.episodios.map((episode, episodeIndex) => (
                                   <li key={`episode-${episode.id || `e${episodeIndex}`}`} className="p-3 border rounded-md bg-muted/30">
                                     <div className="flex justify-between items-start">
                                       <div>
-                                        <p className="font-medium text-sm flex items-center">
-                                          <Clapperboard className="mr-2 h-4 w-4 text-primary/80" />
-                                          Ep. {episodeIndex + 1}: {episode.titulo}
-                                        </p>
-                                        {episode.duracao && (
-                                          <p className="text-xs text-muted-foreground flex items-center mt-0.5">
-                                            <Clock className="mr-1.5 h-3 w-3" /> {episode.duracao} min
-                                          </p>
-                                        )}
+                                        <p className="font-medium text-sm flex items-center"><Clapperboard className="mr-2 h-4 w-4 text-primary/80" />Ep. {episodeIndex + 1}: {episode.titulo}</p>
+                                        {episode.duracao && (<p className="text-xs text-muted-foreground flex items-center mt-0.5"><Clock className="mr-1.5 h-3 w-3" /> {episode.duracao} min</p>)}
                                       </div>
-                                      {episode.linkVideo && (
+                                      {episode.videoSources && episode.videoSources.length > 0 && (
                                          <Button 
-                                            variant="outline" 
-                                            size="sm"
-                                            onClick={() => handleWatchClick(episode.linkVideo!, episode.linkLegenda, `${item.tituloOriginal} - T${season.numeroTemporada}E${episodeIndex + 1}: ${episode.titulo}`, item.id, season.numeroTemporada, episodeIndex)}
+                                            variant="outline" size="sm"
+                                            onClick={() => promptOrPlay(episode.videoSources, `${item.tituloOriginal} - T${season.numeroTemporada}E${episodeIndex + 1}: ${episode.titulo}`, episode.linkLegenda, item.id, season.numeroTemporada, episodeIndex)}
                                          >
                                           <PlayCircle className="mr-1.5 h-4 w-4" /> Assistir
                                         </Button>
                                       )}
                                     </div>
-                                    {episode.descricao && (
-                                      <p className="text-xs text-muted-foreground mt-1.5 pt-1.5 border-t border-border/50">
-                                        {episode.descricao}
-                                      </p>
-                                    )}
+                                    {episode.descricao && (<p className="text-xs text-muted-foreground mt-1.5 pt-1.5 border-t border-border/50">{episode.descricao}</p>)}
                                   </li>
                                 ))}
                               </ul>
-                            ) : (
-                              <p className="text-sm text-muted-foreground pl-2">Nenhum episódio cadastrado para esta temporada.</p>
-                            )}
+                            ) : (<p className="text-sm text-muted-foreground pl-2">Nenhum episódio cadastrado.</p>)}
                           </AccordionContent>
                         </AccordionItem>
                       ))}
                     </Accordion>
                   </div>
                 )}
-                {item.contentType === 'series' && (!item.temporadas || item.temporadas.length === 0) && (
-                   <p className="text-sm text-muted-foreground mt-4">Nenhuma temporada ou episódio cadastrado.</p>
-                )}
-
+                {item.contentType === 'series' && (!item.temporadas || item.temporadas.length === 0) && (<p className="text-sm text-muted-foreground mt-4">Nenhuma temporada ou episódio cadastrado.</p>)}
               </div>
             </div>
           </div>
           <DialogFooter className="p-4 border-t bg-muted/50 rounded-b-md flex-shrink-0">
-            <DialogClose asChild>
-              <Button variant="outline" onClick={handleModalClose}>Fechar</Button>
-            </DialogClose>
+            <DialogClose asChild><Button variant="outline" onClick={handleModalClose}>Fechar</Button></DialogClose>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {activeVideoInfo && (
+      {serverSelectionInfo && (
+        <AlertDialog open={!!serverSelectionInfo} onOpenChange={(open) => !open && setServerSelectionInfo(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Selecionar Servidor</AlertDialogTitle>
+              <AlertDialogDescription>
+                Escolha uma fonte para assistir: "{serverSelectionInfo.title}"
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="flex flex-col space-y-2 max-h-60 overflow-y-auto py-2">
+              {serverSelectionInfo.sources.map((source) => (
+                <Button
+                  key={source.id || source.url} // Use URL as part of key if ID isn't there from form context
+                  variant="outline"
+                  onClick={() => initiatePlayback(
+                    source.url, 
+                    serverSelectionInfo.title, 
+                    serverSelectionInfo.subtitleUrl, 
+                    serverSelectionInfo.baseId,
+                    serverSelectionInfo.seasonNumber,
+                    serverSelectionInfo.episodeIndex
+                  )}
+                  className="w-full justify-start"
+                >
+                  <ListVideo className="mr-2 h-4 w-4" /> {source.serverName}
+                </Button>
+              ))}
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setServerSelectionInfo(null)}>Cancelar</AlertDialogCancel>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
+      {activePlayerInfo && (
         <div className="fixed inset-0 bg-black/95 flex flex-col items-center justify-center z-[100] p-2 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="videoPlayerTitle">
           <div className="w-full max-w-5xl bg-black rounded-lg shadow-2xl overflow-hidden">
             <div className="flex justify-between items-center p-2 sm:p-3 bg-black border-b border-gray-700">
-                <h2 id="videoPlayerTitle" className="text-sm sm:text-lg font-semibold text-white truncate pl-2">{activeVideoInfo.title}</h2>
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handlePlayerClose}
-                    className="text-gray-300 hover:text-white hover:bg-gray-700 rounded-full"
-                    aria-label="Fechar player"
-                >
+                <h2 id="videoPlayerTitle" className="text-sm sm:text-lg font-semibold text-white truncate pl-2">{activePlayerInfo.title}</h2>
+                <Button variant="ghost" size="icon" onClick={handlePlayerClose} className="text-gray-300 hover:text-white hover:bg-gray-700 rounded-full" aria-label="Fechar player">
                     <X className="h-5 w-5 sm:h-6 sm:w-6" />
                 </Button>
             </div>
             <div className="aspect-video"> 
-                <video 
-                    ref={videoRef} 
-                    controls 
-                    autoPlay 
-                    playsInline
-                    crossOrigin="anonymous" 
-                    className="w-full h-full bg-black"
-                    key={activeVideoInfo.url} 
-                >
-                    {activeVideoInfo.subtitleUrl && (
-                    <track
-                        kind="subtitles"
-                        src={activeVideoInfo.subtitleUrl}
-                        srcLang="pt" 
-                        label="Português" 
-                        default
-                    />
-                    )}
+                <video ref={videoRef} controls autoPlay playsInline crossOrigin="anonymous" className="w-full h-full bg-black" key={activePlayerInfo.videoUrl}>
+                    {activePlayerInfo.subtitleUrl && (<track kind="subtitles" src={activePlayerInfo.subtitleUrl} srcLang="pt" label="Português" default />)}
                     Seu navegador não suporta o elemento de vídeo.
                 </video>
             </div>
@@ -445,4 +450,3 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
     </>
   );
 }
-
