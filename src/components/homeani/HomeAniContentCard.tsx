@@ -7,9 +7,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Film, Tv, Star } from 'lucide-react';
 import type { StoredCineItem } from '@/types';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress'; // Added import
 
 interface HomeAniContentCardProps {
-  item: StoredCineItem;
+  item: StoredCineItem & { progressTime?: number; progressDuration?: number }; // Updated to include optional progress props
   onClick: () => void;
 }
 
@@ -19,6 +20,9 @@ export function HomeAniContentCard({ item, onClick }: HomeAniContentCardProps) {
     : <Tv className="h-3 w-3 text-muted-foreground group-hover:text-primary transition-colors" />;
   
   const mediaTypeLabel = item.contentType === 'movie' ? 'Filme' : 'Série';
+
+  const hasProgress = typeof item.progressTime === 'number' && typeof item.progressDuration === 'number' && item.progressDuration > 0;
+  const progressPercentage = hasProgress ? (item.progressTime! / item.progressDuration!) * 100 : 0;
 
   return (
     <Card 
@@ -43,6 +47,11 @@ export function HomeAniContentCard({ item, onClick }: HomeAniContentCardProps) {
             <Star className="h-3 w-3 mr-1" /> Destaque
            </Badge>
         )}
+         {hasProgress && (
+          <div className="absolute bottom-0 left-0 right-0 px-1.5 pb-1.5 pt-4 bg-gradient-to-t from-black/70 to-transparent">
+            <Progress value={progressPercentage} className="h-1.5 w-full bg-white/30 [&>div]:bg-primary" />
+          </div>
+        )}
       </div>
       <CardContent className="p-3">
         <h3 className="text-sm font-semibold leading-tight truncate mb-0.5 group-hover:text-primary transition-colors" title={item.tituloOriginal}>
@@ -57,4 +66,3 @@ export function HomeAniContentCard({ item, onClick }: HomeAniContentCardProps) {
     </Card>
   );
 }
-
