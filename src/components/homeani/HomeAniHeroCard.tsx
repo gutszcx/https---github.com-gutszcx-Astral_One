@@ -48,16 +48,16 @@ export function HomeAniHeroCard({ item, onViewDetailsClick }: HomeAniHeroCardPro
           <Button 
             size="lg" 
             onClick={onViewDetailsClick} 
-            className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg"
+            className="bg-white text-black hover:bg-neutral-200 font-semibold shadow-lg"
             aria-label={`Ver detalhes e assistir ${item.tituloOriginal}`}
           >
             <PlayCircle className="mr-2 h-5 w-5 md:h-6 md:w-6" /> Assistir Agora
           </Button>
           <Button 
-            variant="outline" 
+            variant="default" 
             size="lg" 
             onClick={onViewDetailsClick}
-            className="bg-white/20 hover:bg-white/30 border-white/50 text-white shadow-lg"
+            className="bg-neutral-700/70 text-white hover:bg-neutral-600/70 font-semibold border-transparent shadow-lg"
             aria-label={`Mais informações sobre ${item.tituloOriginal}`}
           >
             <Info className="mr-2 h-5 w-5 md:h-6 md:w-6" /> Mais Informações
@@ -67,3 +67,4 @@ export function HomeAniHeroCard({ item, onViewDetailsClick }: HomeAniHeroCardPro
     </div>
   );
 }
+

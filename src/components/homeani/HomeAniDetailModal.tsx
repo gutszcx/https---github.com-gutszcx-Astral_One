@@ -225,7 +225,6 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
       }
       videoElement.play().catch(error => {
           console.warn("Autoplay prevented or failed:", error);
-          // You might want to show a play button or inform the user that interaction is needed.
       });
     };
 
@@ -341,7 +340,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
                 {item.contentType === 'movie' && (item as StoredMovieItem).videoSources && (item as StoredMovieItem).videoSources.filter(vs => vs.url && vs.url.trim() !== '').length > 0 && (
                   <Button
                     onClick={() => promptOrPlay((item as StoredMovieItem).videoSources, item.tituloOriginal, (item as StoredMovieItem).linkLegendas, item.id)}
-                    className="mt-4 w-full sm:w-auto"
+                    className="mt-4 w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white"
                     size="lg"
                   >
                     <PlayCircle className="mr-2 h-5 w-5" /> Assistir Filme
@@ -367,7 +366,8 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
                                       </div>
                                       {episode.videoSources && episode.videoSources.filter(vs => vs.url && vs.url.trim() !== '').length > 0 && (
                                          <Button 
-                                            variant="outline" size="sm"
+                                            variant="ghost" size="sm"
+                                            className="text-primary hover:text-primary/80"
                                             onClick={() => promptOrPlay(episode.videoSources, `${item.tituloOriginal} - T${season.numeroTemporada}E${episodeIndex + 1}: ${episode.titulo}`, episode.linkLegenda, item.id, season.numeroTemporada, episodeIndex)}
                                          >
                                           <PlayCircle className="mr-1.5 h-4 w-4" /> Assistir
@@ -408,8 +408,8 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
               {serverSelectionInfo.sources.map((source, index) => (
                 <Button
                   key={source.id || `${source.url}-${index}`} 
-                  variant="outline"
-                  className={index % 2 === 0 ? "cyberpunk-button-primary w-full justify-start" : "cyberpunk-button-secondary w-full justify-start"}
+                  variant="default"
+                  className="bg-neutral-800 hover:bg-neutral-700 text-white w-full justify-start text-left py-2.5 px-4"
                   onClick={() => initiatePlayback(
                     source.url, 
                     serverSelectionInfo.title, 
@@ -426,7 +426,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose }: HomeAniDetailModal
             <AlertDialogFooter>
               <AlertDialogCancel 
                 onClick={() => setServerSelectionInfo(null)}
-                className="cyberpunk-button-cancel"
+                className="bg-transparent text-neutral-400 hover:text-white border-neutral-600 hover:border-neutral-500"
               >
                 Cancelar
               </AlertDialogCancel>
