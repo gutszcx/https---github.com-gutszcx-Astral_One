@@ -8,7 +8,8 @@ import { getContentItems } from '@/lib/firebaseService';
 import type { StoredCineItem } from '@/types';
 import { HomeAniContentCard } from '@/components/homeani/HomeAniContentCard';
 import { HomeAniDetailModal } from '@/components/homeani/HomeAniDetailModal';
-import { HomeAniHeroCard } from '@/components/homeani/HomeAniHeroCard';
+// import { HomeAniHeroCard } from '@/components/homeani/HomeAniHeroCard'; // Replaced by Carousel
+import { HomeAniHeroCarousel } from '@/components/homeani/HomeAniHeroCarousel';
 import { Loader2, AlertTriangle, Flame, Tag, PlaySquare, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -23,10 +24,12 @@ interface ContinueWatchingItem extends StoredCineItem {
   lastSaved: number;
   progressTime?: number;
   progressDuration?: number;
+  _playActionData?: { seasonNumber: number; episodeIndex: number };
 }
 
 export default function HomeAniPage() {
-  const [selectedItem, setSelectedItem] = useState<StoredCineItem | null>(null);
+  const [selectedItem, setSelectedItem] = useState<(StoredCineItem & { _playActionData?: { seasonNumber: number; episodeIndex: number } }) | null>(null);
+  const [initialModalAction, setInitialModalAction] = useState<'play' | null>(null);
   const [continueWatchingItems, setContinueWatchingItems] = useState<ContinueWatchingItem[]>([]);
 
   const { data: allItems, isLoading, error, refetch } = useQuery<StoredCineItem[], Error>({
@@ -39,7 +42,7 @@ export default function HomeAniPage() {
   // Effect to load "Continue Watching" items from localStorage
   useEffect(() => {
     if (!activeItems || activeItems.length === 0) {
-        setContinueWatchingItems([]); // Clear if no active items to match against
+        setContinueWatchingItems([]);
         return;
     }
 
@@ -55,18 +58,24 @@ export default function HomeAniPage() {
                                         (progressData.duration ? progressData.time < progressData.duration * 0.98 : true);
 
             if (isMeaningfulProgress) {
-              const itemIdMatch = key.match(/^video-progress-([a-zA-Z0-9]+)(?:-s\d+-e\d+)?$/);
+              const itemIdMatch = key.match(/^video-progress-([a-zA-Z0-9]+)(?:-s(\d+)-e(\d+))?$/);
               const itemId = itemIdMatch ? itemIdMatch[1] : null;
+              const seasonNumber = itemIdMatch && itemIdMatch[2] ? parseInt(itemIdMatch[2], 10) : undefined;
+              const episodeIndex = itemIdMatch && itemIdMatch[3] ? parseInt(itemIdMatch[3], 10) : undefined;
 
               if (itemId) {
                 const matchingItem = activeItems.find(item => item.id === itemId);
-                if (matchingItem && !loadedContinueWatching.some(cw => cw.id === matchingItem.id)) {
-                  loadedContinueWatching.push({
+                if (matchingItem && !loadedContinueWatching.some(cw => cw.id === matchingItem.id)) { // Avoid duplicates if multiple episodes of same series
+                  const continueItem: ContinueWatchingItem = {
                     ...matchingItem,
                     lastSaved: progressData.lastSaved,
                     progressTime: progressData.time,
-                    progressDuration: progressData.duration
-                  });
+                    progressDuration: progressData.duration,
+                  };
+                  if (typeof seasonNumber === 'number' && typeof episodeIndex === 'number' && matchingItem.contentType === 'series') {
+                    continueItem._playActionData = { seasonNumber, episodeIndex };
+                  }
+                  loadedContinueWatching.push(continueItem);
                 }
               }
             }
@@ -82,25 +91,53 @@ export default function HomeAniPage() {
   }, [activeItems]);
 
 
-  const heroItem = useMemo(() => {
-    const featured = activeItems.find(item => item.destaqueHome === true);
-    if (featured) return featured;
+  const heroItems = useMemo(() => {
+    if (!activeItems || activeItems.length === 0) return [];
 
-    const nonContinueWatchingIds = new Set(continueWatchingItems.map(cw => cw.id));
-    const sortedActiveItems = [...activeItems]
-        .filter(item => !nonContinueWatchingIds.has(item.id))
-        .sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
+    let selectedHeroItems: StoredCineItem[] = [];
+    const featured = activeItems.filter(item => item.destaqueHome === true);
+    selectedHeroItems.push(...featured);
 
-    return sortedActiveItems.length > 0 ? sortedActiveItems[0] : (activeItems.length > 0 ? activeItems[0] : null);
+    if (selectedHeroItems.length < 3) {
+      const numNeeded = 3 - selectedHeroItems.length;
+      const heroAndContinueWatchingIds = new Set([
+        ...selectedHeroItems.map(h => h.id),
+        ...continueWatchingItems.map(cw => cw.id)
+      ]);
+
+      const potentialFillers = activeItems
+        .filter(item => !heroAndContinueWatchingIds.has(item.id))
+        .sort((a, b) => {
+          const dateA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+          const dateB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+          return dateB - dateA;
+        });
+      
+      selectedHeroItems.push(...potentialFillers.slice(0, numNeeded));
+    }
+    
+    // If still no items after trying destacados and fillers, pick the absolute most recent active item
+    // if no specific logic filled it, and if there are active items.
+    if (selectedHeroItems.length === 0 && activeItems.length > 0) {
+        const sortedAllActive = [...activeItems].sort((a, b) => {
+          const dateA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+          const dateB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+          return dateB - dateA;
+        });
+        if (sortedAllActive.length > 0) {
+            selectedHeroItems.push(sortedAllActive[0]);
+        }
+    }
+
+    return selectedHeroItems.slice(0, 3); // Ensure max 3 items
   }, [activeItems, continueWatchingItems]);
+
 
   const itemsForGenreRows = useMemo(() => {
     const excludeIds = new Set(continueWatchingItems.map(cw => cw.id));
-    if (heroItem) {
-      excludeIds.add(heroItem.id);
-    }
+    heroItems.forEach(heroItem => excludeIds.add(heroItem.id));
     return activeItems.filter(item => !excludeIds.has(item.id));
-  }, [activeItems, heroItem, continueWatchingItems]);
+  }, [activeItems, heroItems, continueWatchingItems]);
 
   const genreRows = useMemo(() => {
     if (!itemsForGenreRows) return [];
@@ -116,8 +153,6 @@ export default function HomeAniPage() {
         .map(g => g.charAt(0).toUpperCase() + g.slice(1).toLowerCase());
 
       if (itemGenres.length === 0) {
-        // If no specific genres, add to a general list for a "Diversos" category
-        // Avoid duplicates in miscellaneousItems
         if (!miscellaneousItems.find(i => i.id === item.id)) {
             miscellaneousItems.push(item);
         }
@@ -126,7 +161,6 @@ export default function HomeAniPage() {
           if (!genresMap.has(genre)) {
             genresMap.set(genre, []);
           }
-          // Add item if not already in the genre's list
           if (!genresMap.get(genre)!.find(i => i.id === item.id)) {
               genresMap.get(genre)!.push(item);
           }
@@ -139,8 +173,6 @@ export default function HomeAniPage() {
       .sort((a, b) => a.title.localeCompare(b.title));
 
     if (miscellaneousItems.length > 0) {
-      // Add "Diversos" row at the end or beginning, or sort it with others
-      // Here, added at the end.
       sortedGenreRows.push({ title: "Diversos", items: miscellaneousItems, icon: <Layers className="mr-2 h-6 w-6" /> });
     }
     
@@ -149,13 +181,24 @@ export default function HomeAniPage() {
   }, [itemsForGenreRows]);
 
 
-  const handleCardClick = (item: StoredCineItem) => {
+  const handleCardClick = (item: StoredCineItem & { _playActionData?: { seasonNumber: number; episodeIndex: number } }, playDirectly: boolean = false) => {
     setSelectedItem(item);
+    if (playDirectly) {
+        setInitialModalAction('play');
+    } else {
+        setInitialModalAction(null); // Ensure normal modal opening
+    }
   };
-
+  
   const handleCloseModal = () => {
     setSelectedItem(null);
+    setInitialModalAction(null); // Reset action on close
   };
+
+  const handleInitialActionConsumed = () => {
+    setInitialModalAction(null);
+  };
+
 
   if (isLoading) {
     return (
@@ -184,8 +227,8 @@ export default function HomeAniPage() {
   return (
     <>
       <main className="flex-grow bg-background text-foreground">
-        {heroItem && (
-          <HomeAniHeroCard item={heroItem} onViewDetailsClick={() => handleCardClick(heroItem)} />
+        {heroItems.length > 0 && (
+          <HomeAniHeroCarousel items={heroItems} onViewDetailsClick={(item) => handleCardClick(item)} />
         )}
 
         <div className="container mx-auto px-2 sm:px-4 lg:px-6 space-y-10 pb-12">
@@ -194,7 +237,7 @@ export default function HomeAniPage() {
               key="continue-watching"
               title="Continue Assistindo"
               items={continueWatchingItems}
-              onCardClick={handleCardClick}
+              onCardClick={(item) => handleCardClick(item, true)} // Pass true to play directly
               icon={<PlaySquare className="mr-2 h-6 w-6" />}
             />
           )}
@@ -204,12 +247,12 @@ export default function HomeAniPage() {
               key={genreRow.title}
               title={genreRow.title}
               items={genreRow.items}
-              onCardClick={handleCardClick}
+              onCardClick={(item) => handleCardClick(item)}
               icon={genreRow.icon}
             />
           ))}
           
-          {!heroItem && genreRows.length === 0 && continueWatchingItems.length === 0 && (
+          {heroItems.length === 0 && genreRows.length === 0 && continueWatchingItems.length === 0 && (
             <div className="text-center py-20">
               <Flame className="h-24 w-24 text-primary mx-auto mb-6 opacity-50" />
               <h2 className="text-2xl font-semibold text-foreground mb-2">Sua Cineteca Está Vazia!</h2>
@@ -223,6 +266,8 @@ export default function HomeAniPage() {
         item={selectedItem}
         isOpen={!!selectedItem}
         onClose={handleCloseModal}
+        initialAction={initialModalAction}
+        onInitialActionConsumed={handleInitialActionConsumed}
       />
     </>
   );
@@ -232,7 +277,7 @@ export default function HomeAniPage() {
 interface ContentRowProps {
   title: string;
   items: StoredCineItem[];
-  onCardClick: (item: StoredCineItem) => void;
+  onCardClick: (item: StoredCineItem & { _playActionData?: { seasonNumber: number; episodeIndex: number } }) => void;
   icon?: React.ReactNode;
 }
 
@@ -250,8 +295,8 @@ function ContentRow({ title, items, onCardClick, icon }: ContentRowProps) {
           {items.map((item) => (
             <HomeAniContentCard 
               key={item.id + ((item as ContinueWatchingItem).lastSaved || '')}
-              item={item} 
-              onClick={() => onCardClick(item)}
+              item={item as StoredCineItem & { progressTime?: number; progressDuration?: number }}
+              onClick={() => onCardClick(item as ContinueWatchingItem)}
             />
           ))}
           <div className="flex-shrink-0 w-px h-px" />
