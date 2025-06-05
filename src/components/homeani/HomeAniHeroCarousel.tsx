@@ -39,7 +39,7 @@ export function HomeAniHeroCarousel({ items, onViewDetailsClick }: HomeAniHeroCa
         direction: 'ltr', // Explicitly set direction
       }}
       plugins={[plugin.current]}
-      className="w-full h-[110vh] mb-8 rounded-lg overflow-hidden"
+      className="w-full h-[30vh] mb-6 rounded-lg overflow-hidden" // Adjusted height and margin
       onMouseEnter={plugin.current.stop}
       onMouseLeave={plugin.current.reset}
     >
