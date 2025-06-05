@@ -8,8 +8,7 @@ import { getContentItems } from '@/lib/firebaseService';
 import type { StoredCineItem } from '@/types';
 import { HomeAniContentCard } from '@/components/homeani/HomeAniContentCard';
 import { HomeAniDetailModal } from '@/components/homeani/HomeAniDetailModal';
-// import { HomeAniHeroCard } from '@/components/homeani/HomeAniHeroCard'; // Replaced by Carousel
-import { HomeAniHeroCarousel } from '@/components/homeani/HomeAniHeroCarousel';
+import { HomeAniHeroCard } from '@/components/homeani/HomeAniHeroCard';
 import { Loader2, AlertTriangle, Flame, Tag, PlaySquare, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -91,36 +90,42 @@ export default function HomeAniPage() {
   }, [activeItems]);
 
 
-  const heroItems = useMemo(() => {
-    if (!activeItems || activeItems.length === 0) return [];
+  const heroItem = useMemo(() => {
+    if (!activeItems || activeItems.length === 0) return null;
 
     const featured = activeItems
       .filter(item => item.destaqueHome === true)
       .sort((a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime());
 
     if (featured.length > 0) {
-      return featured.slice(0, 3); // Show up to 3 featured items
+      return featured[0];
     }
 
-    // If no featured items, pick the single most recent active item that's not in "Continue Watching"
     const continueWatchingIds = new Set(continueWatchingItems.map(cw => cw.id));
     const mostRecentActive = activeItems
       .filter(item => !continueWatchingIds.has(item.id))
       .sort((a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime());
 
     if (mostRecentActive.length > 0) {
-      return [mostRecentActive[0]]; // Show only the most recent one
+      return mostRecentActive[0];
+    }
+    
+    // Fallback: if all active items are in continue watching, pick the newest overall active item for hero
+    if (activeItems.length > 0) {
+        return activeItems.sort((a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime())[0];
     }
 
-    return []; // No hero items if no featured and no other active items
+    return null;
   }, [activeItems, continueWatchingItems]);
 
 
   const itemsForGenreRows = useMemo(() => {
     const excludeIds = new Set(continueWatchingItems.map(cw => cw.id));
-    heroItems.forEach(heroItem => excludeIds.add(heroItem.id));
+    if (heroItem) {
+      excludeIds.add(heroItem.id);
+    }
     return activeItems.filter(item => !excludeIds.has(item.id));
-  }, [activeItems, heroItems, continueWatchingItems]);
+  }, [activeItems, heroItem, continueWatchingItems]);
 
   const genreRows = useMemo(() => {
     if (!itemsForGenreRows) return [];
@@ -210,8 +215,8 @@ export default function HomeAniPage() {
   return (
     <>
       <main className="flex-grow bg-background text-foreground">
-        {heroItems.length > 0 && (
-          <HomeAniHeroCarousel items={heroItems} onViewDetailsClick={(item) => handleCardClick(item)} />
+        {heroItem && (
+          <HomeAniHeroCard item={heroItem} onViewDetailsClick={() => handleCardClick(heroItem)} />
         )}
 
         <div className="container mx-auto px-2 sm:px-4 lg:px-6 space-y-10 pb-12">
@@ -235,7 +240,7 @@ export default function HomeAniPage() {
             />
           ))}
           
-          {heroItems.length === 0 && genreRows.length === 0 && continueWatchingItems.length === 0 && (
+          {heroItem === null && genreRows.length === 0 && continueWatchingItems.length === 0 && (
             <div className="text-center py-20">
               <Flame className="h-24 w-24 text-primary mx-auto mb-6 opacity-50" />
               <h2 className="text-2xl font-semibold text-foreground mb-2">Sua Cineteca Está Vazia!</h2>
@@ -289,4 +294,3 @@ function ContentRow({ title, items, onCardClick, icon }: ContentRowProps) {
     </section>
   );
 }
-
