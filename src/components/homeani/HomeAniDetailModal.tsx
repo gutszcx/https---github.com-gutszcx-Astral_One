@@ -4,7 +4,7 @@
 
 import Image from 'next/image';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import Plyr from 'plyr-react';
+import dynamic from 'next/dynamic';
 import 'plyr-react/plyr.css';
 import {
   Dialog,
@@ -38,6 +38,11 @@ import { useToast } from '@/hooks/use-toast';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { cn } from '@/lib/utils';
 import { FeedbackDialog } from '@/components/feedback/FeedbackDialog';
+import type PlyrJS from 'plyr';
+
+// Dynamically import Plyr to ensure it's only loaded on the client-side
+const Plyr = dynamic(() => import('plyr-react'), { ssr: false });
+
 
 interface HomeAniDetailModalProps {
   item: (StoredCineItem & { _playActionData?: { seasonNumber: number; episodeIndex: number } }) | null;
@@ -48,7 +53,7 @@ interface HomeAniDetailModalProps {
 }
 
 interface PlayerInfo {
-  plyrSource: Plyr.SourceInfo;
+  plyrSource: PlyrJS.SourceInfo;
   title: string;
   storageKey: string;
 }
@@ -72,14 +77,14 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
   const [activePlayerInfo, setActivePlayerInfo] = useState<PlayerInfo | null>(null);
   const [serverSelectionInfo, setServerSelectionInfo] = useState<ServerSelectionInfo | null>(null);
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
-  const plyrRef = useRef<Plyr | null>(null);
+  const plyrRef = useRef<PlyrJS | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
   const { isFavorite, toggleFavorite } = useFavorites();
   const hasTriggeredInitialPlay = useRef(false);
   const [processingInitialAction, setProcessingInitialAction] = useState(false);
 
-  const saveVideoProgress = useCallback((player: Plyr.Plyr, storageKey: string) => {
+  const saveVideoProgress = useCallback((player: PlyrJS, storageKey: string) => {
     if (!player || !storageKey || Number.isNaN(player.currentTime) || Number.isNaN(player.duration) || player.duration === 0) return;
     try {
       const progressData: ProgressData = {
@@ -94,7 +99,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
   }, []);
 
   const handleModalClose = useCallback(() => {
-    const player = plyrRef.current?.plyr;
+    const player = plyrRef.current;
     if (player && activePlayerInfo) {
       saveVideoProgress(player, activePlayerInfo.storageKey);
       player.stop();
@@ -103,12 +108,12 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     setServerSelectionInfo(null);
     setIsFeedbackDialogOpen(false);
     hasTriggeredInitialPlay.current = false;
-    setProcessingInitialAction(false); 
+    setProcessingInitialAction(false);
     onClose();
   }, [activePlayerInfo, onClose, saveVideoProgress]);
 
   const handlePlayerClose = useCallback(() => {
-    const player = plyrRef.current?.plyr;
+    const player = plyrRef.current;
     if (player && activePlayerInfo) {
       saveVideoProgress(player, activePlayerInfo.storageKey);
       player.stop();
@@ -117,14 +122,14 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
   }, [activePlayerInfo, saveVideoProgress]);
   
   const initiatePlayback = useCallback((
-    videoUrl: string, 
-    title: string, 
-    subtitleUrl?: string, 
-    baseId?: string, 
-    seasonNumber?: number, 
+    videoUrl: string,
+    title: string,
+    subtitleUrl?: string,
+    baseId?: string,
+    seasonNumber?: number,
     episodeIndex?: number
   ) => {
-    if (!baseId) { 
+    if (!baseId) {
         console.error("Cannot initiate playback without a baseId for storageKey.");
         toast({ title: "Erro Interno", description: "Não foi possível identificar o conteúdo para salvar progresso.", variant: "destructive"});
         return;
@@ -134,12 +139,14 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
       storageKey += `-s${seasonNumber}-e${episodeIndex}`;
     }
 
-    const plyrSourceConfig: Plyr.SourceInfo = {
+    const plyrSourceConfig: PlyrJS.SourceInfo = {
       type: 'video',
       title: title,
       sources: [
         {
           src: videoUrl,
+          // Plyr should handle m3u8 with Hls.js internally if Hls.js is available globally or via options
+          // Forcing type might be needed or rely on Plyr's detection
           type: videoUrl.includes('.m3u8') ? 'application/x-mpegURL' : 'video/mp4',
         },
       ],
@@ -158,17 +165,17 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     };
 
     setActivePlayerInfo({ plyrSource: plyrSourceConfig, title, storageKey });
-    setServerSelectionInfo(null); 
+    setServerSelectionInfo(null);
   }, [toast, item]);
 
 
   const promptOrPlay = useCallback((
-    sources: VideoSource[] | undefined, 
-    title: string, 
-    subtitleUrl?: string, 
-    baseId?: string, 
-    seasonNumber?: number, 
-    episodeIndex?: number 
+    sources: VideoSource[] | undefined,
+    title: string,
+    subtitleUrl?: string,
+    baseId?: string,
+    seasonNumber?: number,
+    episodeIndex?: number
   ) => {
     if (!baseId) {
       toast({ title: "Conteúdo Inválido", description: "ID do conteúdo não encontrado.", variant: "destructive" });
@@ -198,9 +205,9 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
       setProcessingInitialAction(true);
     } else if (!isOpen) {
       setProcessingInitialAction(false);
-      hasTriggeredInitialPlay.current = false; 
+      hasTriggeredInitialPlay.current = false;
     }
-  }, [isOpen, initialAction, item]); 
+  }, [isOpen, initialAction, item]);
 
   useEffect(() => {
     if (isOpen && initialAction === 'play' && item && !activePlayerInfo && !serverSelectionInfo && !hasTriggeredInitialPlay.current && processingInitialAction) {
@@ -229,9 +236,9 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
       }
   
       if (onInitialActionConsumed) {
-        onInitialActionConsumed(); 
+        onInitialActionConsumed();
       }
-      setProcessingInitialAction(false); 
+      setProcessingInitialAction(false);
     }
   
     if (!isOpen || !item) {
@@ -245,7 +252,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
 
 
   useEffect(() => {
-    const playerInstance = plyrRef.current?.plyr;
+    const playerInstance = plyrRef.current;
 
     if (!playerInstance || !activePlayerInfo) {
       if (progressIntervalRef.current) {
@@ -269,7 +276,6 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
       } catch (e) {
         console.error("Error loading video progress from localStorage:", e);
       }
-      // Autoplay is handled by Plyr options if `autoplay: true` is set
     };
 
     const handlePause = () => {
@@ -281,12 +287,12 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
       progressIntervalRef.current = setInterval(() => {
         saveVideoProgress(playerInstance, storageKey);
-      }, 5000); 
+      }, 5000);
     };
 
     const handleEnded = () => {
         try {
-            localStorage.removeItem(storageKey); 
+            localStorage.removeItem(storageKey);
         } catch(e) {
             console.error("Error removing progress on video end:", e);
         }
@@ -294,36 +300,44 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     };
 
     const handlePlyrError = (event: any) => {
-        const error = event.detail.plyr.error;
-        console.error("Plyr error:", error);
-        let userMessage = "Ocorreu um erro ao tentar reproduzir o vídeo. Verifique o link ou tente outra fonte.";
-        // Add more specific messages based on error.code if available/needed
+        // Plyr's error event structure might vary. Check plyr-react docs or PlyrJS docs.
+        // const error = event.detail?.plyr?.error || event.detail?.error || event.error;
+        const error = event.detail?.plyr?.source?.error || event.detail?.error || event.error;
+
+        console.error("Plyr error event:", event);
+        console.error("Detailed Plyr error:", error);
+        let userMessage = "Ocorreu um erro ao tentar reproduzir o vídeo.";
+        if (error && typeof error.message === 'string') {
+            userMessage += ` Detalhe: ${error.message}`;
+        } else if (typeof error === 'string') {
+            userMessage += ` Detalhe: ${error}`;
+        } else {
+            userMessage += " Verifique o link ou tente outra fonte.";
+        }
         toast({ title: "Erro de Reprodução", description: userMessage, variant: "destructive" });
     };
 
-    playerInstance.on('ready', handleReady);
-    playerInstance.on('pause', handlePause);
-    playerInstance.on('play', handlePlay);
-    playerInstance.on('ended', handleEnded);
-    playerInstance.on('error', handlePlyrError);
+    playerInstance.on('ready', handleReady as PlyrJS.PlyrEventCallback);
+    playerInstance.on('pause', handlePause as PlyrJS.PlyrEventCallback);
+    playerInstance.on('play', handlePlay as PlyrJS.PlyrEventCallback);
+    playerInstance.on('ended', handleEnded as PlyrJS.PlyrEventCallback);
+    playerInstance.on('error', handlePlyrError as PlyrJS.PlyrEventCallback);
 
 
     return () => {
-      // It's good practice to remove listeners, though Plyr might do some cleanup.
-      // Checking if playerInstance still exists and has 'off' method
       if (playerInstance && typeof playerInstance.off === 'function') {
-        playerInstance.off('ready', handleReady);
-        playerInstance.off('pause', handlePause);
-        playerInstance.off('play', handlePlay);
-        playerInstance.off('ended', handleEnded);
-        playerInstance.off('error', handlePlyrError);
+        playerInstance.off('ready', handleReady as PlyrJS.PlyrEventCallback);
+        playerInstance.off('pause', handlePause as PlyrJS.PlyrEventCallback);
+        playerInstance.off('play', handlePlay as PlyrJS.PlyrEventCallback);
+        playerInstance.off('ended', handleEnded as PlyrJS.PlyrEventCallback);
+        playerInstance.off('error', handlePlyrError as PlyrJS.PlyrEventCallback);
       }
 
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
       }
-      if (playerInstance && playerInstance.currentTime > 0 && activePlayerInfo && activePlayerInfo.storageKey) { 
+      if (playerInstance && playerInstance.currentTime > 0 && activePlayerInfo && activePlayerInfo.storageKey) {
          saveVideoProgress(playerInstance, activePlayerInfo.storageKey);
       }
     };
@@ -347,14 +361,13 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
           </div>
           <div className="aspect-video w-full">
             <Plyr
-              key={activePlayerInfo.storageKey} // Force re-mount on source change
-              ref={plyrRef}
+              key={activePlayerInfo.storageKey} 
+              // @ts-ignore plyrRef type mismatch with internal PlyrJS type
+              ref={plyrRef} 
               source={activePlayerInfo.plyrSource}
               options={{
                 autoplay: true,
                 playsinline: true,
-                // Add other Plyr options here if needed
-                // controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'captions', 'settings', 'pip', 'airplay', 'fullscreen'],
               }}
             />
           </div>
@@ -363,11 +376,11 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     );
   }
   
-  // Ensure item is not null before trying to access its properties for the detail view
   if (!item) {
-      return ( // Simplified loading state for when item is null but processing might be happening for initial play
+      return ( 
         <Dialog open={isOpen} onOpenChange={(open) => !open && handleModalClose()}>
            <DialogContent className="sm:max-w-[600px] md:max-w-[800px] lg:max-w-[900px] p-0 max-h-[90vh] flex flex-col bg-card">
+              <>
                 <DialogHeader className="sr-only">
                     <DialogTitle>Carregando conteúdo</DialogTitle>
                 </DialogHeader>
@@ -375,6 +388,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
                     <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
                     <p className="text-muted-foreground">Carregando...</p>
                 </div>
+              </>
             </DialogContent>
         </Dialog>
       );
@@ -391,7 +405,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !open && handleModalClose()}>
         <DialogContent className="sm:max-w-[600px] md:max-w-[800px] lg:max-w-[900px] p-0 max-h-[90vh] flex flex-col bg-card">
-           {processingInitialAction && !item ? ( // This specific check might be redundant if !item implies loading above
+           {processingInitialAction && !item ? ( 
              <>
               <DialogHeader className="sr-only">
                 <DialogTitle>Carregando detalhes do conteúdo</DialogTitle>
@@ -548,9 +562,9 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
                   key={source.id || `${source.url}-${index}`}
                   className="cyberpunk-button-primary w-full justify-start text-left py-2.5 px-4"
                   onClick={() => initiatePlayback(
-                    source.url, 
-                    serverSelectionInfo.title, 
-                    serverSelectionInfo.subtitleUrl, 
+                    source.url,
+                    serverSelectionInfo.title,
+                    serverSelectionInfo.subtitleUrl,
                     serverSelectionInfo.baseId,
                     serverSelectionInfo.seasonNumber,
                     serverSelectionInfo.episodeIndex
@@ -561,7 +575,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
               ))}
             </div>
             <AlertDialogFooter>
-              <AlertDialogCancel 
+              <AlertDialogCancel
                 onClick={() => setServerSelectionInfo(null)}
                 className="cyberpunk-button-cancel"
               >
