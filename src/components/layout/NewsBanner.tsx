@@ -74,7 +74,10 @@ export function NewsBanner() {
   const IconComponent = iconMap[bannerMessage.type] || Megaphone;
 
   return (
-    <div className="w-full p-2 bg-[hsl(var(--cyberpunk-bg-lighter))] border-b border-[hsl(var(--cyberpunk-border))]">
+    <div className={cn(
+      "w-full p-2 bg-[hsl(var(--cyberpunk-bg-lighter))] border-b border-[hsl(var(--cyberpunk-border))]",
+      "animate-in fade-in slide-in-from-top-8 duration-500 ease-out" // Animation classes added
+    )}>
       <Alert
         variant={variantMap[bannerMessage.type]}
         className={cn(
