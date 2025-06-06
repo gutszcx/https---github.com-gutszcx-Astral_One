@@ -22,7 +22,7 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialogTitle as AlertDialogTitleComponent, // Renamed to avoid conflict
 } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -184,7 +184,6 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
       hasTriggeredInitialPlay.current = true;
   
       const playData = item._playActionData;
-      // let initiatedPlayOrSelection = false; // Not strictly needed now for logic flow
   
       if (item.contentType === 'movie') {
         const movieItem = item as StoredMovieItem;
@@ -209,12 +208,11 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
       if (onInitialActionConsumed) {
         onInitialActionConsumed(); 
       }
-      setProcessingInitialAction(false); // This should now allow the dialog to render player or details
+      setProcessingInitialAction(false); 
     }
   
     if (!isOpen || !item) {
         hasTriggeredInitialPlay.current = false;
-        // setProcessingInitialAction(false); // ensure reset if modal is closed externally
     }
   
   }, [
@@ -350,7 +348,6 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     : <Tv className="mr-1.5 h-4 w-4 inline-block" />;
 
 
-  // Show player overlay if activePlayerInfo is set
   if (activePlayerInfo) {
     return (
       <div className="fixed inset-0 z-[100] player-overlay-cyberpixel-bg flex flex-col items-center justify-center p-2 sm:p-4">
@@ -381,17 +378,22 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     );
   }
   
-  // If processing initial action and it's a play action, show loader within Dialog.
-  // Dialog open prop is now simply `isOpen` to ensure it mounts.
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !open && handleModalClose()}>
         <DialogContent className="sm:max-w-[600px] md:max-w-[800px] lg:max-w-[900px] p-0 max-h-[90vh] flex flex-col bg-card">
-           {processingInitialAction ? ( // Show loader IF processing AND no player/server select yet
-             <div className="flex items-center justify-center h-full min-h-[300px] p-6">
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
-             </div>
-           ) : ( // Otherwise, show details view
+           {processingInitialAction ? (
+            <>
+              {/* DialogTitle for accessibility during loading state */}
+              <DialogHeader className="sr-only">
+                <DialogTitle>Carregando detalhes do conteúdo</DialogTitle>
+              </DialogHeader>
+              <div className="flex flex-col items-center justify-center flex-grow p-6 min-h-[300px]">
+                <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+                <p className="text-muted-foreground">Carregando...</p>
+              </div>
+            </>
+           ) : (
             <>
               {item.bannerFundo && (
                 <div className="relative h-48 md:h-64 w-full flex-shrink-0">
@@ -509,7 +511,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
         <AlertDialog open={!!serverSelectionInfo} onOpenChange={(open) => !open && setServerSelectionInfo(null)}>
           <AlertDialogContent className="cyberpunk-alert-dialog-content">
             <AlertDialogHeader>
-              <AlertDialogTitle className="cyberpunk-alert-dialog-title">Selecionar Servidor</AlertDialogTitle>
+              <AlertDialogTitleComponent className="cyberpunk-alert-dialog-title">Selecionar Servidor</AlertDialogTitleComponent>
               <AlertDialogDescription className="cyberpunk-alert-dialog-description">
                 Escolha uma fonte para assistir: "{serverSelectionInfo.title}"
               </AlertDialogDescription>
