@@ -4,7 +4,8 @@
 
 import Image from 'next/image';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import Hls from 'hls.js';
+import Plyr from 'plyr-react';
+import 'plyr-react/plyr.css';
 import {
   Dialog,
   DialogContent,
@@ -36,7 +37,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { cn } from '@/lib/utils';
-import { FeedbackDialog } from '@/components/feedback/FeedbackDialog'; // Added import
+import { FeedbackDialog } from '@/components/feedback/FeedbackDialog';
 
 interface HomeAniDetailModalProps {
   item: (StoredCineItem & { _playActionData?: { seasonNumber: number; episodeIndex: number } }) | null;
@@ -47,8 +48,7 @@ interface HomeAniDetailModalProps {
 }
 
 interface PlayerInfo {
-  videoUrl: string;
-  subtitleUrl?: string;
+  plyrSource: Plyr.SourceInfo;
   title: string;
   storageKey: string;
 }
@@ -71,21 +71,20 @@ interface ProgressData {
 export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onInitialActionConsumed }: HomeAniDetailModalProps) {
   const [activePlayerInfo, setActivePlayerInfo] = useState<PlayerInfo | null>(null);
   const [serverSelectionInfo, setServerSelectionInfo] = useState<ServerSelectionInfo | null>(null);
-  const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false); // State for feedback dialog
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const hlsRef = useRef<Hls | null>(null);
+  const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
+  const plyrRef = useRef<Plyr | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
   const { isFavorite, toggleFavorite } = useFavorites();
   const hasTriggeredInitialPlay = useRef(false);
   const [processingInitialAction, setProcessingInitialAction] = useState(false);
 
-  const saveVideoProgress = useCallback((videoElement: HTMLVideoElement, storageKey: string) => {
-    if (!videoElement || !storageKey || Number.isNaN(videoElement.currentTime) || Number.isNaN(videoElement.duration) || videoElement.duration === 0) return;
+  const saveVideoProgress = useCallback((player: Plyr.Plyr, storageKey: string) => {
+    if (!player || !storageKey || Number.isNaN(player.currentTime) || Number.isNaN(player.duration) || player.duration === 0) return;
     try {
       const progressData: ProgressData = {
-        time: videoElement.currentTime,
-        duration: videoElement.duration,
+        time: player.currentTime,
+        duration: player.duration,
         lastSaved: Date.now(),
       };
       localStorage.setItem(storageKey, JSON.stringify(progressData));
@@ -95,29 +94,24 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
   }, []);
 
   const handleModalClose = useCallback(() => {
-    if (videoRef.current && activePlayerInfo) {
-      saveVideoProgress(videoRef.current, activePlayerInfo.storageKey);
+    const player = plyrRef.current?.plyr;
+    if (player && activePlayerInfo) {
+      saveVideoProgress(player, activePlayerInfo.storageKey);
+      player.stop();
     }
     setActivePlayerInfo(null);
     setServerSelectionInfo(null);
-    setIsFeedbackDialogOpen(false); // Close feedback dialog if open
+    setIsFeedbackDialogOpen(false);
     hasTriggeredInitialPlay.current = false;
     setProcessingInitialAction(false); 
     onClose();
   }, [activePlayerInfo, onClose, saveVideoProgress]);
 
   const handlePlayerClose = useCallback(() => {
-    if (videoRef.current && activePlayerInfo) {
-      saveVideoProgress(videoRef.current, activePlayerInfo.storageKey);
-      if (hlsRef.current) {
-        hlsRef.current.stopLoad();
-        hlsRef.current.detachMedia();
-        hlsRef.current.destroy();
-        hlsRef.current = null;
-      }
-      videoRef.current.pause();
-      videoRef.current.removeAttribute('src'); 
-      videoRef.current.load(); 
+    const player = plyrRef.current?.plyr;
+    if (player && activePlayerInfo) {
+      saveVideoProgress(player, activePlayerInfo.storageKey);
+      player.stop();
     }
     setActivePlayerInfo(null);
   }, [activePlayerInfo, saveVideoProgress]);
@@ -139,9 +133,33 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     if (typeof seasonNumber === 'number' && typeof episodeIndex === 'number') {
       storageKey += `-s${seasonNumber}-e${episodeIndex}`;
     }
-    setActivePlayerInfo({ videoUrl, subtitleUrl, title, storageKey });
+
+    const plyrSourceConfig: Plyr.SourceInfo = {
+      type: 'video',
+      title: title,
+      sources: [
+        {
+          src: videoUrl,
+          type: videoUrl.includes('.m3u8') ? 'application/x-mpegURL' : 'video/mp4',
+        },
+      ],
+      poster: item?.bannerFundo || item?.capaPoster,
+      tracks: subtitleUrl
+        ? [
+            {
+              kind: 'subtitles',
+              label: 'Português',
+              srcLang: 'pt',
+              src: subtitleUrl,
+              default: true,
+            },
+          ]
+        : [],
+    };
+
+    setActivePlayerInfo({ plyrSource: plyrSourceConfig, title, storageKey });
     setServerSelectionInfo(null); 
-  }, [toast]);
+  }, [toast, item]);
 
 
   const promptOrPlay = useCallback((
@@ -207,8 +225,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
           toast({ title: "Sem Fontes de Vídeo", description: "Nenhum link de vídeo disponível para este episódio.", variant: "default" });
         }
       } else if (item.contentType === 'series') {
-        // This case might occur if "Continue Watching" logic doesn't fully resolve episode for series.
-        // The modal will open, but playback won't start automatically. User can pick an episode.
+        // Modal will open, but playback won't start automatically. User can pick an episode.
       }
   
       if (onInitialActionConsumed) {
@@ -228,129 +245,92 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
 
 
   useEffect(() => {
-    const videoElement = videoRef.current;
-    if (!videoElement || !activePlayerInfo) {
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-        hlsRef.current = null;
-      }
-      if(progressIntervalRef.current) {
+    const playerInstance = plyrRef.current?.plyr;
+
+    if (!playerInstance || !activePlayerInfo) {
+      if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
       }
       return;
     }
 
-    if (hlsRef.current) { 
-      hlsRef.current.destroy();
-      hlsRef.current = null;
-    }
-    if(progressIntervalRef.current) { 
-      clearInterval(progressIntervalRef.current);
-      progressIntervalRef.current = null;
-    }
+    const { storageKey } = activePlayerInfo;
 
-    const videoSrc = activePlayerInfo.videoUrl;
-
-    if (videoSrc.endsWith('.m3u8') || videoSrc.includes('.m3u8?')) {
-      if (Hls.isSupported()) {
-        const hls = new Hls();
-        hlsRef.current = hls;
-        hls.loadSource(videoSrc);
-        hls.attachMedia(videoElement);
-        hls.on(Hls.Events.ERROR, function (event, data) {
-          if (data.fatal) {
-            let userMessage = "Ocorreu um erro ao tentar reproduzir o vídeo. Tente novamente mais tarde.";
-            if (data.type === Hls.ErrorTypes.NETWORK_ERROR && (data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR || data.details === Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT)) {
-                userMessage = "Erro ao carregar o vídeo (manifest). Verifique o link ou a sua conexão com a internet.";
-            } else if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-                userMessage = "Erro de rede ao carregar o vídeo. Verifique sua conexão.";
-            } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-               userMessage = "Erro na reprodução do vídeo. O formato pode não ser suportado ou o arquivo está corrompido.";
-            }
-            toast({ title: "Erro de Reprodução (HLS)", description: userMessage, variant: "destructive" });
-          }
-        });
-      } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
-        videoElement.src = videoSrc;
-      } else {
-        toast({ title: "Formato Não Suportado", description: "Seu navegador não suporta a reprodução deste formato de vídeo (HLS).", variant: "destructive" });
-      }
-    } else { 
-      videoElement.src = videoSrc;
-    }
-    
-    const handleLoadedMetadata = () => {
+    const handleReady = () => {
       try {
-        const savedProgressString = localStorage.getItem(activePlayerInfo.storageKey);
+        const savedProgressString = localStorage.getItem(storageKey);
         if (savedProgressString) {
           const savedProgress: ProgressData = JSON.parse(savedProgressString);
-          if (savedProgress.time > 0 && savedProgress.time < videoElement.duration) {
-            videoElement.currentTime = savedProgress.time;
+          if (playerInstance.duration > 0 && savedProgress.time > 0 && savedProgress.time < playerInstance.duration) {
+            playerInstance.currentTime = savedProgress.time;
           }
         }
       } catch (e) {
         console.error("Error loading video progress from localStorage:", e);
       }
-      videoElement.play().catch(error => {
-          // Autoplay was prevented.
-      });
+      // Autoplay is handled by Plyr options if `autoplay: true` is set
     };
 
     const handlePause = () => {
-      saveVideoProgress(videoElement, activePlayerInfo.storageKey);
-       if(progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+      saveVideoProgress(playerInstance, storageKey);
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
     };
     
     const handlePlay = () => {
-      if(progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
       progressIntervalRef.current = setInterval(() => {
-        saveVideoProgress(videoElement, activePlayerInfo.storageKey);
+        saveVideoProgress(playerInstance, storageKey);
       }, 5000); 
     };
 
     const handleEnded = () => {
         try {
-            localStorage.removeItem(activePlayerInfo.storageKey); 
+            localStorage.removeItem(storageKey); 
         } catch(e) {
             console.error("Error removing progress on video end:", e);
         }
-        if(progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+        if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
     };
 
-    videoElement.addEventListener('loadedmetadata', handleLoadedMetadata);
-    videoElement.addEventListener('pause', handlePause);
-    videoElement.addEventListener('play', handlePlay);
-    videoElement.addEventListener('ended', handleEnded);
+    const handlePlyrError = (event: any) => {
+        const error = event.detail.plyr.error;
+        console.error("Plyr error:", error);
+        let userMessage = "Ocorreu um erro ao tentar reproduzir o vídeo. Verifique o link ou tente outra fonte.";
+        // Add more specific messages based on error.code if available/needed
+        toast({ title: "Erro de Reprodução", description: userMessage, variant: "destructive" });
+    };
+
+    playerInstance.on('ready', handleReady);
+    playerInstance.on('pause', handlePause);
+    playerInstance.on('play', handlePlay);
+    playerInstance.on('ended', handleEnded);
+    playerInstance.on('error', handlePlyrError);
+
 
     return () => {
-      videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      videoElement.removeEventListener('pause', handlePause);
-      videoElement.removeEventListener('play', handlePlay);
-      videoElement.removeEventListener('ended', handleEnded);
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-        hlsRef.current = null;
+      // It's good practice to remove listeners, though Plyr might do some cleanup.
+      // Checking if playerInstance still exists and has 'off' method
+      if (playerInstance && typeof playerInstance.off === 'function') {
+        playerInstance.off('ready', handleReady);
+        playerInstance.off('pause', handlePause);
+        playerInstance.off('play', handlePlay);
+        playerInstance.off('ended', handleEnded);
+        playerInstance.off('error', handlePlyrError);
       }
-      if(progressIntervalRef.current) {
+
+      if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
       }
-      if (videoElement.currentTime > 0 && activePlayerInfo && videoElement.src) { 
-         saveVideoProgress(videoElement, activePlayerInfo.storageKey);
+      if (playerInstance && playerInstance.currentTime > 0 && activePlayerInfo && activePlayerInfo.storageKey) { 
+         saveVideoProgress(playerInstance, activePlayerInfo.storageKey);
       }
     };
   }, [activePlayerInfo, saveVideoProgress, toast]);
 
 
-  if (!item) return null;
-
-  const mediaTypeLabel = item.contentType === 'movie' ? 'Filme' : 'Série';
-  const mediaTypeIcon = item.contentType === 'movie'
-    ? <Film className="mr-1.5 h-4 w-4 inline-block" />
-    : <Tv className="mr-1.5 h-4 w-4 inline-block" />;
-  
-  const isCurrentlyFavorite = isFavorite(item.id);
+  if (!item && !(processingInitialAction && initialAction === 'play')) return null;
 
 
   if (activePlayerInfo) {
@@ -366,28 +346,52 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
             </Button>
           </div>
           <div className="aspect-video w-full">
-            <video 
-              ref={videoRef} 
-              controls 
-              autoPlay 
-              playsInline 
-              crossOrigin="anonymous" 
-              className="w-full h-full"
-            >
-              {activePlayerInfo.subtitleUrl && (<track kind="subtitles" src={activePlayerInfo.subtitleUrl} srcLang="pt" label="Português" default />)}
-              Seu navegador não suporta o elemento de vídeo.
-            </video>
+            <Plyr
+              key={activePlayerInfo.storageKey} // Force re-mount on source change
+              ref={plyrRef}
+              source={activePlayerInfo.plyrSource}
+              options={{
+                autoplay: true,
+                playsinline: true,
+                // Add other Plyr options here if needed
+                // controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'captions', 'settings', 'pip', 'airplay', 'fullscreen'],
+              }}
+            />
           </div>
         </div>
       </div>
     );
   }
   
+  // Ensure item is not null before trying to access its properties for the detail view
+  if (!item) {
+      return ( // Simplified loading state for when item is null but processing might be happening for initial play
+        <Dialog open={isOpen} onOpenChange={(open) => !open && handleModalClose()}>
+           <DialogContent className="sm:max-w-[600px] md:max-w-[800px] lg:max-w-[900px] p-0 max-h-[90vh] flex flex-col bg-card">
+                <DialogHeader className="sr-only">
+                    <DialogTitle>Carregando conteúdo</DialogTitle>
+                </DialogHeader>
+                <div className="flex flex-col items-center justify-center flex-grow p-6 min-h-[300px]">
+                    <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+                    <p className="text-muted-foreground">Carregando...</p>
+                </div>
+            </DialogContent>
+        </Dialog>
+      );
+  }
+
+  const mediaTypeLabel = item.contentType === 'movie' ? 'Filme' : 'Série';
+  const mediaTypeIcon = item.contentType === 'movie'
+    ? <Film className="mr-1.5 h-4 w-4 inline-block" />
+    : <Tv className="mr-1.5 h-4 w-4 inline-block" />;
+  
+  const isCurrentlyFavorite = isFavorite(item.id);
+  
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !open && handleModalClose()}>
         <DialogContent className="sm:max-w-[600px] md:max-w-[800px] lg:max-w-[900px] p-0 max-h-[90vh] flex flex-col bg-card">
-           {processingInitialAction && !item ? (
+           {processingInitialAction && !item ? ( // This specific check might be redundant if !item implies loading above
              <>
               <DialogHeader className="sr-only">
                 <DialogTitle>Carregando detalhes do conteúdo</DialogTitle>
@@ -578,4 +582,3 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     </>
   );
 }
-
