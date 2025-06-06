@@ -91,7 +91,6 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
   const { isFavorite, toggleFavorite } = useFavorites();
   const hasTriggeredInitialPlay = useRef(false);
   const [processingInitialAction, setProcessingInitialAction] = useState(false);
-  const [isPlayerLoading, setIsPlayerLoading] = useState(false);
 
   const saveVideoProgress = useCallback((player: PlyrJS, storageKey: string) => {
     if (!player || !storageKey || Number.isNaN(player.currentTime) || Number.isNaN(player.duration) || player.duration === 0) return;
@@ -120,7 +119,6 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     setIsFeedbackDialogOpen(false);
     hasTriggeredInitialPlay.current = false;
     setProcessingInitialAction(false);
-    setIsPlayerLoading(false);
     onClose();
   }, [activePlayerInfo, onClose, saveVideoProgress]);
 
@@ -133,7 +131,6 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
       }
     }
     setActivePlayerInfo(null);
-    setIsPlayerLoading(false);
   }, [activePlayerInfo, saveVideoProgress]);
   
   const initiatePlayback = useCallback((
@@ -178,7 +175,6 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     };
 
     setActivePlayerInfo({ plyrSource: plyrSourceConfig, title, storageKey });
-    setIsPlayerLoading(true); 
     setServerSelectionInfo(null);
   }, [toast, item]);
 
@@ -225,11 +221,10 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
 
   useEffect(() => {
     if (isOpen && item && !activePlayerInfo && !serverSelectionInfo) {
-        // This toast appears when the modal is open with details, but player isn't active.
         toast({
             title: "Conteúdo Carregado!",
             description: "Role a página para cima para encontrar opções de reprodução, temporadas e episódios.",
-            duration: 5000, // Show for 5 seconds
+            duration: 5000, 
         });
     }
   }, [isOpen, item, activePlayerInfo, serverSelectionInfo, toast]);
@@ -296,7 +291,6 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
   }, [saveVideoProgress]);
 
   const handlePlayerPlay = useCallback((player: PlyrJS, storageKey: string) => {
-    setIsPlayerLoading(true); // Initially set to true, playing event will set to false
     if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
     progressIntervalRef.current = setInterval(() => {
       saveVideoProgress(player, storageKey);
@@ -310,7 +304,6 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
           console.error("Error removing progress on video end:", e);
       }
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-      setIsPlayerLoading(false);
   }, []);
 
   const handlePlyrError = useCallback((event: any) => {
@@ -326,15 +319,14 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
           userMessage += " Verifique o link ou tente outra fonte.";
       }
       toast({ title: "Erro de Reprodução", description: userMessage, variant: "destructive" });
-      setIsPlayerLoading(false);
   }, [toast]);
 
   const handlePlayerWaiting = useCallback(() => {
-    setIsPlayerLoading(true);
+    // This function is kept for structural consistency, can be used in future
   }, []);
 
   const handlePlayerPlaying = useCallback(() => {
-    setIsPlayerLoading(false);
+    // This function is kept for structural consistency, can be used in future
   }, []);
 
 
@@ -352,14 +344,13 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     const validPlayer = playerInstance;
     const { storageKey } = activePlayerInfo;
 
-    // Ensure methods exist before attaching listeners
     const onReady = () => handleReady(validPlayer, storageKey);
-    const onPauseEvent = () => handlePause(validPlayer, storageKey); // Renamed
+    const onPauseEvent = () => handlePause(validPlayer, storageKey); 
     const onPlayEvent = () => handlePlayerPlay(validPlayer, storageKey);
-    const onEndedEvent = () => handleEnded(storageKey); // Renamed
-    const onErrorEvent = (event: any) => handlePlyrError(event); // Renamed
-    const onWaitingEvent = () => handlePlayerWaiting(); // Renamed
-    const onPlayingEvent = () => handlePlayerPlaying(); // Renamed
+    const onEndedEvent = () => handleEnded(storageKey); 
+    const onErrorEvent = (event: any) => handlePlyrError(event); 
+    const onWaitingEvent = () => handlePlayerWaiting(); 
+    const onPlayingEvent = () => handlePlayerPlaying(); 
 
 
     if (typeof validPlayer.on === 'function') {
@@ -370,6 +361,8 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
         validPlayer.on('error', onErrorEvent as PlyrJS.PlyrEventCallback);
         validPlayer.on('waiting', onWaitingEvent as PlyrJS.PlyrEventCallback);
         validPlayer.on('playing', onPlayingEvent as PlyrJS.PlyrEventCallback);
+    } else {
+      console.warn("Plyr instance or .on method not available for attaching events.");
     }
 
 
@@ -382,6 +375,8 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
         validPlayer.off('error', onErrorEvent as PlyrJS.PlyrEventCallback);
         validPlayer.off('waiting', onWaitingEvent as PlyrJS.PlyrEventCallback);
         validPlayer.off('playing', onPlayingEvent as PlyrJS.PlyrEventCallback);
+      } else {
+        console.warn("Plyr instance or .off method not available for detaching events.");
       }
 
       if (progressIntervalRef.current) {
@@ -420,12 +415,6 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
                 playsinline: true,
               }}
             />
-            {isPlayerLoading && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 z-10 pointer-events-none">
-                <Loader2 className="h-12 w-12 animate-spin text-white mb-4" />
-                <p className="text-white text-xl font-semibold">Carregando...</p>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -652,6 +641,3 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     </>
   );
 }
-
-
-    
