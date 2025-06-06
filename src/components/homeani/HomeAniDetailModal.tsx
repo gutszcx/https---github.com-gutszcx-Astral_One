@@ -21,6 +21,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle as AlertDialogTitleComponent,
+  AlertDialogCancel, // Added missing import
 } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -352,8 +353,8 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
   if (activePlayerInfo) {
     return (
       <div className="fixed inset-0 z-[100] bg-black/90 flex flex-col items-center justify-center p-2 sm:p-4">
-        <div className="w-full max-w-4xl overflow-hidden"> {/* Removed cyberpunk bg, border, shadow */}
-          <div className="flex justify-between items-center p-3 sm:p-4"> {/* Removed border-b */}
+        <div className="w-full max-w-4xl overflow-hidden">
+          <div className="flex justify-between items-center p-3 sm:p-4">
             <h2 className="text-lg sm:text-xl font-semibold text-[hsl(var(--cyberpunk-highlight))] truncate">
               {activePlayerInfo.title}
             </h2>
