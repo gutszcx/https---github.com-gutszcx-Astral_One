@@ -38,7 +38,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { cn } from '@/lib/utils';
 import { FeedbackDialog } from '@/components/feedback/FeedbackDialog';
-import type PlyrJS from 'plyr';
+import type PlyrJS from 'plyr'; // Correct type import
 
 // Dynamically import Plyr to ensure it's only loaded on the client-side
 const Plyr = dynamic(() => import('plyr-react'), { ssr: false });
@@ -77,7 +77,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
   const [activePlayerInfo, setActivePlayerInfo] = useState<PlayerInfo | null>(null);
   const [serverSelectionInfo, setServerSelectionInfo] = useState<ServerSelectionInfo | null>(null);
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
-  const plyrRef = useRef<PlyrJS | null>(null);
+  const plyrRef = useRef<({ plyr: PlyrJS }) | null>(null); // Adjusted ref type
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
   const { isFavorite, toggleFavorite } = useFavorites();
@@ -99,7 +99,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
   }, []);
 
   const handleModalClose = useCallback(() => {
-    const player = plyrRef.current;
+    const player = plyrRef.current?.plyr; // Access .plyr
     if (player && activePlayerInfo) {
       saveVideoProgress(player, activePlayerInfo.storageKey);
       player.stop();
@@ -113,7 +113,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
   }, [activePlayerInfo, onClose, saveVideoProgress]);
 
   const handlePlayerClose = useCallback(() => {
-    const player = plyrRef.current;
+    const player = plyrRef.current?.plyr; // Access .plyr
     if (player && activePlayerInfo) {
       saveVideoProgress(player, activePlayerInfo.storageKey);
       player.stop();
@@ -145,8 +145,6 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
       sources: [
         {
           src: videoUrl,
-          // Plyr should handle m3u8 with Hls.js internally if Hls.js is available globally or via options
-          // Forcing type might be needed or rely on Plyr's detection
           type: videoUrl.includes('.m3u8') ? 'application/x-mpegURL' : 'video/mp4',
         },
       ],
@@ -252,9 +250,9 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
 
 
   useEffect(() => {
-    const playerInstance = plyrRef.current;
+    const player = plyrRef.current?.plyr; // Access .plyr
 
-    if (!playerInstance || !activePlayerInfo) {
+    if (!player || !activePlayerInfo) {
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
@@ -269,8 +267,8 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
         const savedProgressString = localStorage.getItem(storageKey);
         if (savedProgressString) {
           const savedProgress: ProgressData = JSON.parse(savedProgressString);
-          if (playerInstance.duration > 0 && savedProgress.time > 0 && savedProgress.time < playerInstance.duration) {
-            playerInstance.currentTime = savedProgress.time;
+          if (player.duration > 0 && savedProgress.time > 0 && savedProgress.time < player.duration) {
+            player.currentTime = savedProgress.time;
           }
         }
       } catch (e) {
@@ -279,14 +277,14 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     };
 
     const handlePause = () => {
-      saveVideoProgress(playerInstance, storageKey);
+      saveVideoProgress(player, storageKey);
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
     };
     
     const handlePlay = () => {
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
       progressIntervalRef.current = setInterval(() => {
-        saveVideoProgress(playerInstance, storageKey);
+        saveVideoProgress(player, storageKey);
       }, 5000);
     };
 
@@ -300,10 +298,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     };
 
     const handlePlyrError = (event: any) => {
-        // Plyr's error event structure might vary. Check plyr-react docs or PlyrJS docs.
-        // const error = event.detail?.plyr?.error || event.detail?.error || event.error;
         const error = event.detail?.plyr?.source?.error || event.detail?.error || event.error;
-
         console.error("Plyr error event:", event);
         console.error("Detailed Plyr error:", error);
         let userMessage = "Ocorreu um erro ao tentar reproduzir o vídeo.";
@@ -317,28 +312,28 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
         toast({ title: "Erro de Reprodução", description: userMessage, variant: "destructive" });
     };
 
-    playerInstance.on('ready', handleReady as PlyrJS.PlyrEventCallback);
-    playerInstance.on('pause', handlePause as PlyrJS.PlyrEventCallback);
-    playerInstance.on('play', handlePlay as PlyrJS.PlyrEventCallback);
-    playerInstance.on('ended', handleEnded as PlyrJS.PlyrEventCallback);
-    playerInstance.on('error', handlePlyrError as PlyrJS.PlyrEventCallback);
+    player.on('ready', handleReady as PlyrJS.PlyrEventCallback);
+    player.on('pause', handlePause as PlyrJS.PlyrEventCallback);
+    player.on('play', handlePlay as PlyrJS.PlyrEventCallback);
+    player.on('ended', handleEnded as PlyrJS.PlyrEventCallback);
+    player.on('error', handlePlyrError as PlyrJS.PlyrEventCallback);
 
 
     return () => {
-      if (playerInstance && typeof playerInstance.off === 'function') {
-        playerInstance.off('ready', handleReady as PlyrJS.PlyrEventCallback);
-        playerInstance.off('pause', handlePause as PlyrJS.PlyrEventCallback);
-        playerInstance.off('play', handlePlay as PlyrJS.PlyrEventCallback);
-        playerInstance.off('ended', handleEnded as PlyrJS.PlyrEventCallback);
-        playerInstance.off('error', handlePlyrError as PlyrJS.PlyrEventCallback);
+      if (player && typeof player.off === 'function') {
+        player.off('ready', handleReady as PlyrJS.PlyrEventCallback);
+        player.off('pause', handlePause as PlyrJS.PlyrEventCallback);
+        player.off('play', handlePlay as PlyrJS.PlyrEventCallback);
+        player.off('ended', handleEnded as PlyrJS.PlyrEventCallback);
+        player.off('error', handlePlyrError as PlyrJS.PlyrEventCallback);
       }
 
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
       }
-      if (playerInstance && playerInstance.currentTime > 0 && activePlayerInfo && activePlayerInfo.storageKey) {
-         saveVideoProgress(playerInstance, activePlayerInfo.storageKey);
+      if (player && player.currentTime > 0 && activePlayerInfo && activePlayerInfo.storageKey) {
+         saveVideoProgress(player, activePlayerInfo.storageKey);
       }
     };
   }, [activePlayerInfo, saveVideoProgress, toast]);
@@ -361,13 +356,15 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
           </div>
           <div className="aspect-video w-full">
             <Plyr
-              key={activePlayerInfo.storageKey} 
-              // @ts-ignore plyrRef type mismatch with internal PlyrJS type
-              ref={plyrRef} 
+              key={activePlayerInfo.storageKey}
+              ref={plyrRef}
               source={activePlayerInfo.plyrSource}
               options={{
                 autoplay: true,
                 playsinline: true,
+                // HLS.js config can be passed here if needed,
+                // e.g., hls: { config: { ... } }
+                // For basic HLS playback, Plyr often handles it automatically if HLS.js is globally available or correctly bundled.
               }}
             />
           </div>
@@ -575,7 +572,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
               ))}
             </div>
             <AlertDialogFooter>
-              <AlertDialogCancel
+              <AlertDialogCancel 
                 onClick={() => setServerSelectionInfo(null)}
                 className="cyberpunk-button-cancel"
               >
@@ -596,3 +593,4 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     </>
   );
 }
+
