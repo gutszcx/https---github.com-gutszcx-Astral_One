@@ -228,7 +228,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
         // This toast appears when the modal is open with details, but player isn't active.
         toast({
             title: "Conteúdo Carregado!",
-            description: "Role a página para baixo para encontrar opções de reprodução, temporadas e episódios.",
+            description: "Role a página para cima para encontrar opções de reprodução, temporadas e episódios.",
             duration: 5000, // Show for 5 seconds
         });
     }
