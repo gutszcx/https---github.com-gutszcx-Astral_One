@@ -20,13 +20,13 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased min-h-screen flex flex-col bg-background text-foreground">
         <QueryProvider>
-          <header className="bg-card text-card-foreground p-4 shadow-md sticky top-0 z-50">
+          <header className="bg-card text-card-foreground p-4 shadow-md sticky top-0 z-50 border-b border-[hsl(var(--cyberpunk-border))]">
             <nav className="container mx-auto flex justify-between items-center">
-              <Link href="/" className="text-2xl font-bold text-primary hover:text-primary/80 transition-colors">
+              <Link href="/" className="text-2xl font-bold text-primary hover:text-[hsl(var(--cyberpunk-highlight))] transition-colors">
                 CineForm
               </Link>
               <div className="space-x-6">
@@ -39,8 +39,6 @@ export default function RootLayout({
               </div>
             </nav>
           </header>
-          {/* The children (page content) will naturally flow below the header. 
-              Individual pages use <main className="flex-grow ..."> to fill remaining space. */}
           {children}
           <Toaster />
         </QueryProvider>
