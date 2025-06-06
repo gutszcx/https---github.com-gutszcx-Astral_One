@@ -4,12 +4,13 @@
 
 import { db } from './firebase';
 import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, getDoc, serverTimestamp, query, orderBy, Timestamp, setDoc } from 'firebase/firestore';
-import type { CineFormValues, VideoSource as FormVideoSource, EpisodeFormValues, SeasonFormValues } from './schemas';
-import type { StoredCineItem, StoredMovieItem, StoredSeriesItem, VideoSource as StoredVideoSource, Episode, Season, NewsBannerMessage } from '@/types';
+import type { CineFormValues, VideoSource as FormVideoSource, EpisodeFormValues, SeasonFormValues, FeedbackFormValues } from './schemas';
+import type { StoredCineItem, StoredMovieItem, StoredSeriesItem, VideoSource as StoredVideoSource, Episode, Season, NewsBannerMessage, UserFeedbackItem, FeedbackStatus } from '@/types';
 
 const CONTENT_COLLECTION = 'contentItems';
 const SITE_CONFIGURATION_COLLECTION = 'siteConfiguration';
 const NEWS_BANNER_DOC_ID = 'newsBannerControls';
+const FEEDBACK_COLLECTION = 'feedbackItems';
 
 
 // Helper to safely map video sources, ensuring all fields are present or defaulted
@@ -236,6 +237,80 @@ export async function getNewsBannerMessage(): Promise<NewsBannerMessage | null> 
     // It's okay if it fails silently on the client, banner just won't show.
     // For admin, errors might be more critical.
     return null; 
+  }
+}
+
+// User Feedback Firebase Service Functions
+export async function submitUserFeedback(feedbackData: FeedbackFormValues): Promise<string> {
+  try {
+    const docRef = await addDoc(collection(db, FEEDBACK_COLLECTION), {
+      ...feedbackData,
+      status: 'novo' as FeedbackStatus, // Default status
+      submittedAt: serverTimestamp(),
+      adminResponse: '',
+      respondedAt: null,
+    });
+    return docRef.id;
+  } catch (error) {
+    console.error("Error submitting user feedback: ", error);
+    throw new Error("Failed to submit feedback.");
+  }
+}
+
+function mapDocToUserFeedbackItem(document: { data: () => any; id: string }): UserFeedbackItem {
+  const data = document.data();
+  
+  let submittedAtISO: string = new Date().toISOString(); // Fallback
+  if (data.submittedAt && typeof data.submittedAt.toDate === 'function') {
+    submittedAtISO = data.submittedAt.toDate().toISOString();
+  } else if (typeof data.submittedAt === 'string') {
+    try { submittedAtISO = new Date(data.submittedAt).toISOString(); } catch (e) { /* ignore */ }
+  }
+
+  let respondedAtISO: string | undefined = undefined;
+  if (data.respondedAt && typeof data.respondedAt.toDate === 'function') {
+    respondedAtISO = data.respondedAt.toDate().toISOString();
+  } else if (typeof data.respondedAt === 'string') {
+    try { respondedAtISO = new Date(data.respondedAt).toISOString(); } catch (e) { /* ignore */ }
+  }
+
+  return {
+    id: document.id,
+    userId: data.userId, // Will be undefined for now
+    contentId: data.contentId,
+    contentTitle: data.contentTitle,
+    feedbackType: data.feedbackType || 'outro',
+    message: data.message || '',
+    status: data.status || 'novo',
+    adminResponse: data.adminResponse || '',
+    submittedAt: submittedAtISO,
+    respondedAt: respondedAtISO,
+  };
+}
+
+
+export async function getFeedbackItemsAdmin(): Promise<UserFeedbackItem[]> {
+  try {
+    const q = query(collection(db, FEEDBACK_COLLECTION), orderBy('submittedAt', 'desc'));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(docSnap => mapDocToUserFeedbackItem({ data: () => docSnap.data(), id: docSnap.id }));
+  } catch (error) {
+    console.error("Error getting feedback items: ", error);
+    throw new Error("Failed to get feedback items.");
+  }
+}
+
+export async function updateFeedbackItemAdmin(feedbackId: string, updates: { adminResponse?: string; status?: FeedbackStatus }): Promise<void> {
+  try {
+    const docRef = doc(db, FEEDBACK_COLLECTION, feedbackId);
+    const dataToUpdate: any = { ...updates };
+    if (updates.adminResponse !== undefined || updates.status !== undefined) {
+      dataToUpdate.respondedAt = serverTimestamp();
+    }
+    await updateDoc(docRef, dataToUpdate);
+  } catch (error) {
+    console.error("Error updating feedback item: ", error);
+    throw new Error("Failed to update feedback item.");
   }
 }
     

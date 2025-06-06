@@ -21,12 +21,12 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle as AlertDialogTitleComponent,
-  AlertDialogCancel, // Added missing import
+  AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { StoredCineItem, StoredMovieItem, StoredSeriesItem, VideoSource } from '@/types';
-import { Film, Tv, Clapperboard, Clock, PlayCircle, X, ListVideo, Loader2, Heart } from 'lucide-react'; // Added Heart
+import { Film, Tv, Clapperboard, Clock, PlayCircle, X, ListVideo, Loader2, Heart, MessageCircleQuestion } from 'lucide-react';
 import {
   Accordion,
   AccordionContent,
@@ -34,8 +34,9 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { useToast } from '@/hooks/use-toast';
-import { useFavorites } from '@/contexts/FavoritesContext'; // Added import
+import { useFavorites } from '@/contexts/FavoritesContext';
 import { cn } from '@/lib/utils';
+import { FeedbackDialog } from '@/components/feedback/FeedbackDialog'; // Added import
 
 interface HomeAniDetailModalProps {
   item: (StoredCineItem & { _playActionData?: { seasonNumber: number; episodeIndex: number } }) | null;
@@ -70,11 +71,12 @@ interface ProgressData {
 export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onInitialActionConsumed }: HomeAniDetailModalProps) {
   const [activePlayerInfo, setActivePlayerInfo] = useState<PlayerInfo | null>(null);
   const [serverSelectionInfo, setServerSelectionInfo] = useState<ServerSelectionInfo | null>(null);
+  const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false); // State for feedback dialog
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
-  const { isFavorite, toggleFavorite } = useFavorites(); // Get favorites methods
+  const { isFavorite, toggleFavorite } = useFavorites();
   const hasTriggeredInitialPlay = useRef(false);
   const [processingInitialAction, setProcessingInitialAction] = useState(false);
 
@@ -98,6 +100,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     }
     setActivePlayerInfo(null);
     setServerSelectionInfo(null);
+    setIsFeedbackDialogOpen(false); // Close feedback dialog if open
     hasTriggeredInitialPlay.current = false;
     setProcessingInitialAction(false); 
     onClose();
@@ -355,11 +358,11 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
       <div className="fixed inset-0 z-[100] bg-black/90 flex flex-col items-center justify-center p-2 sm:p-4">
         <div className="w-full max-w-4xl overflow-hidden">
           <div className="flex justify-between items-center p-3 sm:p-4">
-            <h2 className="text-lg sm:text-xl font-semibold text-[hsl(var(--cyberpunk-highlight))] truncate">
+            <h2 className="text-lg sm:text-xl font-semibold text-[hsl(var(--neon-green-accent))] truncate">
               {activePlayerInfo.title}
             </h2>
             <Button variant="ghost" size="icon" onClick={handlePlayerClose} aria-label="Fechar player">
-              <X className="h-5 w-5 text-[hsl(var(--cyberpunk-secondary-accent))] hover:text-[hsl(var(--cyberpunk-highlight))]" />
+              <X className="h-5 w-5 text-[hsl(var(--neon-green-accent))] hover:text-[hsl(var(--cyberpunk-highlight))]" />
             </Button>
           </div>
           <div className="aspect-video w-full">
@@ -386,8 +389,8 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
         <DialogContent className="sm:max-w-[600px] md:max-w-[800px] lg:max-w-[900px] p-0 max-h-[90vh] flex flex-col bg-card">
            {processingInitialAction && !item ? (
              <>
-              <DialogHeader className="sr-only"> {/* Visually hidden for accessibility */}
-                <DialogTitle>Carregando</DialogTitle>
+              <DialogHeader className="sr-only">
+                <DialogTitle>Carregando detalhes do conteúdo</DialogTitle>
               </DialogHeader>
               <div className="flex flex-col items-center justify-center flex-grow p-6 min-h-[300px]">
                 <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
@@ -431,15 +434,24 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
                       className="rounded-lg shadow-xl w-full h-auto max-w-xs mx-auto md:max-w-full"
                       data-ai-hint={item.contentType === 'movie' ? "movie poster" : "tv show poster"}
                     />
-                     <Button 
+                    <div className="flex flex-col space-y-2 mt-4">
+                      <Button 
                         variant="outline" 
-                        className="w-full mt-4 cyberpunk-button-secondary"
+                        className="w-full cyberpunk-button-secondary"
                         onClick={() => toggleFavorite(item)}
                         aria-label={isCurrentlyFavorite ? "Remover dos Favoritos" : "Adicionar aos Favoritos"}
                       >
                         <Heart className={cn("mr-2 h-5 w-5", isCurrentlyFavorite && "fill-current text-[hsl(var(--cyberpunk-highlight))]")} />
                         {isCurrentlyFavorite ? "Favoritado" : "Favoritar"}
                       </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full cyberpunk-button-primary"
+                        onClick={() => setIsFeedbackDialogOpen(true)}
+                      >
+                        <MessageCircleQuestion className="mr-2 h-5 w-5" /> Reportar/Pedir
+                      </Button>
+                    </div>
                   </div>
                   <div className="md:col-span-2 space-y-4">
                     <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground items-center">
@@ -554,6 +566,14 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+      )}
+      
+      {item && (
+        <FeedbackDialog
+            isOpen={isFeedbackDialogOpen}
+            onClose={() => setIsFeedbackDialogOpen(false)}
+            contentContext={{ id: item.id, title: item.tituloOriginal }}
+        />
       )}
     </>
   );

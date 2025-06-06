@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { FEEDBACK_TYPES, FEEDBACK_STATUSES } from '@/types'; // Import feedback constants
 
 export const CLASSIFICACAO_INDICATIVA_OPTIONS = ['Livre', '10+', '12+', '14+', '16+', '18+'] as const;
 export const QUALIDADE_OPTIONS = ['4K', '1080p', '720p', 'SD'] as const;
@@ -126,3 +127,19 @@ export const defaultSeriesValues: SeriesFormValues = {
   totalTemporadas: 1,
   temporadas: [{ numeroTemporada: 1, episodios: [{ titulo: '', videoSources: [], linkLegenda: ''}] }],
 };
+
+// Feedback Form Schema
+export const feedbackFormSchema = z.object({
+  feedbackType: z.enum(FEEDBACK_TYPES, { required_error: "Selecione o tipo de feedback." }),
+  message: z.string().min(10, "A mensagem deve ter pelo menos 10 caracteres.").max(1000, "Mensagem muito longa (máx 1000 caracteres)."),
+  contentId: z.string().optional(),
+  contentTitle: z.string().optional(),
+});
+export type FeedbackFormValues = z.infer<typeof feedbackFormSchema>;
+
+// Admin Response Schema (part of FeedbackAdminConsole)
+export const adminFeedbackResponseSchema = z.object({
+  adminResponse: z.string().max(2000, "Resposta muito longa.").optional().or(z.literal('')),
+  status: z.enum(FEEDBACK_STATUSES),
+});
+export type AdminFeedbackResponseFormValues = z.infer<typeof adminFeedbackResponseSchema>;

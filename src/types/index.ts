@@ -77,4 +77,34 @@ export interface NewsBannerMessage {
   linkText?: string;
   updatedAt?: string; // ISO string date
 }
+
+// User Feedback Types
+export const FEEDBACK_TYPES = [
+  "pedido_conteudo", 
+  "episodio_offline", 
+  "problema_geral", 
+  "outro"
+] as const;
+export type FeedbackType = (typeof FEEDBACK_TYPES)[number];
+
+export const FEEDBACK_STATUSES = [
+  "novo", 
+  "em_analise", 
+  "resolvido",
+  "recusado"
+] as const;
+export type FeedbackStatus = (typeof FEEDBACK_STATUSES)[number];
+
+export interface UserFeedbackItem {
+  id: string;
+  userId?: string; // Optional, for future use with authentication
+  contentId?: string; // ID of the movie/series if feedback is specific
+  contentTitle?: string; // Title of the movie/series for context
+  feedbackType: FeedbackType;
+  message: string;
+  status: FeedbackStatus;
+  adminResponse?: string;
+  submittedAt: string; // ISO string date
+  respondedAt?: string; // ISO string date
+}
     
