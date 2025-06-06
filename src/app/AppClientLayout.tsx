@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Search as SearchIcon } from 'lucide-react';
 import { useState } from 'react';
 import { SearchDialog } from '@/components/SearchDialog';
+import { NewsBanner } from '@/components/layout/NewsBanner'; // Added import
 
 export function AppClientLayout({ children }: { children: React.ReactNode }) {
   const { selectedItem, isModalOpen, closeModal, initialModalAction, onInitialActionConsumed } = useModal();
@@ -16,6 +17,7 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <>
+      <NewsBanner /> 
       <header className="bg-card text-card-foreground p-4 shadow-md sticky top-0 z-50 border-b border-[hsl(var(--cyberpunk-border))]">
         <nav className="container mx-auto flex justify-between items-center">
           <Link href="/" className="text-2xl font-bold text-primary hover:text-[hsl(var(--cyberpunk-highlight))] transition-colors">

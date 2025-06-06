@@ -3,11 +3,14 @@
 'use server';
 
 import { db } from './firebase';
-import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, getDoc, serverTimestamp, query, orderBy, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, getDoc, serverTimestamp, query, orderBy, Timestamp, setDoc } from 'firebase/firestore';
 import type { CineFormValues, VideoSource as FormVideoSource, EpisodeFormValues, SeasonFormValues } from './schemas';
-import type { StoredCineItem, StoredMovieItem, StoredSeriesItem, VideoSource as StoredVideoSource, Episode, Season } from '@/types';
+import type { StoredCineItem, StoredMovieItem, StoredSeriesItem, VideoSource as StoredVideoSource, Episode, Season, NewsBannerMessage } from '@/types';
 
 const CONTENT_COLLECTION = 'contentItems';
+const SITE_CONFIGURATION_COLLECTION = 'siteConfiguration';
+const NEWS_BANNER_DOC_ID = 'newsBannerControls';
+
 
 // Helper to safely map video sources, ensuring all fields are present or defaulted
 function mapVideoSources(sourcesFromDb: any[] | undefined): StoredVideoSource[] {
@@ -191,4 +194,48 @@ export async function deleteContentItem(id: string): Promise<void> {
   }
 }
 
+// News Banner Firebase Service Functions
+export async function setNewsBannerMessage(data: Omit<NewsBannerMessage, 'id' | 'updatedAt'>): Promise<void> {
+  try {
+    const docRef = doc(db, SITE_CONFIGURATION_COLLECTION, NEWS_BANNER_DOC_ID);
+    await setDoc(docRef, {
+      ...data,
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+  } catch (error) {
+    console.error("Error setting news banner message: ", error);
+    throw new Error("Failed to set news banner message.");
+  }
+}
+
+export async function getNewsBannerMessage(): Promise<NewsBannerMessage | null> {
+  try {
+    const docRef = doc(db, SITE_CONFIGURATION_COLLECTION, NEWS_BANNER_DOC_ID);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      let updatedAtISO: string | undefined = undefined;
+      if (data.updatedAt && typeof data.updatedAt.toDate === 'function') {
+        updatedAtISO = data.updatedAt.toDate().toISOString();
+      } else if (typeof data.updatedAt === 'string') {
+         try { updatedAtISO = new Date(data.updatedAt).toISOString(); } catch (e) { /* ignore */ }
+      }
+      return {
+        id: docSnap.id,
+        message: data.message || '',
+        type: data.type || 'none',
+        isActive: typeof data.isActive === 'boolean' ? data.isActive : false,
+        link: data.link || undefined,
+        linkText: data.linkText || undefined,
+        updatedAt: updatedAtISO,
+      } as NewsBannerMessage;
+    }
+    return null;
+  } catch (error) {
+    console.error("Error getting news banner message: ", error);
+    // It's okay if it fails silently on the client, banner just won't show.
+    // For admin, errors might be more critical.
+    return null; 
+  }
+}
     

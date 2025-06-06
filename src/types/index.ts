@@ -64,4 +64,17 @@ export type StoredCineItem = StoredMovieItem | StoredSeriesItem;
 // Export form types for use elsewhere if needed, but primarily we use Stored types for fetched data
 export type { CineFormValues, FormVideoSource, OriginalEpisodeFormValues, OriginalSeasonFormValues };
 
+// News Banner Types
+export const NEWS_BANNER_TYPES = ['none', 'info', 'success', 'warning', 'error'] as const;
+export type NewsBannerMessageType = (typeof NEWS_BANNER_TYPES)[number];
+
+export interface NewsBannerMessage {
+  id?: string; // Document ID, typically 'newsBannerControls'
+  message: string;
+  type: NewsBannerMessageType;
+  isActive: boolean;
+  link?: string;
+  linkText?: string;
+  updatedAt?: string; // ISO string date
+}
     
