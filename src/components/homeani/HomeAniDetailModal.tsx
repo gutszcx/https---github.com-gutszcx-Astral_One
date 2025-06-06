@@ -27,7 +27,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { StoredCineItem, StoredMovieItem, StoredSeriesItem, VideoSource } from '@/types';
-import { Film, Tv, Clapperboard, Clock, PlayCircle, X, ListVideo, Loader2, Heart, MessageCircleQuestion } from 'lucide-react';
+import { Film, Tv, Clapperboard, Clock, PlayCircle, X, ListVideo, Loader2, Heart, MessageCircleQuestion, ArrowDownCircle } from 'lucide-react';
 import {
   Accordion,
   AccordionContent,
@@ -41,7 +41,15 @@ import { FeedbackDialog } from '@/components/feedback/FeedbackDialog';
 import type PlyrJS from 'plyr';
 
 // Dynamically import Plyr to ensure it's only loaded on the client-side
-const Plyr = dynamic(() => import('plyr-react'), { ssr: false });
+const Plyr = dynamic(() => import('plyr-react').then(mod => mod.default), {
+  ssr: false,
+  loading: () => (
+    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 z-10">
+      <Loader2 className="h-12 w-12 animate-spin text-white mb-4" />
+      <p className="text-white text-lg">Carregando Player...</p>
+    </div>
+  ),
+});
 
 
 interface HomeAniDetailModalProps {
@@ -216,6 +224,18 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
   }, [isOpen, initialAction, item]);
 
   useEffect(() => {
+    if (isOpen && item && !activePlayerInfo && !serverSelectionInfo) {
+        // This toast appears when the modal is open with details, but player isn't active.
+        toast({
+            title: "Conteúdo Carregado!",
+            description: "Role a página para baixo para encontrar opções de reprodução, temporadas e episódios.",
+            duration: 5000, // Show for 5 seconds
+        });
+    }
+  }, [isOpen, item, activePlayerInfo, serverSelectionInfo, toast]);
+
+
+  useEffect(() => {
     if (isOpen && initialAction === 'play' && item && !activePlayerInfo && !serverSelectionInfo && !hasTriggeredInitialPlay.current && processingInitialAction) {
       hasTriggeredInitialPlay.current = true;
   
@@ -276,7 +296,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
   }, [saveVideoProgress]);
 
   const handlePlayerPlay = useCallback((player: PlyrJS, storageKey: string) => {
-    setIsPlayerLoading(true);
+    setIsPlayerLoading(true); // Initially set to true, playing event will set to false
     if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
     progressIntervalRef.current = setInterval(() => {
       saveVideoProgress(player, storageKey);
@@ -321,10 +341,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
   useEffect(() => {
     const playerInstance = plyrRef.current?.plyr;
 
-    if (!playerInstance || 
-        typeof playerInstance.on !== 'function' || 
-        typeof playerInstance.off !== 'function' || 
-        !activePlayerInfo) {
+    if (!playerInstance || !activePlayerInfo) {
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
@@ -335,35 +352,36 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     const validPlayer = playerInstance;
     const { storageKey } = activePlayerInfo;
 
+    // Ensure methods exist before attaching listeners
     const onReady = () => handleReady(validPlayer, storageKey);
-    const onPause = () => handlePause(validPlayer, storageKey);
-    const onPlayEvent = () => handlePlayerPlay(validPlayer, storageKey); // Renamed to avoid conflict
-    const onEnded = () => handleEnded(storageKey);
-    const onError = (event: any) => handlePlyrError(event);
-    const onWaiting = () => handlePlayerWaiting();
-    const onPlaying = () => handlePlayerPlaying();
+    const onPauseEvent = () => handlePause(validPlayer, storageKey); // Renamed
+    const onPlayEvent = () => handlePlayerPlay(validPlayer, storageKey);
+    const onEndedEvent = () => handleEnded(storageKey); // Renamed
+    const onErrorEvent = (event: any) => handlePlyrError(event); // Renamed
+    const onWaitingEvent = () => handlePlayerWaiting(); // Renamed
+    const onPlayingEvent = () => handlePlayerPlaying(); // Renamed
 
 
     if (typeof validPlayer.on === 'function') {
         validPlayer.on('ready', onReady as PlyrJS.PlyrEventCallback);
-        validPlayer.on('pause', onPause as PlyrJS.PlyrEventCallback);
+        validPlayer.on('pause', onPauseEvent as PlyrJS.PlyrEventCallback);
         validPlayer.on('play', onPlayEvent as PlyrJS.PlyrEventCallback);
-        validPlayer.on('ended', onEnded as PlyrJS.PlyrEventCallback);
-        validPlayer.on('error', onError as PlyrJS.PlyrEventCallback);
-        validPlayer.on('waiting', onWaiting as PlyrJS.PlyrEventCallback);
-        validPlayer.on('playing', onPlaying as PlyrJS.PlyrEventCallback);
+        validPlayer.on('ended', onEndedEvent as PlyrJS.PlyrEventCallback);
+        validPlayer.on('error', onErrorEvent as PlyrJS.PlyrEventCallback);
+        validPlayer.on('waiting', onWaitingEvent as PlyrJS.PlyrEventCallback);
+        validPlayer.on('playing', onPlayingEvent as PlyrJS.PlyrEventCallback);
     }
 
 
     return () => {
       if (validPlayer && typeof validPlayer.off === 'function') {
         validPlayer.off('ready', onReady as PlyrJS.PlyrEventCallback);
-        validPlayer.off('pause', onPause as PlyrJS.PlyrEventCallback);
+        validPlayer.off('pause', onPauseEvent as PlyrJS.PlyrEventCallback);
         validPlayer.off('play', onPlayEvent as PlyrJS.PlyrEventCallback);
-        validPlayer.off('ended', onEnded as PlyrJS.PlyrEventCallback);
-        validPlayer.off('error', onError as PlyrJS.PlyrEventCallback);
-        validPlayer.off('waiting', onWaiting as PlyrJS.PlyrEventCallback);
-        validPlayer.off('playing', onPlaying as PlyrJS.PlyrEventCallback);
+        validPlayer.off('ended', onEndedEvent as PlyrJS.PlyrEventCallback);
+        validPlayer.off('error', onErrorEvent as PlyrJS.PlyrEventCallback);
+        validPlayer.off('waiting', onWaitingEvent as PlyrJS.PlyrEventCallback);
+        validPlayer.off('playing', onPlayingEvent as PlyrJS.PlyrEventCallback);
       }
 
       if (progressIntervalRef.current) {
@@ -634,3 +652,6 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     </>
   );
 }
+
+
+    
