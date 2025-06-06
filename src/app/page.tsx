@@ -122,18 +122,17 @@ export default function HomeAniPage() {
 
 
   const itemsForGenreRows = useMemo(() => {
-    const excludeIds = new Set(continueWatchingItems.map(cw => cw.id));
-    if (heroItem) {
-      excludeIds.add(heroItem.id);
-    }
-    return activeItems.filter(item => !excludeIds.has(item.id));
-  }, [activeItems, heroItem, continueWatchingItems]);
+    // Now, all active items are considered for genre rows.
+    // Duplication with Hero/Continue Watching is possible but ensures all items with genres are listed.
+    return activeItems;
+  }, [activeItems]);
 
   const genreRows = useMemo(() => {
     if (!itemsForGenreRows) return [];
 
     const genresMap: Map<string, StoredCineItem[]> = new Map();
     const miscellaneousItems: StoredCineItem[] = [];
+    const processedForGenreMap = new Set<string>(); // Keep track of items added to specific genres
 
     itemsForGenreRows.forEach(item => {
       let itemGenres = (item.generos || '')
@@ -143,6 +142,8 @@ export default function HomeAniPage() {
         .map(g => g.charAt(0).toUpperCase() + g.slice(1).toLowerCase());
 
       if (itemGenres.length === 0) {
+        // Add to miscellaneous only if not already processed for a specific genre (though this condition is moot here)
+        // and not already in miscellaneous.
         if (!miscellaneousItems.find(i => i.id === item.id)) {
             miscellaneousItems.push(item);
         }
@@ -155,15 +156,28 @@ export default function HomeAniPage() {
               genresMap.get(genre)!.push(item);
           }
         });
+        processedForGenreMap.add(item.id); // Mark item as processed for specific genres
       }
     });
+    
+    // Ensure items only in "Continue Watching" or "Hero" (if they have no genres) also go to "Diversos"
+    // if they weren't caught by the specific genre logic and are not the hero or in continue watching.
+    // This part might be redundant if itemsForGenreRows now includes everything.
+    // The original logic for miscellaneousItems handles items with no genres correctly.
 
     const sortedGenreRows = Array.from(genresMap.entries())
       .map(([genre, items]) => ({ title: genre, items, icon: <Tag className="mr-2 h-6 w-6" /> }))
       .sort((a, b) => a.title.localeCompare(b.title));
 
-    if (miscellaneousItems.length > 0) {
-      sortedGenreRows.push({ title: "Diversos", items: miscellaneousItems, icon: <Layers className="mr-2 h-6 w-6" /> });
+    // Add miscellaneous items, ensuring they weren't already part of a specific genre row
+    // if `itemsForGenreRows` logic was more exclusive before.
+    // With `itemsForGenreRows = activeItems`, an item with no genre will go to miscellaneous.
+    // An item with genres will go to specific genre rows.
+    const finalMiscellaneousItems = miscellaneousItems.filter(item => !processedForGenreMap.has(item.id));
+
+
+    if (finalMiscellaneousItems.length > 0) {
+      sortedGenreRows.push({ title: "Diversos", items: finalMiscellaneousItems, icon: <Layers className="mr-2 h-6 w-6" /> });
     }
     
     return sortedGenreRows;
@@ -200,6 +214,38 @@ export default function HomeAniPage() {
     );
   }
 
+  // Filter heroItem and continueWatchingItems from main genre display if they are already shown in their dedicated rows
+  const genreRowItemsToDisplay = genreRows.map(genreRow => {
+    const filteredItems = genreRow.items.filter(item => {
+        const isHero = heroItem?.id === item.id;
+        const isContinueWatching = continueWatchingItems.some(cw => cw.id === item.id);
+        
+        // If the row is "Continue Assistindo", all its items are fine.
+        if (genreRow.title === "Continue Assistindo") return true;
+
+        // For other genre rows, only include if NOT the hero and NOT in continue watching list.
+        // This is to prevent triple display if an item is hero, continue, AND in a genre.
+        // However, the main `itemsForGenreRows` now includes everything, so this filtering
+        // is done at the display stage of the rows themselves, except for the dedicated Continue Watching row.
+        // The Continue Watching row below explicitly uses `continueWatchingItems`.
+        // Other genre rows use `genreRows` which are derived from all `activeItems`.
+        // So, we need to filter hero and continue items from *those specific genre rows* if they'd duplicate.
+
+        // Let's refine the logic for genreRows source itself.
+        // itemsForGenreRows = activeItems.
+        // The genreRows calculation populates genresMap.
+        // The ContentRow component is responsible for rendering.
+        // It's simpler to let genreRows contain all items and then decide duplication at render,
+        // OR filter itemsForGenreRows initially.
+        // The change made was to itemsForGenreRows, so items are now included.
+        // Duplication is now accepted to ensure visibility.
+
+        return true; // With the change to itemsForGenreRows, we accept potential duplication.
+    });
+    return { ...genreRow, items: filteredItems };
+  }).filter(genreRow => genreRow.items.length > 0);
+
+
   return (
     <>
       <main className="flex-grow bg-background text-foreground">
@@ -218,15 +264,29 @@ export default function HomeAniPage() {
             />
           )}
 
-          {genreRows.map(genreRow => (
-            <ContentRow 
-              key={genreRow.title}
-              title={genreRow.title}
-              items={genreRow.items}
-              onCardClick={(item) => handleCardClick(item)}
-              icon={genreRow.icon}
-            />
-          ))}
+          {genreRowItemsToDisplay.map(genreRow => {
+            // Ensure we don't re-render "Continue Assistindo" if it was part of genreRows
+            if (genreRow.title === "Continue Assistindo" && continueWatchingItems.length > 0) return null;
+            
+            // Filter out items that are ALREADY in the continueWatchingItems list from other genre rows
+            // to prevent them from appearing in, for example, "Action" AND "Continue Watching".
+            // Hero item can still be duplicated.
+            const itemsForThisRow = genreRow.items.filter(item => 
+                !continueWatchingItems.some(cw => cw.id === item.id && genreRow.title !== "Continue Assistindo")
+            );
+
+            if (itemsForThisRow.length === 0) return null;
+
+            return (
+                <ContentRow 
+                key={genreRow.title}
+                title={genreRow.title}
+                items={itemsForThisRow}
+                onCardClick={(item) => handleCardClick(item)}
+                icon={genreRow.icon}
+                />
+            );
+           })}
           
           {heroItem === null && genreRows.length === 0 && continueWatchingItems.length === 0 && (
             <div className="text-center py-20">
@@ -264,15 +324,16 @@ function ContentRow({ title, items, onCardClick, icon }: ContentRowProps) {
         <div className="flex space-x-3 sm:space-x-4 pb-4 overflow-x-auto scrollbar-thin scrollbar-thumb-muted-foreground/50 scrollbar-track-transparent pl-2 sm:pl-0">
           {items.map((item) => (
             <HomeAniContentCard 
-              key={item.id + ((item as ContinueWatchingItem).lastSaved || '')}
+              key={item.id + ((item as ContinueWatchingItem).lastSaved || '')} // Ensure key is unique if item appears in multiple rows with different contexts
               item={item as StoredCineItem & { progressTime?: number; progressDuration?: number }}
               onClick={() => onCardClick(item as ContinueWatchingItem)}
             />
           ))}
-          <div className="flex-shrink-0 w-px h-px" />
+          <div className="flex-shrink-0 w-px h-px" /> {/* Spacer for scroll */}
         </div>
       </div>
       <Separator className="my-8 bg-border/50" />
     </section>
   );
 }
+
