@@ -1,9 +1,10 @@
 
-import type {Metadata} from 'next';
-import Link from 'next/link';
+import type { Metadata } from 'next';
 import './globals.css';
-import { Toaster } from "@/components/ui/toaster";
+// QueryProvider and ModalProvider are kept here as they wrap client boundaries
 import { QueryProvider } from '@/components/QueryProvider';
+import { ModalProvider } from '@/contexts/ModalContext';
+import { AppClientLayout } from './AppClientLayout'; // New client component
 
 export const metadata: Metadata = {
   title: 'CineForm',
@@ -24,23 +25,9 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased min-h-screen flex flex-col bg-background text-foreground">
         <QueryProvider>
-          <header className="bg-card text-card-foreground p-4 shadow-md sticky top-0 z-50 border-b border-[hsl(var(--cyberpunk-border))]">
-            <nav className="container mx-auto flex justify-between items-center">
-              <Link href="/" className="text-2xl font-bold text-primary hover:text-[hsl(var(--cyberpunk-highlight))] transition-colors">
-                CineForm
-              </Link>
-              <div className="space-x-6">
-                <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-                  Catálogo
-                </Link>
-                <Link href="/manage" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-                  Gerenciar Conteúdo
-                </Link>
-              </div>
-            </nav>
-          </header>
-          {children}
-          <Toaster />
+          <ModalProvider>
+            <AppClientLayout>{children}</AppClientLayout>
+          </ModalProvider>
         </QueryProvider>
       </body>
     </html>

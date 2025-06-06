@@ -7,11 +7,12 @@ import { useQuery } from '@tanstack/react-query';
 import { getContentItems } from '@/lib/firebaseService';
 import type { StoredCineItem } from '@/types';
 import { HomeAniContentCard } from '@/components/homeani/HomeAniContentCard';
-import { HomeAniDetailModal } from '@/components/homeani/HomeAniDetailModal';
+// HomeAniDetailModal is now in RootLayout
 import { HomeAniHeroCard } from '@/components/homeani/HomeAniHeroCard';
 import { Loader2, AlertTriangle, Flame, Tag, PlaySquare, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { useModal } from '@/contexts/ModalContext'; // Import useModal
 
 interface ProgressData {
   time: number;
@@ -27,8 +28,7 @@ interface ContinueWatchingItem extends StoredCineItem {
 }
 
 export default function HomeAniPage() {
-  const [selectedItem, setSelectedItem] = useState<(StoredCineItem & { _playActionData?: { seasonNumber: number; episodeIndex: number } }) | null>(null);
-  const [initialModalAction, setInitialModalAction] = useState<'play' | null>(null);
+  const { openModal } = useModal(); // Use the modal context
   const [continueWatchingItems, setContinueWatchingItems] = useState<ContinueWatchingItem[]>([]);
 
   const { data: allItems, isLoading, error, refetch } = useQuery<StoredCineItem[], Error>({
@@ -64,7 +64,8 @@ export default function HomeAniPage() {
 
               if (itemId) {
                 const matchingItem = activeItems.find(item => item.id === itemId);
-                if (matchingItem && !loadedContinueWatching.some(cw => cw.id === matchingItem.id)) { // Avoid duplicates if multiple episodes of same series
+                // Avoid duplicates if multiple episodes of same series are in progress but we only show the series once
+                if (matchingItem && !loadedContinueWatching.some(cw => cw.id === matchingItem.id)) { 
                   const continueItem: ContinueWatchingItem = {
                     ...matchingItem,
                     lastSaved: progressData.lastSaved,
@@ -89,33 +90,34 @@ export default function HomeAniPage() {
     setContinueWatchingItems(loadedContinueWatching.slice(0, 10));
   }, [activeItems]);
 
-
   const heroItem = useMemo(() => {
     if (!activeItems || activeItems.length === 0) return null;
-
+    
+    // Prioritize items marked for homepage destaque
     const featured = activeItems
-      .filter(item => item.destaqueHome === true)
-      .sort((a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime());
+        .filter(item => item.destaqueHome === true)
+        .sort((a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime());
 
     if (featured.length > 0) {
-      return featured[0];
+        return featured[0]; // Show the newest featured item
     }
-
+    
+    // Fallback: If no featured items, pick the most recent active item not in "Continue Watching"
     const continueWatchingIds = new Set(continueWatchingItems.map(cw => cw.id));
     const mostRecentActive = activeItems
       .filter(item => !continueWatchingIds.has(item.id))
       .sort((a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime());
-
+    
     if (mostRecentActive.length > 0) {
       return mostRecentActive[0];
     }
-    
-    // Fallback: if all active items are in continue watching, pick the newest overall active item for hero
-    if (activeItems.length > 0) {
+
+    // Further Fallback: if all active items are in continue watching, pick the newest overall active item for hero
+     if (activeItems.length > 0) {
         return activeItems.sort((a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime())[0];
     }
 
-    return null;
+    return null; // No suitable item found
   }, [activeItems, continueWatchingItems]);
 
 
@@ -170,23 +172,9 @@ export default function HomeAniPage() {
 
 
   const handleCardClick = (item: StoredCineItem & { _playActionData?: { seasonNumber: number; episodeIndex: number } }, playDirectly: boolean = false) => {
-    setSelectedItem(item);
-    if (playDirectly) {
-        setInitialModalAction('play');
-    } else {
-        setInitialModalAction(null); // Ensure normal modal opening
-    }
+    openModal(item, playDirectly ? 'play' : null);
   };
   
-  const handleCloseModal = () => {
-    setSelectedItem(null);
-    setInitialModalAction(null); // Reset action on close
-  };
-
-  const handleInitialActionConsumed = () => {
-    setInitialModalAction(null);
-  };
-
 
   if (isLoading) {
     return (
@@ -250,13 +238,7 @@ export default function HomeAniPage() {
         </div>
       </main>
       
-      <HomeAniDetailModal 
-        item={selectedItem}
-        isOpen={!!selectedItem}
-        onClose={handleCloseModal}
-        initialAction={initialModalAction}
-        onInitialActionConsumed={handleInitialActionConsumed}
-      />
+      {/* HomeAniDetailModal is now rendered in RootLayout */}
     </>
   );
 }
