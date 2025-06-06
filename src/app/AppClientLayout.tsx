@@ -6,26 +6,30 @@ import { Toaster } from "@/components/ui/toaster";
 import { HomeAniDetailModal } from '@/components/homeani/HomeAniDetailModal';
 import { useModal } from '@/contexts/ModalContext';
 import { Button } from '@/components/ui/button';
-import { Search as SearchIcon } from 'lucide-react';
+import { Search as SearchIcon, Star } from 'lucide-react'; // Added Star icon
 import { useState } from 'react';
 import { SearchDialog } from '@/components/SearchDialog';
-import { NewsBanner } from '@/components/layout/NewsBanner'; // Added import
+import { NewsBanner } from '@/components/layout/NewsBanner';
+import { FavoritesProvider } from '@/contexts/FavoritesContext'; // Added import
 
 export function AppClientLayout({ children }: { children: React.ReactNode }) {
   const { selectedItem, isModalOpen, closeModal, initialModalAction, onInitialActionConsumed } = useModal();
   const [isSearchDialogOpen, setIsSearchDialogOpen] = useState(false);
 
   return (
-    <>
+    <FavoritesProvider> {/* Wrap with FavoritesProvider */}
       <NewsBanner /> 
       <header className="bg-card text-card-foreground p-4 shadow-md sticky top-0 z-50 border-b border-[hsl(var(--cyberpunk-border))]">
         <nav className="container mx-auto flex justify-between items-center">
           <Link href="/" className="text-2xl font-bold text-primary hover:text-[hsl(var(--cyberpunk-highlight))] transition-colors">
             CineForm
           </Link>
-          <div className="flex items-center space-x-6">
+          <div className="flex items-center space-x-4 md:space-x-6">
             <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
               Catálogo
+            </Link>
+            <Link href="/favorites" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors flex items-center">
+              <Star className="mr-1 h-4 w-4" /> Favoritos
             </Link>
             <Link href="/manage" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
               Gerenciar Conteúdo
@@ -51,6 +55,6 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
         isOpen={isSearchDialogOpen}
         onClose={() => setIsSearchDialogOpen(false)}
       />
-    </>
+    </FavoritesProvider>
   );
 }

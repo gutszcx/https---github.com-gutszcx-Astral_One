@@ -16,18 +16,16 @@ import {
 } from '@/components/ui/dialog';
 import {
   AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle as AlertDialogTitleComponent, // Renamed to avoid conflict
+  AlertDialogTitle as AlertDialogTitleComponent,
 } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { StoredCineItem, StoredMovieItem, StoredSeriesItem, VideoSource } from '@/types';
-import { Film, Tv, Clapperboard, Clock, PlayCircle, X, ListVideo, Loader2 } from 'lucide-react';
+import { Film, Tv, Clapperboard, Clock, PlayCircle, X, ListVideo, Loader2, Heart } from 'lucide-react'; // Added Heart
 import {
   Accordion,
   AccordionContent,
@@ -35,6 +33,8 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { useToast } from '@/hooks/use-toast';
+import { useFavorites } from '@/contexts/FavoritesContext'; // Added import
+import { cn } from '@/lib/utils';
 
 interface HomeAniDetailModalProps {
   item: (StoredCineItem & { _playActionData?: { seasonNumber: number; episodeIndex: number } }) | null;
@@ -73,6 +73,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
   const hlsRef = useRef<Hls | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
+  const { isFavorite, toggleFavorite } = useFavorites(); // Get favorites methods
   const hasTriggeredInitialPlay = useRef(false);
   const [processingInitialAction, setProcessingInitialAction] = useState(false);
 
@@ -202,7 +203,8 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
           toast({ title: "Sem Fontes de Vídeo", description: "Nenhum link de vídeo disponível para este episódio.", variant: "default" });
         }
       } else if (item.contentType === 'series') {
-        console.warn("Continue watching for series, but specific episode data not found/resolved. Modal will open normally.");
+        // This case might occur if "Continue Watching" logic doesn't fully resolve episode for series.
+        // The modal will open, but playback won't start automatically. User can pick an episode.
       }
   
       if (onInitialActionConsumed) {
@@ -254,7 +256,6 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
         hls.attachMedia(videoElement);
         hls.on(Hls.Events.ERROR, function (event, data) {
           if (data.fatal) {
-            console.warn('HLS.js fatal error:', data.type, data.details, data); 
             let userMessage = "Ocorreu um erro ao tentar reproduzir o vídeo. Tente novamente mais tarde.";
             if (data.type === Hls.ErrorTypes.NETWORK_ERROR && (data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR || data.details === Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT)) {
                 userMessage = "Erro ao carregar o vídeo (manifest). Verifique o link ou a sua conexão com a internet.";
@@ -264,8 +265,6 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
                userMessage = "Erro na reprodução do vídeo. O formato pode não ser suportado ou o arquivo está corrompido.";
             }
             toast({ title: "Erro de Reprodução (HLS)", description: userMessage, variant: "destructive" });
-          } else {
-            console.warn('HLS.js non-fatal error:', data.type, data.details);
           }
         });
       } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
@@ -290,7 +289,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
         console.error("Error loading video progress from localStorage:", e);
       }
       videoElement.play().catch(error => {
-          console.warn("Autoplay prevented or failed:", error);
+          // Autoplay was prevented.
       });
     };
 
@@ -346,6 +345,8 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
   const mediaTypeIcon = item.contentType === 'movie'
     ? <Film className="mr-1.5 h-4 w-4 inline-block" />
     : <Tv className="mr-1.5 h-4 w-4 inline-block" />;
+  
+  const isCurrentlyFavorite = isFavorite(item.id);
 
 
   if (activePlayerInfo) {
@@ -382,9 +383,8 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !open && handleModalClose()}>
         <DialogContent className="sm:max-w-[600px] md:max-w-[800px] lg:max-w-[900px] p-0 max-h-[90vh] flex flex-col bg-card">
-           {processingInitialAction ? (
-            <>
-              {/* DialogTitle for accessibility during loading state */}
+           {processingInitialAction && !item ? (
+             <>
               <DialogHeader className="sr-only">
                 <DialogTitle>Carregando detalhes do conteúdo</DialogTitle>
               </DialogHeader>
@@ -392,7 +392,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
                 <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
                 <p className="text-muted-foreground">Carregando...</p>
               </div>
-            </>
+             </>
            ) : (
             <>
               {item.bannerFundo && (
@@ -430,6 +430,15 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
                       className="rounded-lg shadow-xl w-full h-auto max-w-xs mx-auto md:max-w-full"
                       data-ai-hint={item.contentType === 'movie' ? "movie poster" : "tv show poster"}
                     />
+                     <Button 
+                        variant="outline" 
+                        className="w-full mt-4 cyberpunk-button-secondary"
+                        onClick={() => toggleFavorite(item)}
+                        aria-label={isCurrentlyFavorite ? "Remover dos Favoritos" : "Adicionar aos Favoritos"}
+                      >
+                        <Heart className={cn("mr-2 h-5 w-5", isCurrentlyFavorite && "fill-current text-[hsl(var(--cyberpunk-highlight))]")} />
+                        {isCurrentlyFavorite ? "Favoritado" : "Favoritar"}
+                      </Button>
                   </div>
                   <div className="md:col-span-2 space-y-4">
                     <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground items-center">
@@ -450,7 +459,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
                     {item.contentType === 'movie' && (item as StoredMovieItem).videoSources && (item as StoredMovieItem).videoSources.filter(vs => vs.url && vs.url.trim() !== '').length > 0 && (
                       <Button
                         onClick={() => promptOrPlay((item as StoredMovieItem).videoSources, item.tituloOriginal, (item as StoredMovieItem).linkLegendas, item.id)}
-                        className="mt-4 w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90 font-semibold shadow-lg"
+                        className="mt-4 w-full sm:w-auto cyberpunk-button-primary font-semibold shadow-lg"
                         size="lg"
                       >
                         <PlayCircle className="mr-2 h-5 w-5" /> Assistir Filme
@@ -500,7 +509,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
                 </div>
               </div>
               <DialogFooter className="p-4 border-t bg-muted/50 rounded-b-md flex-shrink-0">
-                <DialogClose asChild><Button variant="outline" onClick={handleModalClose}>Fechar</Button></DialogClose>
+                <DialogClose asChild><Button variant="outline" onClick={handleModalClose} className="cyberpunk-button-cancel">Fechar</Button></DialogClose>
               </DialogFooter>
             </>
            )}
@@ -548,4 +557,4 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     </>
   );
 }
-    
+
