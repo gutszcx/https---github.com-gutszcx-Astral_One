@@ -23,24 +23,24 @@ export function HomeAniHeroCard({ item, onViewDetailsClick }: HomeAniHeroCardPro
         alt={`Destaque: ${item.tituloOriginal}`}
         layout="fill"
         objectFit="cover"
-        className="z-0"
+        className="z-0 rounded-lg" // Ensure image itself is rounded if container is
         priority
         data-ai-hint={dataAiHint}
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent z-10"></div>
-      <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-transparent to-transparent z-10 md:w-3/4 lg:w-2/3"></div>
+      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent z-10 rounded-lg"></div>
+      <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-transparent to-transparent z-10 md:w-3/4 lg:w-2/3 rounded-lg"></div>
       
       <div className="relative z-20 p-6 md:p-12 lg:p-16 h-full flex flex-col justify-end">
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-3 md:mb-4 drop-shadow-lg">
+        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-3 md:mb-4 drop-shadow-[0_2px_3px_rgba(0,0,0,0.7)]">
           {item.tituloOriginal}
         </h1>
         {item.tituloLocalizado && item.tituloLocalizado !== item.tituloOriginal && (
-            <h2 className="text-xl md:text-2xl text-slate-200 mb-4 drop-shadow-md">
+            <h2 className="text-xl md:text-2xl text-slate-200 mb-4 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]">
                 {item.tituloLocalizado}
             </h2>
         )}
         {item.sinopse && (
-          <p className="text-sm md:text-base lg:text-lg text-slate-300 mb-6 md:mb-8 line-clamp-2 md:line-clamp-3 max-w-xl lg:max-w-2xl drop-shadow-md">
+          <p className="text-sm md:text-base lg:text-lg text-slate-300 mb-6 md:mb-8 line-clamp-2 md:line-clamp-3 max-w-xl lg:max-w-2xl drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
             {item.sinopse}
           </p>
         )}
@@ -48,16 +48,16 @@ export function HomeAniHeroCard({ item, onViewDetailsClick }: HomeAniHeroCardPro
           <Button 
             size="lg" 
             onClick={onViewDetailsClick} 
-            className="bg-white text-black hover:bg-neutral-200 font-semibold shadow-lg"
+            className="bg-[hsl(var(--neon-green-accent))] text-[hsl(var(--neon-green-accent-foreground))] hover:bg-[hsl(var(--neon-green-accent)/0.9)] font-semibold shadow-[0_0_10px_hsl(var(--neon-green-glow)),_0_0_20px_hsl(var(--neon-green-glow)/0.7)] hover:shadow-[0_0_15px_hsl(var(--neon-green-glow)),_0_0_25px_hsl(var(--neon-green-glow)/0.8)] transition-all duration-300 rounded-lg"
             aria-label={`Ver detalhes e assistir ${item.tituloOriginal}`}
           >
             <PlayCircle className="mr-2 h-5 w-5 md:h-6 md:w-6" /> Assistir Agora
           </Button>
           <Button 
-            variant="default" 
+            variant="outline" 
             size="lg" 
             onClick={onViewDetailsClick}
-            className="bg-neutral-700/70 text-white hover:bg-neutral-600/70 font-semibold border-transparent shadow-lg"
+            className="bg-transparent border-2 border-[hsl(var(--neon-green-accent))] text-[hsl(var(--neon-green-accent))] hover:bg-[hsl(var(--neon-green-accent)/0.15)] hover:text-[hsl(var(--neon-green-accent))] font-semibold shadow-[0_0_8px_hsl(var(--neon-green-glow)/0.5)] hover:shadow-[0_0_12px_hsl(var(--neon-green-glow)/0.7),_0_0_18px_hsl(var(--neon-green-glow)/0.5)] transition-all duration-300 rounded-lg"
             aria-label={`Mais informações sobre ${item.tituloOriginal}`}
           >
             <Info className="mr-2 h-5 w-5 md:h-6 md:w-6" /> Mais Informações
@@ -67,4 +67,3 @@ export function HomeAniHeroCard({ item, onViewDetailsClick }: HomeAniHeroCardPro
     </div>
   );
 }
-

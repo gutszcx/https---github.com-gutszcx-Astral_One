@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -16,6 +17,12 @@
     --cyberpunk-muted-foreground: 210 30% 60%; /* Muted cyan */
     --cyberpunk-destructive: 0 85% 50%; /* Vivid Red */
     --cyberpunk-destructive-foreground: 210 100% 95%; /* Very light, almost white */
+
+    /* Neon Green Accent for Homepage Elegance */
+    --neon-green-accent: 120 100% 50%; /* Bright Neon Green */
+    --neon-green-accent-foreground: 260 30% 10%; /* Dark for text on neon green */
+    --neon-green-glow: 120 100% 55%; /* Slightly softer for glow effects */
+
 
     /* Mapping to Standard Theme Variables */
     --background: var(--cyberpunk-bg);
@@ -46,7 +53,7 @@
     --input: var(--cyberpunk-border-secondary); /* For input borders */
     --ring: var(--cyberpunk-highlight); /* For focus rings */
 
-    --radius: 0rem; /* Sharp corners for pixelated look */
+    --radius: 0.75rem; /* Rounded corners for elegant feel */
 
     /* Chart colors */
     --chart-1: var(--cyberpunk-primary-accent);
