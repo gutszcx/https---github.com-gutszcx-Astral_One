@@ -38,7 +38,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { cn } from '@/lib/utils';
 import { FeedbackDialog } from '@/components/feedback/FeedbackDialog';
-import type PlyrJS from 'plyr'; // Correct type import
+import type PlyrJS from 'plyr';
 
 // Dynamically import Plyr to ensure it's only loaded on the client-side
 const Plyr = dynamic(() => import('plyr-react'), { ssr: false });
@@ -83,6 +83,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
   const { isFavorite, toggleFavorite } = useFavorites();
   const hasTriggeredInitialPlay = useRef(false);
   const [processingInitialAction, setProcessingInitialAction] = useState(false);
+  const [isPlayerLoading, setIsPlayerLoading] = useState(false);
 
   const saveVideoProgress = useCallback((player: PlyrJS, storageKey: string) => {
     if (!player || !storageKey || Number.isNaN(player.currentTime) || Number.isNaN(player.duration) || player.duration === 0) return;
@@ -111,6 +112,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     setIsFeedbackDialogOpen(false);
     hasTriggeredInitialPlay.current = false;
     setProcessingInitialAction(false);
+    setIsPlayerLoading(false);
     onClose();
   }, [activePlayerInfo, onClose, saveVideoProgress]);
 
@@ -123,6 +125,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
       }
     }
     setActivePlayerInfo(null);
+    setIsPlayerLoading(false);
   }, [activePlayerInfo, saveVideoProgress]);
   
   const initiatePlayback = useCallback((
@@ -167,6 +170,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     };
 
     setActivePlayerInfo({ plyrSource: plyrSourceConfig, title, storageKey });
+    setIsPlayerLoading(true); 
     setServerSelectionInfo(null);
   }, [toast, item]);
 
@@ -271,7 +275,8 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
   }, [saveVideoProgress]);
 
-  const handlePlay = useCallback((player: PlyrJS, storageKey: string) => {
+  const handlePlayerPlay = useCallback((player: PlyrJS, storageKey: string) => {
+    setIsPlayerLoading(true);
     if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
     progressIntervalRef.current = setInterval(() => {
       saveVideoProgress(player, storageKey);
@@ -285,6 +290,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
           console.error("Error removing progress on video end:", e);
       }
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+      setIsPlayerLoading(false);
   }, []);
 
   const handlePlyrError = useCallback((event: any) => {
@@ -300,7 +306,16 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
           userMessage += " Verifique o link ou tente outra fonte.";
       }
       toast({ title: "Erro de Reprodução", description: userMessage, variant: "destructive" });
+      setIsPlayerLoading(false);
   }, [toast]);
+
+  const handlePlayerWaiting = useCallback(() => {
+    setIsPlayerLoading(true);
+  }, []);
+
+  const handlePlayerPlaying = useCallback(() => {
+    setIsPlayerLoading(false);
+  }, []);
 
 
   useEffect(() => {
@@ -317,31 +332,38 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
       return;
     }
     
-    // Use a stable variable name for the validated player instance
     const validPlayer = playerInstance;
     const { storageKey } = activePlayerInfo;
 
     const onReady = () => handleReady(validPlayer, storageKey);
     const onPause = () => handlePause(validPlayer, storageKey);
-    const onPlay = () => handlePlay(validPlayer, storageKey);
+    const onPlayEvent = () => handlePlayerPlay(validPlayer, storageKey); // Renamed to avoid conflict
     const onEnded = () => handleEnded(storageKey);
     const onError = (event: any) => handlePlyrError(event);
+    const onWaiting = () => handlePlayerWaiting();
+    const onPlaying = () => handlePlayerPlaying();
 
 
-    validPlayer.on('ready', onReady as PlyrJS.PlyrEventCallback);
-    validPlayer.on('pause', onPause as PlyrJS.PlyrEventCallback);
-    validPlayer.on('play', onPlay as PlyrJS.PlyrEventCallback);
-    validPlayer.on('ended', onEnded as PlyrJS.PlyrEventCallback);
-    validPlayer.on('error', onError as PlyrJS.PlyrEventCallback);
+    if (typeof validPlayer.on === 'function') {
+        validPlayer.on('ready', onReady as PlyrJS.PlyrEventCallback);
+        validPlayer.on('pause', onPause as PlyrJS.PlyrEventCallback);
+        validPlayer.on('play', onPlayEvent as PlyrJS.PlyrEventCallback);
+        validPlayer.on('ended', onEnded as PlyrJS.PlyrEventCallback);
+        validPlayer.on('error', onError as PlyrJS.PlyrEventCallback);
+        validPlayer.on('waiting', onWaiting as PlyrJS.PlyrEventCallback);
+        validPlayer.on('playing', onPlaying as PlyrJS.PlyrEventCallback);
+    }
 
 
     return () => {
       if (validPlayer && typeof validPlayer.off === 'function') {
         validPlayer.off('ready', onReady as PlyrJS.PlyrEventCallback);
         validPlayer.off('pause', onPause as PlyrJS.PlyrEventCallback);
-        validPlayer.off('play', onPlay as PlyrJS.PlyrEventCallback);
+        validPlayer.off('play', onPlayEvent as PlyrJS.PlyrEventCallback);
         validPlayer.off('ended', onEnded as PlyrJS.PlyrEventCallback);
         validPlayer.off('error', onError as PlyrJS.PlyrEventCallback);
+        validPlayer.off('waiting', onWaiting as PlyrJS.PlyrEventCallback);
+        validPlayer.off('playing', onPlaying as PlyrJS.PlyrEventCallback);
       }
 
       if (progressIntervalRef.current) {
@@ -352,7 +374,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
          saveVideoProgress(validPlayer, activePlayerInfo.storageKey);
       }
     };
-  }, [activePlayerInfo, saveVideoProgress, handleReady, handlePause, handlePlay, handleEnded, handlePlyrError]);
+  }, [activePlayerInfo, saveVideoProgress, handleReady, handlePause, handlePlayerPlay, handleEnded, handlePlyrError, handlePlayerWaiting, handlePlayerPlaying]);
 
 
   if (!item && !(processingInitialAction && initialAction === 'play')) return null;
@@ -370,7 +392,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
               <X className="h-5 w-5 text-[hsl(var(--neon-green-accent))] hover:text-[hsl(var(--cyberpunk-highlight))]" />
             </Button>
           </div>
-          <div className="aspect-video w-full">
+          <div className="aspect-video w-full relative">
             <Plyr
               key={activePlayerInfo.storageKey}
               ref={plyrRef}
@@ -380,6 +402,12 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
                 playsinline: true,
               }}
             />
+            {isPlayerLoading && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 z-10 pointer-events-none">
+                <Loader2 className="h-12 w-12 animate-spin text-white mb-4" />
+                <p className="text-white text-xl font-semibold">Carregando...</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -606,4 +634,3 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     </>
   );
 }
-
