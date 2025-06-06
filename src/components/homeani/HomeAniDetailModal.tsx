@@ -351,9 +351,9 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
 
   if (activePlayerInfo) {
     return (
-      <div className="fixed inset-0 z-[100] player-overlay-cyberpixel-bg flex flex-col items-center justify-center p-2 sm:p-4">
-        <div className="w-full max-w-4xl bg-[hsl(var(--cyberpunk-bg-lighter))] rounded-lg shadow-[0_0_20px_5px_hsl(var(--cyberpunk-primary-accent)/0.5)] border-2 border-[hsl(var(--cyberpunk-primary-accent))] overflow-hidden">
-          <div className="flex justify-between items-center p-3 sm:p-4 border-b border-[hsl(var(--cyberpunk-border))]">
+      <div className="fixed inset-0 z-[100] bg-black/90 flex flex-col items-center justify-center p-2 sm:p-4">
+        <div className="w-full max-w-4xl overflow-hidden"> {/* Removed cyberpunk bg, border, shadow */}
+          <div className="flex justify-between items-center p-3 sm:p-4"> {/* Removed border-b */}
             <h2 className="text-lg sm:text-xl font-semibold text-[hsl(var(--cyberpunk-highlight))] truncate">
               {activePlayerInfo.title}
             </h2>
@@ -385,8 +385,8 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
         <DialogContent className="sm:max-w-[600px] md:max-w-[800px] lg:max-w-[900px] p-0 max-h-[90vh] flex flex-col bg-card">
            {processingInitialAction && !item ? (
              <>
-              <DialogHeader className="sr-only">
-                <DialogTitle>Carregando detalhes do conteúdo</DialogTitle>
+              <DialogHeader className="sr-only"> {/* Visually hidden for accessibility */}
+                <DialogTitle>Carregando</DialogTitle>
               </DialogHeader>
               <div className="flex flex-col items-center justify-center flex-grow p-6 min-h-[300px]">
                 <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
