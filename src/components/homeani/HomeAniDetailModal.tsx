@@ -77,7 +77,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
   const [activePlayerInfo, setActivePlayerInfo] = useState<PlayerInfo | null>(null);
   const [serverSelectionInfo, setServerSelectionInfo] = useState<ServerSelectionInfo | null>(null);
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
-  const plyrRef = useRef<({ plyr: PlyrJS }) | null>(null); // Adjusted ref type
+  const plyrRef = useRef<({ plyr: PlyrJS }) | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
   const { isFavorite, toggleFavorite } = useFavorites();
@@ -99,10 +99,12 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
   }, []);
 
   const handleModalClose = useCallback(() => {
-    const player = plyrRef.current?.plyr; // Access .plyr
-    if (player && activePlayerInfo) {
-      saveVideoProgress(player, activePlayerInfo.storageKey);
-      player.stop();
+    const playerInstance = plyrRef.current?.plyr;
+    if (playerInstance && activePlayerInfo) {
+      saveVideoProgress(playerInstance, activePlayerInfo.storageKey);
+      if (typeof playerInstance.stop === 'function') {
+        playerInstance.stop();
+      }
     }
     setActivePlayerInfo(null);
     setServerSelectionInfo(null);
@@ -113,10 +115,12 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
   }, [activePlayerInfo, onClose, saveVideoProgress]);
 
   const handlePlayerClose = useCallback(() => {
-    const player = plyrRef.current?.plyr; // Access .plyr
-    if (player && activePlayerInfo) {
-      saveVideoProgress(player, activePlayerInfo.storageKey);
-      player.stop();
+    const playerInstance = plyrRef.current?.plyr;
+    if (playerInstance && activePlayerInfo) {
+      saveVideoProgress(playerInstance, activePlayerInfo.storageKey);
+       if (typeof playerInstance.stop === 'function') {
+        playerInstance.stop();
+      }
     }
     setActivePlayerInfo(null);
   }, [activePlayerInfo, saveVideoProgress]);
@@ -248,95 +252,107 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     promptOrPlay, onInitialActionConsumed, toast, processingInitialAction
   ]);
 
+  const handleReady = useCallback((player: PlyrJS, storageKey: string) => {
+    try {
+      const savedProgressString = localStorage.getItem(storageKey);
+      if (savedProgressString) {
+        const savedProgress: ProgressData = JSON.parse(savedProgressString);
+        if (player.duration > 0 && savedProgress.time > 0 && savedProgress.time < player.duration) {
+          player.currentTime = savedProgress.time;
+        }
+      }
+    } catch (e) {
+      console.error("Error loading video progress from localStorage:", e);
+    }
+  }, []);
+
+  const handlePause = useCallback((player: PlyrJS, storageKey: string) => {
+    saveVideoProgress(player, storageKey);
+    if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+  }, [saveVideoProgress]);
+
+  const handlePlay = useCallback((player: PlyrJS, storageKey: string) => {
+    if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+    progressIntervalRef.current = setInterval(() => {
+      saveVideoProgress(player, storageKey);
+    }, 5000);
+  }, [saveVideoProgress]);
+  
+  const handleEnded = useCallback((storageKey: string) => {
+      try {
+          localStorage.removeItem(storageKey);
+      } catch(e) {
+          console.error("Error removing progress on video end:", e);
+      }
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+  }, []);
+
+  const handlePlyrError = useCallback((event: any) => {
+      const error = event.detail?.plyr?.source?.error || event.detail?.error || event.error;
+      console.error("Plyr error event:", event);
+      console.error("Detailed Plyr error:", error);
+      let userMessage = "Ocorreu um erro ao tentar reproduzir o vídeo.";
+      if (error && typeof error.message === 'string') {
+          userMessage += ` Detalhe: ${error.message}`;
+      } else if (typeof error === 'string') {
+          userMessage += ` Detalhe: ${error}`;
+      } else {
+          userMessage += " Verifique o link ou tente outra fonte.";
+      }
+      toast({ title: "Erro de Reprodução", description: userMessage, variant: "destructive" });
+  }, [toast]);
+
 
   useEffect(() => {
-    const player = plyrRef.current?.plyr; // Access .plyr
+    const playerInstance = plyrRef.current?.plyr;
 
-    if (!player || !activePlayerInfo) {
+    if (!playerInstance || 
+        typeof playerInstance.on !== 'function' || 
+        typeof playerInstance.off !== 'function' || 
+        !activePlayerInfo) {
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
       }
       return;
     }
-
+    
+    // Use a stable variable name for the validated player instance
+    const validPlayer = playerInstance;
     const { storageKey } = activePlayerInfo;
 
-    const handleReady = () => {
-      try {
-        const savedProgressString = localStorage.getItem(storageKey);
-        if (savedProgressString) {
-          const savedProgress: ProgressData = JSON.parse(savedProgressString);
-          if (player.duration > 0 && savedProgress.time > 0 && savedProgress.time < player.duration) {
-            player.currentTime = savedProgress.time;
-          }
-        }
-      } catch (e) {
-        console.error("Error loading video progress from localStorage:", e);
-      }
-    };
+    const onReady = () => handleReady(validPlayer, storageKey);
+    const onPause = () => handlePause(validPlayer, storageKey);
+    const onPlay = () => handlePlay(validPlayer, storageKey);
+    const onEnded = () => handleEnded(storageKey);
+    const onError = (event: any) => handlePlyrError(event);
 
-    const handlePause = () => {
-      saveVideoProgress(player, storageKey);
-      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-    };
-    
-    const handlePlay = () => {
-      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-      progressIntervalRef.current = setInterval(() => {
-        saveVideoProgress(player, storageKey);
-      }, 5000);
-    };
 
-    const handleEnded = () => {
-        try {
-            localStorage.removeItem(storageKey);
-        } catch(e) {
-            console.error("Error removing progress on video end:", e);
-        }
-        if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-    };
-
-    const handlePlyrError = (event: any) => {
-        const error = event.detail?.plyr?.source?.error || event.detail?.error || event.error;
-        console.error("Plyr error event:", event);
-        console.error("Detailed Plyr error:", error);
-        let userMessage = "Ocorreu um erro ao tentar reproduzir o vídeo.";
-        if (error && typeof error.message === 'string') {
-            userMessage += ` Detalhe: ${error.message}`;
-        } else if (typeof error === 'string') {
-            userMessage += ` Detalhe: ${error}`;
-        } else {
-            userMessage += " Verifique o link ou tente outra fonte.";
-        }
-        toast({ title: "Erro de Reprodução", description: userMessage, variant: "destructive" });
-    };
-
-    player.on('ready', handleReady as PlyrJS.PlyrEventCallback);
-    player.on('pause', handlePause as PlyrJS.PlyrEventCallback);
-    player.on('play', handlePlay as PlyrJS.PlyrEventCallback);
-    player.on('ended', handleEnded as PlyrJS.PlyrEventCallback);
-    player.on('error', handlePlyrError as PlyrJS.PlyrEventCallback);
+    validPlayer.on('ready', onReady as PlyrJS.PlyrEventCallback);
+    validPlayer.on('pause', onPause as PlyrJS.PlyrEventCallback);
+    validPlayer.on('play', onPlay as PlyrJS.PlyrEventCallback);
+    validPlayer.on('ended', onEnded as PlyrJS.PlyrEventCallback);
+    validPlayer.on('error', onError as PlyrJS.PlyrEventCallback);
 
 
     return () => {
-      if (player && typeof player.off === 'function') {
-        player.off('ready', handleReady as PlyrJS.PlyrEventCallback);
-        player.off('pause', handlePause as PlyrJS.PlyrEventCallback);
-        player.off('play', handlePlay as PlyrJS.PlyrEventCallback);
-        player.off('ended', handleEnded as PlyrJS.PlyrEventCallback);
-        player.off('error', handlePlyrError as PlyrJS.PlyrEventCallback);
+      if (validPlayer && typeof validPlayer.off === 'function') {
+        validPlayer.off('ready', onReady as PlyrJS.PlyrEventCallback);
+        validPlayer.off('pause', onPause as PlyrJS.PlyrEventCallback);
+        validPlayer.off('play', onPlay as PlyrJS.PlyrEventCallback);
+        validPlayer.off('ended', onEnded as PlyrJS.PlyrEventCallback);
+        validPlayer.off('error', onError as PlyrJS.PlyrEventCallback);
       }
 
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
       }
-      if (player && player.currentTime > 0 && activePlayerInfo && activePlayerInfo.storageKey) {
-         saveVideoProgress(player, activePlayerInfo.storageKey);
+      if (validPlayer && typeof validPlayer.stop === 'function' && validPlayer.currentTime > 0 && activePlayerInfo && activePlayerInfo.storageKey) {
+         saveVideoProgress(validPlayer, activePlayerInfo.storageKey);
       }
     };
-  }, [activePlayerInfo, saveVideoProgress, toast]);
+  }, [activePlayerInfo, saveVideoProgress, handleReady, handlePause, handlePlay, handleEnded, handlePlyrError]);
 
 
   if (!item && !(processingInitialAction && initialAction === 'play')) return null;
@@ -362,9 +378,6 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
               options={{
                 autoplay: true,
                 playsinline: true,
-                // HLS.js config can be passed here if needed,
-                // e.g., hls: { config: { ... } }
-                // For basic HLS playback, Plyr often handles it automatically if HLS.js is globally available or correctly bundled.
               }}
             />
           </div>
