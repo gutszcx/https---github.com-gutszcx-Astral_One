@@ -41,11 +41,13 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
       localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(ids));
     } catch (error) {
         console.error("Error saving favorites to localStorage:", error);
-        toast({
-            title: "Erro ao Salvar Favoritos",
-            description: "Não foi possível salvar suas preferências localmente.",
-            variant: "destructive",
-        });
+        setTimeout(() => {
+          toast({
+              title: "Erro ao Salvar Favoritos",
+              description: "Não foi possível salvar suas preferências localmente.",
+              variant: "destructive",
+          });
+        }, 0);
     }
   }, [toast]);
 
@@ -54,10 +56,12 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
       if (prevIds.includes(item.id)) return prevIds;
       const newIds = [...prevIds, item.id];
       saveFavorites(newIds);
-      toast({
-        title: "Adicionado aos Favoritos!",
-        description: `"${item.tituloOriginal}" foi adicionado à sua lista.`,
-      });
+      setTimeout(() => {
+        toast({
+          title: "Adicionado aos Favoritos!",
+          description: `"${item.tituloOriginal}" foi adicionado à sua lista.`,
+        });
+      }, 0);
       return newIds;
     });
   }, [saveFavorites, toast]);
@@ -67,10 +71,12 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
       if (!prevIds.includes(itemId)) return prevIds;
       const newIds = prevIds.filter(id => id !== itemId);
       saveFavorites(newIds);
-      toast({
-        title: "Removido dos Favoritos",
-        description: itemTitle ? `"${itemTitle}" foi removido da sua lista.` : "Item removido da sua lista.",
-      });
+      setTimeout(() => {
+        toast({
+          title: "Removido dos Favoritos",
+          description: itemTitle ? `"${itemTitle}" foi removido da sua lista.` : "Item removido da sua lista.",
+        });
+      }, 0);
       return newIds;
     });
   }, [saveFavorites, toast]);
