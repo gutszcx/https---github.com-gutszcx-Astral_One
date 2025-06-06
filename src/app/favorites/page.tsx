@@ -7,7 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getContentItems } from '@/lib/firebaseService';
 import type { StoredCineItem } from '@/types';
 import { HomeAniContentCard } from '@/components/homeani/HomeAniContentCard';
-import { Loader2, AlertTriangle, HeartCrack, Star } from 'lucide-react';
+import { Loader2, AlertTriangle, HeartCrack, Star, Home } from 'lucide-react'; // Added Home icon
 import { Button } from '@/components/ui/button';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useModal } from '@/contexts/ModalContext';
@@ -58,9 +58,16 @@ export default function FavoritesPage() {
 
   return (
     <main className="flex-grow container mx-auto px-4 py-8">
-      <div className="flex items-center mb-6 md:mb-8">
-        <Star className="h-8 w-8 text-primary mr-3" />
-        <h1 className="text-3xl md:text-4xl font-bold text-primary">Meus Favoritos</h1>
+      <div className="flex items-center justify-between mb-6 md:mb-8">
+        <div className="flex items-center">
+          <Star className="h-8 w-8 text-primary mr-3" />
+          <h1 className="text-3xl md:text-4xl font-bold text-primary">Meus Favoritos</h1>
+        </div>
+        <Link href="/" passHref>
+          <Button variant="ghost" size="icon" aria-label="Ir para Home">
+            <Home className="h-7 w-7 text-primary hover:text-[hsl(var(--cyberpunk-highlight))]" />
+          </Button>
+        </Link>
       </div>
 
       {favoriteItems.length === 0 ? (
