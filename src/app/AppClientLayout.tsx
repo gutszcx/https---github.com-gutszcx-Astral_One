@@ -90,7 +90,7 @@ function AvatarDropdownContent() {
         </div>
       </div>
 
-      <ScrollArea className="max-h-72 pr-1"> 
+      <ScrollArea className="max-h-72"> 
         <div className="px-1 py-1">
           <DropdownMenuItem asChild>
             <Link href="/favorites" className="cursor-pointer">
