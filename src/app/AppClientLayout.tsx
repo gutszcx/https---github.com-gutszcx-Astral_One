@@ -22,7 +22,7 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
       <header className="bg-card text-card-foreground p-4 shadow-md sticky top-0 z-50 border-b border-[hsl(var(--cyberpunk-border))]">
         <nav className="container mx-auto flex justify-between items-center">
           <Link href="/" className="text-2xl font-bold text-primary hover:text-[hsl(var(--cyberpunk-highlight))] transition-colors">
-            CineForm
+            Astral One
           </Link>
           <div className="flex items-center space-x-4 md:space-x-6">
             <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">

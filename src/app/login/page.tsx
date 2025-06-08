@@ -69,15 +69,15 @@ export default function LoginPage() {
         <CardHeader className="text-center p-6 space-y-4">
           <div className="mx-auto">
             <Image
-              src="https://placehold.co/200x60.png?text=CineForm+Logo"
-              alt="Logo CineForm"
+              src="https://placehold.co/200x60.png?text=Astral+One+Logo"
+              alt="Logo Astral One"
               width={200}
               height={60}
               className="rounded-md"
               data-ai-hint="website logo brand"
             />
           </div>
-          <CardTitle className="text-3xl font-bold text-primary">Bem-vindo ao CineForm!</CardTitle>
+          <CardTitle className="text-3xl font-bold text-primary">Bem-vindo ao Astral One!</CardTitle>
           <CardDescription className="text-muted-foreground text-lg">
             Faça login com sua conta Google para explorar um universo de filmes e séries.
           </CardDescription>

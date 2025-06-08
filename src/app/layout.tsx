@@ -7,7 +7,7 @@ import { ModalProvider } from '@/contexts/ModalContext';
 import { AppClientLayout } from './AppClientLayout'; // New client component
 
 export const metadata: Metadata = {
-  title: 'CineForm',
+  title: 'Astral One',
   description: 'Formulário unificado para filmes e séries',
   manifest: '/manifest.json', // Added manifest link
 };
@@ -23,10 +23,10 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet" />
-        <meta name="application-name" content="CineForm" />
+        <meta name="application-name" content="Astral One" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="CineForm" />
+        <meta name="apple-mobile-web-app-title" content="Astral One" />
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="msapplication-config" content="/icons/browserconfig.xml" /> 
