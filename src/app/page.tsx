@@ -14,6 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { useModal } from '@/contexts/ModalContext';
 import { useRecentActivity } from '@/contexts/RecentActivityContext'; // Import useRecentActivity
 import { cn } from '@/lib/utils';
+import { AnimeLoadingScreen } from '@/components/layout/AnimeLoadingScreen'; // Import the themed loading screen
 
 interface ProgressData {
   time: number;
@@ -231,12 +232,9 @@ export default function HomeAniPage() {
     openModal(item, playDirectly ? 'play' : null);
   };
 
-
-  if (isLoading && !allItems?.length) { // Show loader only if loading AND no items yet to prevent flash of loader if data is cached
-    // This specific loading screen is removed by user request.
-    // You can add a different, more minimal loading indicator here if desired,
-    // or rely on the conditional rendering below to show content once ready.
-    // For example, a simple <p>Carregando...</p> or a skeleton UI.
+  // Show themed loading screen if data is loading and no active items are available yet
+  if (isLoading && !activeItems.length) {
+    return <AnimeLoadingScreen message="Carregando Astral One..." />;
   }
 
   if (error) {
@@ -423,3 +421,4 @@ function ContentRow({ title, items, onCardClick, icon }: ContentRowProps) {
     </section>
   );
 }
+
