@@ -4,8 +4,8 @@
 
 import { db } from './firebase';
 import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, getDoc, serverTimestamp, query, orderBy, Timestamp, setDoc } from 'firebase/firestore';
-import type { CineFormValues, VideoSource as FormVideoSource, EpisodeFormValues, SeasonFormValues, FeedbackFormValues } from './schemas';
-import type { StoredCineItem, StoredMovieItem, StoredSeriesItem, VideoSource as StoredVideoSource, Episode, Season, NewsBannerMessage, UserFeedbackItem, FeedbackStatus } from '@/types';
+import type { CineFormValues, VideoSource as FormVideoSource, EpisodeFormValues, SeasonFormValues, FeedbackFormValues, EmbedUrlItem as FormEmbedUrlItem } from './schemas';
+import type { StoredCineItem, StoredMovieItem, StoredSeriesItem, VideoSource as StoredVideoSource, Episode, Season, NewsBannerMessage, UserFeedbackItem, FeedbackStatus, StoredEmbedUrl } from '@/types';
 
 const CONTENT_COLLECTION = 'contentItems';
 const SITE_CONFIGURATION_COLLECTION = 'siteConfiguration';
@@ -23,6 +23,17 @@ function mapVideoSources(sourcesFromDb: any[] | undefined): StoredVideoSource[] 
     serverName: typeof vs.serverName === 'string' ? vs.serverName : '',
     url: typeof vs.url === 'string' ? vs.url : '',
   }));
+}
+
+// Helper to safely map embed URLs
+function mapEmbedUrls(embedUrlsFromDb: any[] | undefined): StoredEmbedUrl[] {
+  if (!Array.isArray(embedUrlsFromDb)) {
+    return [];
+  }
+  return embedUrlsFromDb.map((eu: any) => ({
+    id: eu.id, // id is optional
+    url: typeof eu.url === 'string' ? eu.url : '',
+  })).filter(eu => eu.url); // Filter out any malformed/empty URL objects
 }
 
 // Helper to safely map episodes
@@ -54,8 +65,8 @@ function mapSeasons(seasonsFromDb: any[] | undefined): Season[] {
 
 
 function mapDocToStoredCineItem(document: { data: () => any; id: string }): StoredCineItem {
-    const data = document.data(); 
-    
+    const data = document.data();
+
     let createdAtISO: string | undefined = undefined;
     if (data.createdAt && typeof data.createdAt.toDate === 'function') {
       createdAtISO = data.createdAt.toDate().toISOString();
@@ -74,7 +85,7 @@ function mapDocToStoredCineItem(document: { data: () => any; id: string }): Stor
         updatedAtISO = new Date(data.updatedAt).toISOString();
       } catch (e) { /* ignore if invalid date string */ }
     }
-    
+
     const baseMappedItem = {
         id: document.id,
         tmdbSearchQuery: typeof data.tmdbSearchQuery === 'string' ? data.tmdbSearchQuery : '',
@@ -93,6 +104,7 @@ function mapDocToStoredCineItem(document: { data: () => any; id: string }): Stor
         tags: typeof data.tags === 'string' ? data.tags : '',
         destaqueHome: typeof data.destaqueHome === 'boolean' ? data.destaqueHome : false,
         status: (data.status === 'ativo' || data.status === 'inativo') ? data.status : 'ativo',
+        embedUrls: mapEmbedUrls(data.embedUrls), // Added mapping for embedUrls
         createdAt: createdAtISO,
         updatedAt: updatedAtISO,
     };
@@ -112,7 +124,7 @@ function mapDocToStoredCineItem(document: { data: () => any; id: string }): Stor
             temporadas: mapSeasons(data.temporadas),
         } as StoredSeriesItem;
     }
-    
+
     console.warn(`Unknown or missing content type for document ID: ${document.id}. Data:`, data);
     // Fallback: return a structure that won't break things too badly, or consider if this should throw.
     // For now, try to map as a movie with minimal data if contentType is unrecognized.
@@ -130,6 +142,12 @@ export async function addContentItem(itemData: CineFormValues): Promise<string> 
   try {
     // Ensure timestamps are not explicitly set to allow serverTimestamp to work
     const { createdAt, updatedAt, ...dataToSend } = itemData as any;
+
+    // Ensure embedUrls are just an array of {url: string} if they exist
+    if (dataToSend.embedUrls && Array.isArray(dataToSend.embedUrls)) {
+      dataToSend.embedUrls = dataToSend.embedUrls.map((embed: any) => ({ url: embed.url || '' })).filter((embed: any) => embed.url);
+    }
+
 
     const docRef = await addDoc(collection(db, CONTENT_COLLECTION), {
       ...dataToSend,
@@ -175,6 +193,11 @@ export async function updateContentItem(id: string, itemData: CineFormValues): P
     const docRef = doc(db, CONTENT_COLLECTION, id);
     // Ensure timestamps are not explicitly set to allow serverTimestamp to work
     const { createdAt, updatedAt, ...dataToUpdate } = itemData as any;
+
+    // Ensure embedUrls are just an array of {url: string} if they exist
+    if (dataToUpdate.embedUrls && Array.isArray(dataToUpdate.embedUrls)) {
+      dataToUpdate.embedUrls = dataToUpdate.embedUrls.map((embed: any) => ({ url: embed.url || '' })).filter((embed: any) => embed.url);
+    }
 
     await updateDoc(docRef, {
       ...dataToUpdate,
@@ -236,7 +259,7 @@ export async function getNewsBannerMessage(): Promise<NewsBannerMessage | null> 
     console.error("Error getting news banner message: ", error);
     // It's okay if it fails silently on the client, banner just won't show.
     // For admin, errors might be more critical.
-    return null; 
+    return null;
   }
 }
 
@@ -259,7 +282,7 @@ export async function submitUserFeedback(feedbackData: FeedbackFormValues): Prom
 
 function mapDocToUserFeedbackItem(document: { data: () => any; id: string }): UserFeedbackItem {
   const data = document.data();
-  
+
   let submittedAtISO: string = new Date().toISOString(); // Fallback
   if (data.submittedAt && typeof data.submittedAt.toDate === 'function') {
     submittedAtISO = data.submittedAt.toDate().toISOString();
@@ -313,4 +336,4 @@ export async function updateFeedbackItemAdmin(feedbackId: string, updates: { adm
     throw new Error("Failed to update feedback item.");
   }
 }
-    
+

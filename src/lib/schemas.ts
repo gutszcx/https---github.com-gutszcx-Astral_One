@@ -1,20 +1,21 @@
+
 import { z } from 'zod';
 import { FEEDBACK_TYPES, FEEDBACK_STATUSES } from '@/types'; // Import feedback constants
 
 export const CLASSIFICACAO_INDICATIVA_OPTIONS = ['Livre', '10+', '12+', '14+', '16+', '18+'] as const;
 export const QUALIDADE_OPTIONS = ['4K', '1080p', '720p', 'SD'] as const;
 export const IDIOMA_OPTIONS = [
-  'Português (Brasil)', 
-  'Inglês', 
-  'Espanhol', 
-  'Japonês', 
-  'Coreano', 
-  'Francês', 
+  'Português (Brasil)',
+  'Inglês',
+  'Espanhol',
+  'Japonês',
+  'Coreano',
+  'Francês',
   'Alemão',
   'Outro'
 ] as const;
 export const GENERO_OPTIONS = [ // Example, can be fetched or expanded
-  'Ação', 'Aventura', 'Comédia', 'Drama', 'Fantasia', 'Ficção Científica', 
+  'Ação', 'Aventura', 'Comédia', 'Drama', 'Fantasia', 'Ficção Científica',
   'Suspense', 'Terror', 'Romance', 'Documentário', 'Animação'
 ] as const;
 
@@ -22,11 +23,17 @@ export const videoSourceSchema = z.object({
   id: z.string().optional(), // For useFieldArray key
   serverName: z.string().min(1, "Nome do servidor é obrigatório."),
   // Allow empty string initially to avoid validation error before user types, but require valid URL if not empty
-  url: z.string().refine(val => val === '' || z.string().url().safeParse(val).success, { 
-    message: "URL do vídeo inválida." 
+  url: z.string().refine(val => val === '' || z.string().url().safeParse(val).success, {
+    message: "URL do vídeo inválida."
   }),
 });
 export type VideoSource = z.infer<typeof videoSourceSchema>;
+
+export const embedUrlItemSchema = z.object({
+  id: z.string().optional(), // For useFieldArray key
+  url: z.string().url({ message: "URL de embed inválida." }).or(z.literal('')),
+});
+export type EmbedUrlItem = z.infer<typeof embedUrlItemSchema>;
 
 export const episodeSchema = z.object({
   id: z.string().optional(), // for useFieldArray key
@@ -50,18 +57,19 @@ export const baseContentSchema = z.object({
   tituloOriginal: z.string().min(1, "Título Original é obrigatório."),
   tituloLocalizado: z.string().optional(),
   sinopse: z.string().min(1, "Sinopse é obrigatória.").max(2000, "Sinopse muito longa.").optional().or(z.literal('')),
-  generos: z.string().optional(), 
-  idiomaOriginal: z.string().optional(), 
-  dublagensDisponiveis: z.string().optional(), 
+  generos: z.string().optional(),
+  idiomaOriginal: z.string().optional(),
+  dublagensDisponiveis: z.string().optional(),
   anoLancamento: z.coerce.number().int().min(1800, "Ano inválido.").max(new Date().getFullYear() + 10, "Ano futuro inválido.").optional().nullable(),
   duracaoMedia: z.coerce.number().positive("Duração deve ser um número positivo.").optional().nullable(),
-  classificacaoIndicativa: z.string().optional(), 
-  qualidade: z.string().optional(), 
+  classificacaoIndicativa: z.string().optional(),
+  qualidade: z.string().optional(),
   capaPoster: z.string().url({ message: "URL da capa/poster inválida." }).optional().or(z.literal('')),
   bannerFundo: z.string().url({ message: "URL do banner de fundo inválida." }).optional().or(z.literal('')),
   tags: z.string().optional(),
   destaqueHome: z.boolean().optional().default(false),
   status: z.enum(['ativo', 'inativo']).default('ativo'),
+  embedUrls: z.array(embedUrlItemSchema).optional().default([]), // Added embedUrls
 });
 
 export const movieSchema = baseContentSchema.extend({
@@ -102,6 +110,7 @@ export const defaultMovieValues: MovieFormValues = {
   tags: '',
   destaqueHome: false,
   status: 'ativo',
+  embedUrls: [], // Added
   videoSources: [],
   linkLegendas: '',
 };
@@ -124,6 +133,7 @@ export const defaultSeriesValues: SeriesFormValues = {
   tags: '',
   destaqueHome: false,
   status: 'ativo',
+  embedUrls: [], // Added
   totalTemporadas: 1,
   temporadas: [{ numeroTemporada: 1, episodios: [{ titulo: '', videoSources: [], linkLegenda: ''}] }],
 };

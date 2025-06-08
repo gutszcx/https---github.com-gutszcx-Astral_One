@@ -1,11 +1,17 @@
 
 // src/types/index.ts
-import type { CineFormValues, VideoSource as FormVideoSource, EpisodeFormValues as OriginalEpisodeFormValues, SeasonFormValues as OriginalSeasonFormValues } from '@/lib/schemas';
+import type { CineFormValues, VideoSource as FormVideoSource, EpisodeFormValues as OriginalEpisodeFormValues, SeasonFormValues as OriginalSeasonFormValues, EmbedUrlItem as FormEmbedUrlItem } from '@/lib/schemas';
 
 // Re-define VideoSource for storage, ensuring consistency if schema changes
 export interface VideoSource {
   id?: string; // Optional ID, typically from useFieldArray or if you assign one
   serverName: string;
+  url: string;
+}
+
+// Stored Embed URL type
+export interface StoredEmbedUrl {
+  id?: string; // Optional, if stored from form's useFieldArray structure
   url: string;
 }
 
@@ -43,6 +49,7 @@ interface StoredBaseCineItem {
   tags: string;
   destaqueHome: boolean;
   status: 'ativo' | 'inativo';
+  embedUrls?: StoredEmbedUrl[]; // Added embedUrls
   createdAt?: string; // ISO string date
   updatedAt?: string; // ISO string date
 }
@@ -62,7 +69,7 @@ export type StoredSeriesItem = StoredBaseCineItem & {
 export type StoredCineItem = StoredMovieItem | StoredSeriesItem;
 
 // Export form types for use elsewhere if needed, but primarily we use Stored types for fetched data
-export type { CineFormValues, FormVideoSource, OriginalEpisodeFormValues, OriginalSeasonFormValues };
+export type { CineFormValues, FormVideoSource, OriginalEpisodeFormValues, OriginalSeasonFormValues, FormEmbedUrlItem };
 
 // News Banner Types
 export const NEWS_BANNER_TYPES = ['none', 'info', 'success', 'warning', 'error'] as const;
@@ -80,16 +87,16 @@ export interface NewsBannerMessage {
 
 // User Feedback Types
 export const FEEDBACK_TYPES = [
-  "pedido_conteudo", 
-  "episodio_offline", 
-  "problema_geral", 
+  "pedido_conteudo",
+  "episodio_offline",
+  "problema_geral",
   "outro"
 ] as const;
 export type FeedbackType = (typeof FEEDBACK_TYPES)[number];
 
 export const FEEDBACK_STATUSES = [
-  "novo", 
-  "em_analise", 
+  "novo",
+  "em_analise",
   "resolvido",
   "recusado"
 ] as const;
@@ -107,4 +114,3 @@ export interface UserFeedbackItem {
   submittedAt: string; // ISO string date
   respondedAt?: string; // ISO string date
 }
-    

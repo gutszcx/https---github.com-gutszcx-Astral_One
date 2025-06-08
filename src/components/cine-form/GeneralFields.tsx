@@ -1,7 +1,9 @@
+
 // src/components/cine-form/GeneralFields.tsx
 'use client';
 
 import type { Control } from 'react-hook-form';
+import { useFieldArray } from 'react-hook-form';
 import {
   FormControl,
   FormDescription,
@@ -20,6 +22,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Button } from '@/components/ui/button';
+import { PlusCircle, Trash2, Link2 } from 'lucide-react';
 import type { CineFormValues } from '@/lib/schemas';
 import { CLASSIFICACAO_INDICATIVA_OPTIONS, QUALIDADE_OPTIONS, IDIOMA_OPTIONS, GENERO_OPTIONS } from '@/lib/schemas';
 import { Separator } from '../ui/separator';
@@ -29,6 +33,11 @@ interface GeneralFieldsProps {
 }
 
 export function GeneralFields({ control }: GeneralFieldsProps) {
+  const { fields: embedUrlFields, append: appendEmbedUrl, remove: removeEmbedUrl } = useFieldArray({
+    control,
+    name: 'embedUrls',
+  });
+
   return (
     <div className="space-y-6">
       <FormField
@@ -244,6 +253,59 @@ export function GeneralFields({ control }: GeneralFieldsProps) {
           </FormItem>
         )}
       />
+
+      <Separator />
+
+      <div>
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="text-lg font-medium flex items-center">
+            <Link2 className="mr-2 h-5 w-5 text-primary/80" /> Links de Embed (Opcional)
+          </h3>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => appendEmbedUrl({ url: '' })}
+          >
+            <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Link Embed
+          </Button>
+        </div>
+        {embedUrlFields.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-2">Nenhum link de embed adicionado.</p>
+        )}
+        <div className="space-y-4">
+          {embedUrlFields.map((field, index) => (
+            <div key={field.id} className="p-4 border rounded-md space-y-3 bg-muted/20 shadow-sm">
+              <div className="flex justify-between items-center">
+                <FormLabel className="text-sm font-medium">Link Embed {index + 1}</FormLabel>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => removeEmbedUrl(index)}
+                  className="text-destructive hover:text-destructive/80"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+              <FormField
+                control={control}
+                name={`embedUrls.${index}.url`}
+                render={({ field: embedField }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs">URL do Embed</FormLabel>
+                    <FormControl>
+                      <Input type="url" placeholder="Ex: https://www.youtube.com/embed/VIDEO_ID" {...embedField} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
 
       <Separator />
 
