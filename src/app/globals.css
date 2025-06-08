@@ -5,157 +5,155 @@
 
 @layer base {
   :root {
-    /* Cyberpunk Theme Colors (Base Definitions) */
-    --cyberpunk-bg: 260 30% 5%; /* Very dark desaturated purple */
-    --cyberpunk-bg-lighter: 260 30% 10%; /* Slightly lighter for surfaces */
-    --cyberpunk-foreground: 210 100% 90%; /* Pale cyan/white */
-    --cyberpunk-primary-accent: 320 100% 55%; /* Neon Pink/Magenta */
-    --cyberpunk-secondary-accent: 180 100% 50%; /* Electric Cyan */
-    --cyberpunk-highlight: 50 100% 55%; /* Bright Yellow/Gold */
-    --cyberpunk-border: 320 100% 45%; /* Darker pink for primary borders */
-    --cyberpunk-border-secondary: 180 100% 40%; /* Darker cyan for secondary borders */
-    --cyberpunk-muted-foreground: 210 30% 60%; /* Muted cyan */
-    --cyberpunk-destructive: 0 85% 50%; /* Vivid Red */
-    --cyberpunk-destructive-foreground: 210 100% 95%; /* Very light, almost white */
+    /* Vivid Abstract Theme (Yellow, Blue, Green, Coral) */
+    --vivid-bg-blue: 220 40% 10%;
+    --vivid-fg-cyan: 200 100% 95%;
+    --vivid-primary-coral: 10 90% 65%;
+    --vivid-primary-coral-fg: 10 50% 10%;
+    --vivid-secondary-green: 145 70% 50%;
+    --vivid-secondary-green-fg: 145 30% 10%;
+    --vivid-accent-yellow: 50 100% 55%;
+    --vivid-accent-yellow-fg: 50 50% 10%;
+    --vivid-destructive-red: 0 85% 60%;
+    --vivid-destructive-red-fg: 0 0% 100%;
 
-    /* Neon Green Accent for Homepage Elegance */
-    --neon-green-accent: 120 100% 50%; /* Bright Neon Green */
-    --neon-green-accent-foreground: 260 30% 10%; /* Dark for text on neon green */
-    --neon-green-glow: 120 100% 55%; /* Slightly softer for glow effects */
-
+    --vivid-card-blue: 220 35% 15%;
+    --vivid-muted-cyan-blue: 210 30% 65%;
+    --vivid-border-coral: 10 70% 50%;
+    --vivid-input-green: 145 50% 40%;
+    
+    --vivid-chart-blue: 210 90% 60%;
 
     /* Mapping to Standard Theme Variables */
-    --background: var(--cyberpunk-bg);
-    --foreground: var(--cyberpunk-foreground);
+    --background: var(--vivid-bg-blue);
+    --foreground: var(--vivid-fg-cyan);
 
-    --card: var(--cyberpunk-bg-lighter);
-    --card-foreground: var(--cyberpunk-foreground);
+    --card: var(--vivid-card-blue);
+    --card-foreground: var(--vivid-fg-cyan);
 
-    --popover: var(--cyberpunk-bg-lighter);
-    --popover-foreground: var(--cyberpunk-foreground);
+    --popover: var(--vivid-card-blue);
+    --popover-foreground: var(--vivid-fg-cyan);
 
-    --primary: var(--cyberpunk-primary-accent);
-    --primary-foreground: var(--cyberpunk-bg); /* High contrast for text on primary */
+    --primary: var(--vivid-primary-coral);
+    --primary-foreground: var(--vivid-primary-coral-fg);
 
-    --secondary: var(--cyberpunk-secondary-accent);
-    --secondary-foreground: var(--cyberpunk-bg); /* High contrast for text on secondary */
+    --secondary: var(--vivid-secondary-green);
+    --secondary-foreground: var(--vivid-secondary-green-fg);
 
-    --muted: var(--cyberpunk-bg-lighter); /* For less emphasis surfaces */
-    --muted-foreground: var(--cyberpunk-muted-foreground);
+    --muted: var(--vivid-card-blue); 
+    --muted-foreground: var(--vivid-muted-cyan-blue);
 
-    --accent: var(--cyberpunk-highlight);
-    --accent-foreground: var(--cyberpunk-bg);
+    --accent: var(--vivid-accent-yellow);
+    --accent-foreground: var(--vivid-accent-yellow-fg);
 
-    --destructive: var(--cyberpunk-destructive);
-    --destructive-foreground: var(--cyberpunk-destructive-foreground);
+    --destructive: var(--vivid-destructive-red);
+    --destructive-foreground: var(--vivid-destructive-red-fg);
 
-    --border: var(--cyberpunk-border);
-    --input: var(--cyberpunk-border-secondary); /* For input borders */
-    --ring: var(--cyberpunk-highlight); /* For focus rings */
+    --border: var(--vivid-border-coral);
+    --input: var(--vivid-input-green); 
+    --ring: var(--vivid-accent-yellow); 
 
-    --radius: 0.75rem; /* Rounded corners for elegant feel */
+    --radius: 0.75rem;
 
     /* Chart colors */
-    --chart-1: var(--cyberpunk-primary-accent);
-    --chart-2: var(--cyberpunk-secondary-accent);
-    --chart-3: var(--cyberpunk-highlight);
-    --chart-4: 288 62% 50%; /* A cyberpunk-compatible purple */
-    --chart-5: var(--cyberpunk-destructive);
+    --chart-1: var(--vivid-primary-coral);
+    --chart-2: var(--vivid-secondary-green);
+    --chart-3: var(--vivid-accent-yellow);
+    --chart-4: var(--vivid-chart-blue); 
+    --chart-5: var(--vivid-destructive-red);
 
-    /* Sidebar colors - mapped to cyberpunk theme */
-    --sidebar-background: 260 30% 8%; /* Slightly different dark for sidebar */
-    --sidebar-foreground: var(--cyberpunk-foreground);
-    --sidebar-primary: var(--cyberpunk-primary-accent);
-    --sidebar-primary-foreground: var(--cyberpunk-bg);
-    --sidebar-accent: var(--cyberpunk-highlight);
-    --sidebar-accent-foreground: var(--cyberpunk-bg);
-    --sidebar-border: var(--cyberpunk-border);
-    --sidebar-ring: var(--cyberpunk-highlight);
+    /* Sidebar colors - mapped to vivid theme */
+    --sidebar-background: 220 38% 12%; 
+    --sidebar-foreground: var(--vivid-fg-cyan);
+    --sidebar-primary: var(--vivid-primary-coral);
+    --sidebar-primary-foreground: var(--vivid-primary-coral-fg);
+    --sidebar-accent: var(--vivid-accent-yellow);
+    --sidebar-accent-foreground: var(--vivid-accent-yellow-fg);
+    --sidebar-border: var(--vivid-border-coral);
+    --sidebar-ring: var(--vivid-accent-yellow);
   }
-
-  /* Remove .dark mode overrides as cyberpunk is inherently dark */
-  /* .dark { ... } block removed */
 }
 
 @layer base {
   * {
-    @apply border-border; /* Uses the new --border which is var(--cyberpunk-border) */
+    @apply border-border; 
   }
   body {
-    @apply bg-background text-foreground; /* Uses new cyberpunk bg/fg */
+    @apply bg-background text-foreground; 
   }
   img {
-    image-rendering: pixelated; /* Ideal for pixel art scaling */
-    image-rendering: -moz-crisp-edges; /* Firefox */
-    image-rendering: -webkit-optimize-contrast; /* Webkit (Chrome, Safari) for sharper edges */
-    image-rendering: crisp-edges; /* General fallback */
-    -ms-interpolation-mode: nearest-neighbor; /* IE */
+    image-rendering: pixelated; 
+    image-rendering: -moz-crisp-edges; 
+    image-rendering: -webkit-optimize-contrast; 
+    image-rendering: crisp-edges; 
+    -ms-interpolation-mode: nearest-neighbor; 
   }
-  /* Ensure inputs use the cyberpunk background for their content area */
   input, textarea, select {
-    @apply bg-background; /* or var(--cyberpunk-bg-lighter) if bg-background is too dark for inputs */
+    @apply bg-background; 
   }
 }
 
-/* Cyberpunk specific component styles (can be opt-in via classes) */
+/* Component styles adjusted for new vivid theme */
 @layer components {
-  .cyberpunk-alert-dialog-content {
-    @apply bg-[hsl(var(--cyberpunk-bg-lighter))] border-[hsl(var(--cyberpunk-border))] shadow-xl shadow-[hsl(var(--cyberpunk-primary-accent)/0.3)];
+  .cyberpunk-alert-dialog-content { /* Renaming this class might be good later, but for now just update colors */
+    @apply bg-[hsl(var(--card))] border-[hsl(var(--border))] shadow-xl shadow-[hsl(var(--primary)/0.3)];
   }
   .cyberpunk-alert-dialog-title {
-    @apply text-[hsl(var(--cyberpunk-primary-accent))] font-bold;
+    @apply text-[hsl(var(--primary))] font-bold;
   }
   .cyberpunk-alert-dialog-description {
-    @apply text-[hsl(var(--cyberpunk-muted-foreground))];
+    @apply text-[hsl(var(--muted-foreground))];
   }
+
+  /* Outlined button styles adjusted for new theme */
   .cyberpunk-button-primary {
-    @apply bg-transparent border border-[hsl(var(--cyberpunk-primary-accent))] text-[hsl(var(--cyberpunk-primary-accent))] hover:bg-[hsl(var(--cyberpunk-primary-accent)/0.2)] hover:text-[hsl(var(--cyberpunk-highlight))];
+    @apply bg-transparent border border-[hsl(var(--primary))] text-[hsl(var(--primary))] hover:bg-[hsl(var(--primary)/0.2)] hover:text-[hsl(var(--accent))];
   }
    .cyberpunk-button-primary:focus-visible {
-    @apply ring-2 ring-offset-2 ring-[hsl(var(--cyberpunk-primary-accent))] ring-offset-[hsl(var(--cyberpunk-bg-lighter))];
+    @apply ring-2 ring-offset-2 ring-[hsl(var(--primary))] ring-offset-[hsl(var(--card))];
   }
+
   .cyberpunk-button-secondary {
-    @apply bg-transparent border border-[hsl(var(--cyberpunk-secondary-accent))] text-[hsl(var(--cyberpunk-secondary-accent))] hover:bg-[hsl(var(--cyberpunk-secondary-accent)/0.2)] hover:text-[hsl(var(--cyberpunk-highlight))];
+    @apply bg-transparent border border-[hsl(var(--secondary))] text-[hsl(var(--secondary))] hover:bg-[hsl(var(--secondary)/0.2)] hover:text-[hsl(var(--accent))];
   }
   .cyberpunk-button-secondary:focus-visible {
-    @apply ring-2 ring-offset-2 ring-[hsl(var(--cyberpunk-secondary-accent))] ring-offset-[hsl(var(--cyberpunk-bg-lighter))];
+    @apply ring-2 ring-offset-2 ring-[hsl(var(--secondary))] ring-offset-[hsl(var(--card))];
   }
+
   .cyberpunk-button-cancel {
-    @apply bg-transparent border border-[hsl(var(--cyberpunk-muted-foreground))] text-[hsl(var(--cyberpunk-muted-foreground))] hover:bg-[hsl(var(--cyberpunk-muted-foreground)/0.2)] hover:text-[hsl(var(--cyberpunk-foreground))];
+    @apply bg-transparent border border-[hsl(var(--muted-foreground))] text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted-foreground)/0.2)] hover:text-[hsl(var(--foreground))];
   }
    .cyberpunk-button-cancel:focus-visible {
-    @apply ring-2 ring-offset-2 ring-[hsl(var(--cyberpunk-muted-foreground))] ring-offset-[hsl(var(--cyberpunk-bg-lighter))];
+    @apply ring-2 ring-offset-2 ring-[hsl(var(--muted-foreground))] ring-offset-[hsl(var(--card))];
   }
 }
 
 @layer utilities {
-  .player-overlay-cyberpixel-bg {
-    --cp-pixel-size: 30px; /* Control "pixel" block size */
-    background-color: hsl(var(--cyberpunk-bg)); /* Dark base */
+  .player-overlay-cyberpixel-bg { /* This might need a new name or visual if cyberpixel is not desired */
+    --cp-pixel-size: 30px;
+    background-color: hsl(var(--background)); 
     background-image:
       repeating-conic-gradient(
-        hsla(var(--cyberpunk-primary-accent), 0.25) 0% 25%,
-        hsla(var(--cyberpunk-secondary-accent), 0.25) 25% 50%,
-        hsla(var(--cyberpunk-highlight), 0.2) 50% 75%,
-        hsla(var(--cyberpunk-bg-lighter), 0.2) 75% 100%
+        hsla(var(--primary), 0.25) 0% 25%,       /* Was cyberpunk-primary-accent */
+        hsla(var(--secondary), 0.25) 25% 50%,    /* Was cyberpunk-secondary-accent */
+        hsla(var(--accent), 0.2) 50% 75%,        /* Was cyberpunk-highlight */
+        hsla(var(--card), 0.2) 75% 100%      /* Was cyberpunk-bg-lighter */
       );
     background-size: var(--cp-pixel-size) var(--cp-pixel-size);
   }
 
-  /* Custom scrollbar hiding utilities */
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
   .scrollbar-hide {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none;  
+    scrollbar-width: none;  
   }
 
-  /* Custom background for login page */
   .login-page-custom-bg {
     background: 
-      radial-gradient(ellipse at top left, hsla(var(--cyberpunk-primary-accent), 0.15) 0%, transparent 40%),
-      radial-gradient(ellipse at bottom right, hsla(var(--cyberpunk-secondary-accent), 0.15) 0%, transparent 40%),
-      hsl(var(--cyberpunk-bg));
+      radial-gradient(ellipse at top left, hsla(var(--primary), 0.15) 0%, transparent 40%), /* Was cyberpunk-primary-accent */
+      radial-gradient(ellipse at bottom right, hsla(var(--secondary), 0.15) 0%, transparent 40%), /* Was cyberpunk-secondary-accent */
+      hsl(var(--background)); /* Was cyberpunk-bg */
   }
 }
