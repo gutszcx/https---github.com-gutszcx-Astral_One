@@ -531,7 +531,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
                   <div className="absolute inset-0 bg-gradient-to-t from-card via-card/80 to-transparent" />
                 </div>
               )}
-              <div className="flex-grow overflow-y-auto">
+              <div className="flex-grow"> {/* Removed overflow-y-auto from here */}
                 <DialogHeader className={`p-6 ${item.bannerFundo ? 'pt-2 sm:pt-4 -mt-16 sm:-mt-20 relative z-10' : 'pt-6'}`}>
                   <DialogTitle className="text-2xl md:text-3xl font-bold text-foreground drop-shadow-sm">
                     {item.tituloOriginal}
@@ -579,7 +579,8 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
                       {item.duracaoMedia && (<><span className="text-xs">&bull;</span><span>{item.duracaoMedia} min {item.contentType === 'series' ? '(média ep.)' : ''}</span></>)}
                       {item.classificacaoIndicativa && (<><span className="text-xs">&bull;</span><Badge variant="outline" className="text-xs px-1.5 py-0.5">{item.classificacaoIndicativa}</Badge></>)}
                     </div>
-                    {item.sinopse && (<div><h4 className="font-semibold text-md mb-1 text-primary">Sinopse</h4><p className="text-sm text-foreground/90 leading-relaxed max-h-40 overflow-y-auto pr-2">{item.sinopse}</p></div>)}
+                    {/* Removed max-h-40 overflow-y-auto from synopsis paragraph */}
+                    {item.sinopse && (<div><h4 className="font-semibold text-md mb-1 text-primary">Sinopse</h4><p className="text-sm text-foreground/90 leading-relaxed pr-2">{item.sinopse}</p></div>)}
                     {item.generos && (<div><h4 className="font-semibold text-md mb-1.5 text-primary">Gêneros</h4><div className="flex flex-wrap gap-2">{item.generos.split(',').map(g => g.trim()).filter(Boolean).map(genre => (<Badge key={genre} variant="secondary">{genre}</Badge>))}</div></div>)}
                     <div className="space-y-1 text-sm pt-2">
                       {item.qualidade && <div className="flex items-center"><strong>Qualidade:</strong> <Badge variant="outline" className="ml-2">{item.qualidade}</Badge></div>}
