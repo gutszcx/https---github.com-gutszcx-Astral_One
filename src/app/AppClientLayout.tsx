@@ -95,7 +95,7 @@ function AvatarDropdownContent() {
           </DropdownMenuItem>
           
           {/* Theme Toggle Item */}
-          <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="focus:bg-transparent cursor-default">
+          <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="focus:bg-transparent cursor-default !px-1">
             <div className="flex items-center justify-between w-full">
               <div className='flex items-center'>
                 {theme === 'light' ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
@@ -362,3 +362,4 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
     </RecentActivityProvider>
   );
 }
+
