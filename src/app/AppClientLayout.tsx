@@ -7,7 +7,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { HomeAniDetailModal } from '@/components/homeani/HomeAniDetailModal';
 import { useModal } from '@/contexts/ModalContext';
 import { Button } from '@/components/ui/button';
-import { Search as SearchIcon, Star, Loader2, User as UserIcon, LogOut, UserCircle, CalendarDays, History as HistoryIcon, ExternalLink, PlayCircle } from 'lucide-react';
+import { Search as SearchIcon, Star, Loader2, User as UserIcon, LogOut, UserCircle, CalendarDays, History as HistoryIcon, ExternalLink, PlayCircle, LayoutDashboard } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { SearchDialog } from '@/components/SearchDialog';
 import { NewsBanner } from '@/components/layout/NewsBanner';
@@ -253,6 +253,12 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
               </Link>
               {user && (
                 <div className="flex items-center space-x-2 md:space-x-3">
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link href="/manage" aria-label="Painel" className="flex items-center">
+                      <LayoutDashboard className="h-5 w-5 text-primary mr-1 sm:mr-1.5" />
+                      <span className="hidden sm:inline">Painel</span>
+                    </Link>
+                  </Button>
                   <Button variant="ghost" size="sm" asChild>
                     <Link href="/favorites" aria-label="Favoritos" className="flex items-center">
                       <Star className="h-5 w-5 text-primary mr-1 sm:mr-1.5" />
