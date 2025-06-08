@@ -122,12 +122,7 @@ function AvatarDropdownContent() {
             </div>
           </DropdownMenuItem>
           
-          <DropdownMenuItem asChild>
-            <Link href="/manage" className="cursor-pointer">
-              <LayoutDashboard className="mr-2 h-4 w-4" />
-              <span>Painel Admin</span>
-            </Link>
-          </DropdownMenuItem>
+          {/* O link do Painel Admin foi removido daqui */}
 
           <DropdownMenuItem asChild>
             <Link href="/settings" className="cursor-pointer">
