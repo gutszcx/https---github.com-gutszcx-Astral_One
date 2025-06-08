@@ -150,4 +150,12 @@
     -ms-overflow-style: none;  /* IE and Edge */
     scrollbar-width: none;  /* Firefox */
   }
+
+  /* Custom background for login page */
+  .login-page-custom-bg {
+    background: 
+      radial-gradient(ellipse at top left, hsla(var(--cyberpunk-primary-accent), 0.15) 0%, transparent 40%),
+      radial-gradient(ellipse at bottom right, hsla(var(--cyberpunk-secondary-accent), 0.15) 0%, transparent 40%),
+      hsl(var(--cyberpunk-bg));
+  }
 }

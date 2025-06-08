@@ -64,8 +64,8 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4">
-      <Card className="w-full max-w-md border border-[hsl(var(--cyberpunk-border))] bg-card shadow-[0_0_25px_hsl(var(--cyberpunk-primary-accent)/0.3),_0_0_10px_hsl(var(--cyberpunk-highlight)/0.2)]">
+    <main className="flex flex-col items-center justify-center min-h-screen p-4 login-page-custom-bg text-foreground">
+      <Card className="w-full max-w-md border border-[hsl(var(--cyberpunk-secondary-accent))] bg-card shadow-[0_0_25px_hsl(var(--cyberpunk-primary-accent)/0.3),_0_0_10px_hsl(var(--cyberpunk-highlight)/0.2)]">
         <CardHeader className="text-center p-6 space-y-4">
           <div className="mx-auto">
             <Image
@@ -78,7 +78,7 @@ export default function LoginPage() {
             />
           </div>
           <CardTitle className="text-3xl font-bold text-primary">Bem-vindo ao Astral One!</CardTitle>
-          <CardDescription className="text-muted-foreground text-lg">
+          <CardDescription className="text-foreground text-lg">
             Faça login com sua conta Google para explorar um universo de filmes e séries.
           </CardDescription>
         </CardHeader>
@@ -109,7 +109,7 @@ export default function LoginPage() {
           )}
         </CardContent>
         <CardFooter className="p-6 text-center">
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-foreground/80">
                 Ao continuar, você concorda com nossos <a href="#" className="underline hover:text-primary transition-colors">Termos de Serviço</a> e <a href="#" className="underline hover:text-primary transition-colors">Política de Privacidade</a>.
             </p>
         </CardFooter>
