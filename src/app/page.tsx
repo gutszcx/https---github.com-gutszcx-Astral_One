@@ -321,7 +321,7 @@ function ContentRow({ title, items, onCardClick, icon }: ContentRowProps) {
         <h2 className="text-xl sm:text-2xl font-semibold text-foreground">{title}</h2>
       </div>
       <div className="relative">
-        <div className="flex space-x-3 sm:space-x-4 pb-4 overflow-x-auto scrollbar-thin scrollbar-thumb-muted-foreground/50 scrollbar-track-transparent pl-2 sm:pl-0">
+        <div className="flex space-x-3 sm:space-x-4 pb-4 overflow-x-auto scrollbar-hide pl-2 sm:pl-0">
           {items.map((item) => (
             <HomeAniContentCard 
               key={item.id + ((item as ContinueWatchingItem).lastSaved || '')} // Ensure key is unique if item appears in multiple rows with different contexts

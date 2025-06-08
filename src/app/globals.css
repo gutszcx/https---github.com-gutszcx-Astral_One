@@ -141,4 +141,13 @@
       );
     background-size: var(--cp-pixel-size) var(--cp-pixel-size);
   }
+
+  /* Custom scrollbar hiding utilities */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
 }
