@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import 'plyr-react/plyr.css';
+import type PlyrJS from 'plyr';
 import {
   Dialog,
   DialogContent,
@@ -26,7 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { StoredCineItem, StoredMovieItem, StoredSeriesItem, VideoSource } from '@/types';
+import type { StoredCineItem, StoredMovieItem, StoredSeriesItem, VideoSource, StoredEmbedUrl } from '@/types';
 import { Film, Tv, Clapperboard, Clock, PlayCircle, X, ListVideo, Loader2, Heart, MessageCircleQuestion, ArrowDownCircle } from 'lucide-react';
 import {
   Accordion,
@@ -38,7 +39,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { cn } from '@/lib/utils';
 import { FeedbackDialog } from '@/components/feedback/FeedbackDialog';
-import type PlyrJS from 'plyr';
 
 // Dynamically import Plyr to ensure it's only loaded on the client-side
 const Plyr = dynamic(() => import('plyr-react').then(mod => mod.default), {
@@ -83,6 +83,8 @@ interface ProgressData {
 
 export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onInitialActionConsumed }: HomeAniDetailModalProps) {
   const [activePlayerInfo, setActivePlayerInfo] = useState<PlayerInfo | null>(null);
+  const [activeEmbedUrl, setActiveEmbedUrl] = useState<string | null>(null);
+  const [embedPlayerTitle, setEmbedPlayerTitle] = useState<string | null>(null);
   const [serverSelectionInfo, setServerSelectionInfo] = useState<ServerSelectionInfo | null>(null);
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const plyrRef = useRef<({ plyr: PlyrJS }) | null>(null);
@@ -115,6 +117,8 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
       }
     }
     setActivePlayerInfo(null);
+    setActiveEmbedUrl(null);
+    setEmbedPlayerTitle(null);
     setServerSelectionInfo(null);
     setIsFeedbackDialogOpen(false);
     hasTriggeredInitialPlay.current = false;
@@ -132,6 +136,11 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     }
     setActivePlayerInfo(null);
   }, [activePlayerInfo, saveVideoProgress]);
+
+  const handleEmbedPlayerClose = useCallback(() => {
+    setActiveEmbedUrl(null);
+    setEmbedPlayerTitle(null);
+  }, []);
   
   const initiatePlayback = useCallback((
     videoUrl: string,
@@ -175,6 +184,8 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     };
 
     setActivePlayerInfo({ plyrSource: plyrSourceConfig, title, storageKey });
+    setActiveEmbedUrl(null); // Ensure embed player is closed
+    setEmbedPlayerTitle(null);
     setServerSelectionInfo(null);
   }, [toast, item]);
 
@@ -185,29 +196,42 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     subtitleUrl?: string,
     baseId?: string,
     seasonNumber?: number,
-    episodeIndex?: number
+    episodeIndex?: number,
+    movieEmbedUrls?: StoredEmbedUrl[] // Only for movies
   ) => {
     if (!baseId) {
       toast({ title: "Conteúdo Inválido", description: "ID do conteúdo não encontrado.", variant: "destructive" });
       return false;
     }
-    if (!sources || sources.length === 0) {
-      toast({ title: "Sem Fontes de Vídeo", description: "Nenhum link de vídeo disponível para este conteúdo.", variant: "default" });
-      return false;
-    }
-    const validSources = sources.filter(s => s.url && s.url.trim() !== '');
-    if (validSources.length === 0) {
-        toast({ title: "Sem Fontes de Vídeo Válidas", description: "Nenhum link de vídeo válido encontrado.", variant: "default" });
-        return false;
+
+    const validDirectSources = sources?.filter(s => s.url && s.url.trim() !== '') || [];
+
+    if (validDirectSources.length > 0) {
+      if (validDirectSources.length === 1) {
+        initiatePlayback(validDirectSources[0].url, title, subtitleUrl, baseId, seasonNumber, episodeIndex);
+      } else {
+        setServerSelectionInfo({ sources: validDirectSources, subtitleUrl, title, baseId, seasonNumber, episodeIndex });
+      }
+      return true;
+    } else if (item?.contentType === 'movie' && movieEmbedUrls && movieEmbedUrls.length > 0) {
+      // This block is for movies with embed URLs when no direct sources are found
+      const firstEmbed = movieEmbedUrls[0];
+      if (firstEmbed && firstEmbed.url) {
+        setActiveEmbedUrl(firstEmbed.url);
+        setEmbedPlayerTitle(title);
+        setActivePlayerInfo(null);
+        setServerSelectionInfo(null);
+        return true;
+      }
     }
 
-    if (validSources.length === 1) {
-      initiatePlayback(validSources[0].url, title, subtitleUrl, baseId, seasonNumber, episodeIndex);
-    } else {
-      setServerSelectionInfo({ sources: validSources, subtitleUrl, title, baseId, seasonNumber, episodeIndex });
-    }
-    return true;
-  }, [initiatePlayback, toast]);
+    // If we reach here, no playable source (direct or embed for movies) was found
+    const message = item?.contentType === 'movie' 
+        ? "Nenhum link de vídeo ou embed disponível para este filme."
+        : "Nenhum link de vídeo disponível para este episódio.";
+    toast({ title: "Sem Fontes de Vídeo", description: message, variant: "default" });
+    return false;
+  }, [initiatePlayback, toast, item]);
 
 
   useEffect(() => {
@@ -220,40 +244,36 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
   }, [isOpen, initialAction, item]);
 
   useEffect(() => {
-    if (isOpen && item && !activePlayerInfo && !serverSelectionInfo) {
+    if (isOpen && item && !activePlayerInfo && !serverSelectionInfo && !activeEmbedUrl) {
         toast({
             title: "Conteúdo Carregado!",
             description: "Role a página para cima para encontrar opções de reprodução, temporadas e episódios.",
             duration: 5000, 
         });
     }
-  }, [isOpen, item, activePlayerInfo, serverSelectionInfo, toast]);
+  }, [isOpen, item, activePlayerInfo, serverSelectionInfo, activeEmbedUrl, toast]);
 
 
   useEffect(() => {
-    if (isOpen && initialAction === 'play' && item && !activePlayerInfo && !serverSelectionInfo && !hasTriggeredInitialPlay.current && processingInitialAction) {
+    if (isOpen && initialAction === 'play' && item && !activePlayerInfo && !serverSelectionInfo && !activeEmbedUrl && !hasTriggeredInitialPlay.current && processingInitialAction) {
       hasTriggeredInitialPlay.current = true;
   
       const playData = item._playActionData;
   
       if (item.contentType === 'movie') {
         const movieItem = item as StoredMovieItem;
-        if (movieItem.videoSources && movieItem.videoSources.filter(vs => vs.url && vs.url.trim() !== '').length > 0) {
-          promptOrPlay(movieItem.videoSources, movieItem.tituloOriginal, movieItem.linkLegendas, movieItem.id);
-        } else {
-          toast({ title: "Sem Fontes de Vídeo", description: "Nenhum link de vídeo disponível para este filme.", variant: "default" });
-        }
+        // Pass movieItem.embedUrls to promptOrPlay
+        promptOrPlay(movieItem.videoSources, movieItem.tituloOriginal, movieItem.linkLegendas, movieItem.id, undefined, undefined, movieItem.embedUrls);
       } else if (item.contentType === 'series' && playData) {
         const seriesItem = item as StoredSeriesItem;
         const season = seriesItem.temporadas?.find(s => s.numeroTemporada === playData.seasonNumber);
         const episode = season?.episodios?.[playData.episodeIndex];
-        if (episode && episode.videoSources && episode.videoSources.filter(vs => vs.url && vs.url.trim() !== '').length > 0) {
+        if (episode) {
+          // Episodes currently don't have their own embedUrls, so we don't pass them here
           promptOrPlay(episode.videoSources, `${seriesItem.tituloOriginal} - T${season!.numeroTemporada}E${playData.episodeIndex + 1}: ${episode.titulo}`, episode.linkLegenda, seriesItem.id, season!.numeroTemporada, playData.episodeIndex);
         } else {
-          toast({ title: "Sem Fontes de Vídeo", description: "Nenhum link de vídeo disponível para este episódio.", variant: "default" });
+          toast({ title: "Episódio Não Encontrado", description: "Não foi possível encontrar os dados deste episódio.", variant: "default" });
         }
-      } else if (item.contentType === 'series') {
-        // Modal will open, but playback won't start automatically. User can pick an episode.
       }
   
       if (onInitialActionConsumed) {
@@ -267,7 +287,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     }
   
   }, [
-    isOpen, initialAction, item, activePlayerInfo, serverSelectionInfo,
+    isOpen, initialAction, item, activePlayerInfo, serverSelectionInfo, activeEmbedUrl,
     promptOrPlay, onInitialActionConsumed, toast, processingInitialAction
   ]);
 
@@ -383,7 +403,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
         clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
       }
-      if (validPlayer && typeof validPlayer.stop === 'function' && validPlayer.currentTime > 0 && activePlayerInfo && activePlayerInfo.storageKey) {
+      if (validPlayer && typeof validPlayer.stop === 'function' && activePlayerInfo && activePlayerInfo.storageKey && (validPlayer.currentTime > 0 || validPlayer.buffered > 0)) {
          saveVideoProgress(validPlayer, activePlayerInfo.storageKey);
       }
     };
@@ -391,6 +411,34 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
 
 
   if (!item && !(processingInitialAction && initialAction === 'play')) return null;
+
+
+  if (activeEmbedUrl) {
+    return (
+      <div className="fixed inset-0 z-[100] bg-black/90 flex flex-col items-center justify-center p-2 sm:p-4">
+        <div className="w-full max-w-4xl overflow-hidden">
+          <div className="flex justify-between items-center p-3 sm:p-4">
+            <h2 className="text-lg sm:text-xl font-semibold text-[hsl(var(--neon-green-accent))] truncate">
+              {embedPlayerTitle || 'Player de Embed'}
+            </h2>
+            <Button variant="ghost" size="icon" onClick={handleEmbedPlayerClose} aria-label="Fechar player de embed">
+              <X className="h-5 w-5 text-[hsl(var(--neon-green-accent))] hover:text-[hsl(var(--cyberpunk-highlight))]" />
+            </Button>
+          </div>
+          <div className="aspect-video w-full relative bg-black">
+            <iframe
+              src={activeEmbedUrl}
+              title={embedPlayerTitle || 'Vídeo Incorporado'}
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              className="w-full h-full"
+            ></iframe>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
 
   if (activePlayerInfo) {
@@ -532,9 +580,15 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
                       {item.dublagensDisponiveis && <p><strong>Dublagens:</strong> {item.dublagensDisponiveis}</p>}
                     </div>
 
-                    {item.contentType === 'movie' && (item as StoredMovieItem).videoSources && (item as StoredMovieItem).videoSources.filter(vs => vs.url && vs.url.trim() !== '').length > 0 && (
+                    {item.contentType === 'movie' && 
+                      (((item as StoredMovieItem).videoSources && (item as StoredMovieItem).videoSources.filter(vs => vs.url && vs.url.trim() !== '').length > 0) ||
+                       ((item as StoredMovieItem).embedUrls && (item as StoredMovieItem).embedUrls!.filter(em => em.url && em.url.trim() !== '').length > 0)
+                      ) && (
                       <Button
-                        onClick={() => promptOrPlay((item as StoredMovieItem).videoSources, item.tituloOriginal, (item as StoredMovieItem).linkLegendas, item.id)}
+                        onClick={() => {
+                            const movieItem = item as StoredMovieItem;
+                            promptOrPlay(movieItem.videoSources, movieItem.tituloOriginal, movieItem.linkLegendas, movieItem.id, undefined, undefined, movieItem.embedUrls);
+                        }}
                         className="mt-4 w-full sm:w-auto cyberpunk-button-primary font-semibold shadow-lg"
                         size="lg"
                       >
@@ -641,3 +695,4 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     </>
   );
 }
+
