@@ -23,16 +23,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ScrollArea } from '@/components/ui/scroll-area'; // Import ScrollArea
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
-import { RecentActivityProvider, useRecentActivity } from '@/contexts/RecentActivityContext'; // Added RecentActivityProvider
+import { RecentActivityProvider, useRecentActivity } from '@/contexts/RecentActivityContext';
 import { cn } from '@/lib/utils';
 import type { ContinueWatchingItem } from '@/types';
 
 
 function AvatarDropdownContent() {
-  const { user, handleSignOut } = useUserAuth(); // Custom hook to encapsulate user logic
+  const { user, handleSignOut } = useUserAuth();
   const { mostRecentItem } = useRecentActivity();
   const { openModal } = useModal();
 
@@ -81,67 +82,69 @@ function AvatarDropdownContent() {
         </div>
       </div>
 
-      <div className="px-1 py-1"> {/* Wrapper for menu items to keep p-1 consistent */}
-        <DropdownMenuItem asChild>
-          <Link href="/favorites" className="cursor-pointer">
-            <Star className="mr-2 h-4 w-4" />
-            <span>Meus Favoritos</span>
-          </Link>
-        </DropdownMenuItem>
+      <ScrollArea className="max-h-60 pr-1"> {/* Added ScrollArea and max-h, pr for scrollbar */}
+        <div className="px-1 py-1"> {/* Wrapper for menu items to keep p-1 consistent */}
+          <DropdownMenuItem asChild>
+            <Link href="/favorites" className="cursor-pointer">
+              <Star className="mr-2 h-4 w-4" />
+              <span>Meus Favoritos</span>
+            </Link>
+          </DropdownMenuItem>
 
-        {mostRecentItem && (
-          <>
-            <DropdownMenuSeparator />
-            <div className="px-2 py-1.5 text-sm font-semibold flex items-center text-muted-foreground">
-              <HistoryIcon className="mr-2 h-4 w-4" /> Assistido Recentemente
-            </div>
-            <div
-              className="mx-1 mb-1 p-2 rounded-md hover:bg-accent cursor-pointer group"
-              onClick={() => openModal(mostRecentItem, 'play')}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') openModal(mostRecentItem, 'play'); }}
-            >
-              <div className="flex items-center space-x-2">
-                <div className="relative w-12 h-[71px] rounded flex-shrink-0 overflow-hidden bg-muted">
-                  <Image
-                    src={mostRecentItem.capaPoster || `https://placehold.co/80x120.png?text=${encodeURIComponent(mostRecentItem.tituloOriginal.substring(0,1))}`}
-                    alt={`Poster de ${getDisplayedTitle(mostRecentItem)}`}
-                    layout="fill"
-                    objectFit="cover"
-                    className="group-hover:scale-105 transition-transform duration-200"
-                    data-ai-hint={mostRecentItem.contentType === "movie" ? "movie poster small" : "tv show poster small"}
-                  />
-                </div>
-                <div className="flex-grow min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors" title={getDisplayedTitle(mostRecentItem)}>
-                    {getDisplayedTitle(mostRecentItem)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {mostRecentItem.contentType === 'movie' ? 'Filme' : 'Série'}
-                    {mostRecentItem.anoLancamento && ` - ${mostRecentItem.anoLancamento}`}
-                  </p>
-                   <span className="text-xs text-primary group-hover:underline flex items-center mt-1">
-                     <PlayCircle className="mr-1 h-3.5 w-3.5" /> Continuar
-                   </span>
+          {mostRecentItem && (
+            <>
+              <DropdownMenuSeparator />
+              <div className="px-2 py-1.5 text-sm font-semibold flex items-center text-muted-foreground">
+                <HistoryIcon className="mr-2 h-4 w-4" /> Assistido Recentemente
+              </div>
+              <div
+                className="mx-1 mb-1 p-2 rounded-md hover:bg-accent cursor-pointer group"
+                onClick={() => openModal(mostRecentItem, 'play')}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') openModal(mostRecentItem, 'play'); }}
+              >
+                <div className="flex items-center space-x-2">
+                  <div className="relative w-12 h-[71px] rounded flex-shrink-0 overflow-hidden bg-muted">
+                    <Image
+                      src={mostRecentItem.capaPoster || `https://placehold.co/80x120.png?text=${encodeURIComponent(mostRecentItem.tituloOriginal.substring(0,1))}`}
+                      alt={`Poster de ${getDisplayedTitle(mostRecentItem)}`}
+                      layout="fill"
+                      objectFit="cover"
+                      className="group-hover:scale-105 transition-transform duration-200"
+                      data-ai-hint={mostRecentItem.contentType === "movie" ? "movie poster small" : "tv show poster small"}
+                    />
+                  </div>
+                  <div className="flex-grow min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors" title={getDisplayedTitle(mostRecentItem)}>
+                      {getDisplayedTitle(mostRecentItem)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {mostRecentItem.contentType === 'movie' ? 'Filme' : 'Série'}
+                      {mostRecentItem.anoLancamento && ` - ${mostRecentItem.anoLancamento}`}
+                    </p>
+                    <span className="text-xs text-primary group-hover:underline flex items-center mt-1">
+                      <PlayCircle className="mr-1 h-3.5 w-3.5" /> Continuar
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          </>
-        )}
+            </>
+          )}
 
-        {user.metadata.creationTime && (
-          <DropdownMenuItem disabled className="opacity-70 cursor-default">
-            <CalendarDays className="mr-2 h-4 w-4" />
-            <span>Membro desde: {format(new Date(user.metadata.creationTime), 'dd/MM/yyyy', { locale: ptBR })}</span>
+          {user.metadata.creationTime && (
+            <DropdownMenuItem disabled className="opacity-70 cursor-default">
+              <CalendarDays className="mr-2 h-4 w-4" />
+              <span>Membro desde: {format(new Date(user.metadata.creationTime), 'dd/MM/yyyy', { locale: ptBR })}</span>
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10">
+            <LogOut className="mr-2 h-4 w-4" />
+            <span>Sair</span>
           </DropdownMenuItem>
-        )}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10">
-          <LogOut className="mr-2 h-4 w-4" />
-          <span>Sair</span>
-        </DropdownMenuItem>
-      </div>
+        </div>
+      </ScrollArea>
     </DropdownMenuContent>
   );
 }
@@ -181,11 +184,10 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
   const auth = getAuth(app);
   const router = useRouter();
   const pathname = usePathname();
-  const { user } = useUserAuth(); // Use the custom hook
+  const { user } = useUserAuth();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      // user state is managed by useUserAuth hook now
       setIsLoadingAuth(false);
     });
     return () => unsubscribe();
@@ -231,7 +233,7 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
 
 
   return (
-    <RecentActivityProvider> {/* Provider wraps areas needing context */}
+    <RecentActivityProvider>
       <FavoritesProvider>
         {pathname !== '/login' && <NewsBanner />}
         {pathname !== '/login' && (
@@ -278,7 +280,7 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
                         </AvatarFallback>
                       </Avatar>
                     </DropdownMenuTrigger>
-                    <AvatarDropdownContent /> {/* Extracted dropdown content */}
+                    <AvatarDropdownContent />
                   </DropdownMenu>
                 </div>
               )}
@@ -306,3 +308,4 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
     </RecentActivityProvider>
   );
 }
+
