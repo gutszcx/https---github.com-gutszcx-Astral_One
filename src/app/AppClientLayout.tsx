@@ -59,7 +59,7 @@ function AvatarDropdownContent() {
   };
 
   return (
-    <DropdownMenuContent className="w-72 mr-4 mt-2 p-0" align="end">
+    <DropdownMenuContent className="w-80 mr-4 mt-2 p-0" align="end">
       <div className="p-3 border-b border-[hsl(var(--border))] mb-1">
         <div className="flex justify-center mb-3">
           <Image
@@ -90,7 +90,7 @@ function AvatarDropdownContent() {
         </div>
       </div>
 
-      <ScrollArea className="max-h-72"> 
+      <ScrollArea className="max-h-96 pr-1"> 
         <div className="px-1 py-1">
           <DropdownMenuItem asChild>
             <Link href="/favorites" className="cursor-pointer">
@@ -378,3 +378,4 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
     </RecentActivityProvider>
   );
 }
+
