@@ -1,3 +1,4 @@
+
 // src/components/layout/AnimeCalendarHighlightBanner.tsx
 'use client';
 
@@ -18,25 +19,25 @@ export function AnimeCalendarHighlightBanner() {
     staleTime: 10 * 60 * 1000, // 10 minutes
   });
 
-  if (isLoading || error || !upcomingEpisodes || upcomingEpisodes.length === 0) {
-    return null; 
+  if (isLoading || error) {
+    return null;
+  }
+
+  if (!upcomingEpisodes || upcomingEpisodes.length === 0) {
+    // No upcoming episodes at all in the next 30 days
+    return null;
   }
 
   const today = new Date();
   const relevantEpisodes = upcomingEpisodes.filter(ep => {
     try {
       const airDate = parseISO(ep.airDate);
-      // Ensure airDate is valid before comparison
-      if (isNaN(airDate.getTime())) return false;
-      return differenceInCalendarDays(airDate, today) >= 0 && differenceInCalendarDays(airDate, today) <= 2; // Today, tomorrow, day after tomorrow
+      if (isNaN(airDate.getTime())) return false; // Invalid date check
+      return differenceInCalendarDays(airDate, today) >= 0 && differenceInCalendarDays(airDate, today) <= 2;
     } catch (e) {
-      return false; // Invalid date format
+      return false;
     }
-  }).slice(0, 3); // Max 3 episodes in banner
-
-  if (relevantEpisodes.length === 0) {
-    return null;
-  }
+  }).slice(0, 3);
 
   const getRelativeDateText = (airDateStr: string) => {
     try {
@@ -50,9 +51,23 @@ export function AnimeCalendarHighlightBanner() {
     }
   };
 
-  const bannerTitle = relevantEpisodes.some(ep => isToday(parseISO(ep.airDate)))
-    ? "Lançamentos de Anime Hoje e Em Breve"
-    : "Próximos Lançamentos de Anime";
+  let bannerTitle: string;
+  let bannerDescription: string;
+
+  if (relevantEpisodes.length > 0) {
+    bannerTitle = relevantEpisodes.some(ep => {
+        try { return isToday(parseISO(ep.airDate)); } catch { return false; }
+    })
+      ? "Lançamentos de Anime Hoje e Em Breve"
+      : "Próximos Lançamentos de Anime";
+    bannerDescription = relevantEpisodes.map(ep =>
+      `${ep.seriesTitle.substring(0,20)}${ep.seriesTitle.length > 20 ? '...' : ''} (S${ep.seasonNumber}E${ep.episodeNumber}) ${getRelativeDateText(ep.airDate)}`
+    ).join(' • ');
+  } else {
+    // Generic message if there are upcoming episodes, but not in the next 0-2 days
+    bannerTitle = "Calendário de Lançamentos Anime";
+    bannerDescription = "Confira os próximos lançamentos de animes em nosso calendário.";
+  }
 
   return (
     <div className="bg-card/90 backdrop-blur-md border-b border-border shadow-sm py-2.5 px-4 w-full sticky top-[47px] z-40">
@@ -65,9 +80,7 @@ export function AnimeCalendarHighlightBanner() {
               {bannerTitle}
             </h3>
             <p className="text-xs text-muted-foreground line-clamp-1">
-              {relevantEpisodes.map(ep => 
-                `${ep.seriesTitle.substring(0,20)}${ep.seriesTitle.length > 20 ? '...' : ''} (S${ep.seasonNumber}E${ep.episodeNumber}) ${getRelativeDateText(ep.airDate)}`
-              ).join(' • ')}
+              {bannerDescription}
             </p>
           </div>
         </div>
