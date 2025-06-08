@@ -7,17 +7,17 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Film, Tv, Star } from 'lucide-react';
 import type { StoredCineItem } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress'; // Added import
+import { Progress } from '@/components/ui/progress';
 
 interface HomeAniContentCardProps {
-  item: StoredCineItem & { progressTime?: number; progressDuration?: number }; // Updated to include optional progress props
+  item: StoredCineItem & { progressTime?: number; progressDuration?: number };
   onClick: () => void;
 }
 
 export function HomeAniContentCard({ item, onClick }: HomeAniContentCardProps) {
   const mediaTypeIcon = item.contentType === 'movie' 
-    ? <Film className="h-3 w-3 text-muted-foreground group-hover:text-[hsl(var(--neon-green-accent))] transition-colors" /> 
-    : <Tv className="h-3 w-3 text-muted-foreground group-hover:text-[hsl(var(--neon-green-accent))] transition-colors" />;
+    ? <Film className="h-2.5 w-2.5 text-muted-foreground group-hover:text-[hsl(var(--neon-green-accent))] transition-colors" /> 
+    : <Tv className="h-2.5 w-2.5 text-muted-foreground group-hover:text-[hsl(var(--neon-green-accent))] transition-colors" />;
   
   const mediaTypeLabel = item.contentType === 'movie' ? 'Filme' : 'Série';
 
@@ -39,7 +39,7 @@ export function HomeAniContentCard({ item, onClick }: HomeAniContentCardProps) {
           alt={`Poster de ${item.tituloOriginal}`}
           layout="fill"
           objectFit="cover"
-          className="rounded-t-lg transition-transform duration-300 group-hover:brightness-110" // Ensure top corners are rounded if global is not enough
+          className="rounded-t-lg transition-transform duration-300 group-hover:brightness-110"
           data-ai-hint={item.contentType === 'movie' ? "movie thumbnail" : "tv show thumbnail"}
         />
         {item.destaqueHome && (
@@ -54,10 +54,10 @@ export function HomeAniContentCard({ item, onClick }: HomeAniContentCardProps) {
         )}
       </div>
       <CardContent className="p-3">
-        <h3 className="text-sm font-semibold leading-tight truncate mb-0.5 group-hover:text-[hsl(var(--neon-green-accent))] transition-colors" title={item.tituloOriginal}>
+        <h3 className="text-sm font-semibold leading-snug truncate mb-1 group-hover:text-[hsl(var(--neon-green-accent))] transition-colors" title={item.tituloOriginal}>
           {item.tituloOriginal}
         </h3>
-        <div className="flex items-center text-xs text-muted-foreground">
+        <div className="flex items-center text-xs text-muted-foreground mt-1">
           {mediaTypeIcon}
           <span className="ml-1">{mediaTypeLabel}</span>
           {item.anoLancamento && <span className="ml-1.5">&bull; {item.anoLancamento}</span>}
