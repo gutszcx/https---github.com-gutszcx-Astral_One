@@ -5,8 +5,8 @@
 
 @layer base {
   :root {
-    /* Vivid Abstract Theme (Yellow, Blue, Green, Coral) */
-    --vivid-bg-blue: 220 40% 10%;
+    /* Vivid Abstract Theme (Yellow, Blue, Green, Coral) - Adjusted for Disney+ style background */
+    --vivid-bg-blue: 230 50% 12%; /* Deep, rich blue-purple for main background */
     --vivid-fg-cyan: 200 100% 95%;
     --vivid-primary-coral: 10 90% 65%;
     --vivid-primary-coral-fg: 10 50% 10%;
@@ -17,7 +17,7 @@
     --vivid-destructive-red: 0 85% 60%;
     --vivid-destructive-red-fg: 0 0% 100%;
 
-    --vivid-card-blue: 220 35% 15%;
+    --vivid-card-blue: 230 45% 18%; /* Darker, rich blue-purple for cards */
     --vivid-muted-cyan-blue: 210 30% 65%;
     --vivid-border-coral: 10 70% 50%;
     --vivid-input-green: 145 50% 40%;
@@ -63,7 +63,7 @@
     --chart-5: var(--vivid-destructive-red);
 
     /* Sidebar colors - mapped to vivid theme */
-    --sidebar-background: 220 38% 12%; 
+    --sidebar-background: 230 48% 14%; /* Adjusted sidebar background */
     --sidebar-foreground: var(--vivid-fg-cyan);
     --sidebar-primary: var(--vivid-primary-coral);
     --sidebar-primary-foreground: var(--vivid-primary-coral-fg);
