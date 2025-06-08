@@ -25,20 +25,11 @@ jobs:
       - name: Install Dependencies 👨‍💻
         run: npm ci
 
-      # Se o seu site for publicado em um subdiretório (ex: username.github.io/repo-name),
-      # você precisará definir a variável de ambiente BASE_PATH aqui e
-      # configurar basePath e assetPrefix no seu next.config.js.
-      # Exemplo:
-      # env:
-      #   BASE_PATH: /${{ github.event.repository.name }} # Ou o nome do seu subdiretório
       - name: Build PWA 🛠️
         run: npm run build
         env:
+          NEXT_PUBLIC_REPO_NAME: ${{ github.event.repository.name }}
           # Adicione aqui quaisquer outras variáveis de ambiente necessárias para o build
-          # Ex: TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
-          # Ex: GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          # Você precisará configurar esses secrets nas Configurações > Secrets and variables > Actions do seu repositório GitHub.
-          # Para variáveis públicas, você pode defini-las diretamente aqui ou usar NEXT_PUBLIC_ prefixadas.
           NEXT_PUBLIC_FIREBASE_API_KEY: ${{ vars.NEXT_PUBLIC_FIREBASE_API_KEY || secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
           NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ vars.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
           NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ vars.NEXT_PUBLIC_FIREBASE_PROJECT_ID || secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
@@ -47,11 +38,8 @@ jobs:
           NEXT_PUBLIC_FIREBASE_APP_ID: ${{ vars.NEXT_PUBLIC_FIREBASE_APP_ID || secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
           NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: ${{ vars.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || secrets.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID }}
           NEXT_PUBLIC_FIREBASE_VAPID_KEY: ${{ vars.NEXT_PUBLIC_FIREBASE_VAPID_KEY || secrets.NEXT_PUBLIC_FIREBASE_VAPID_KEY }}
-          # As chaves TMDB_API_KEY e GEMINI_API_KEY são usadas no backend (Genkit flows) e
-          # não devem ser prefixadas com NEXT_PUBLIC_. Elas devem ser configuradas como secrets.
-          # Se você não for usar os fluxos Genkit diretamente no processo de build estático
-          # (o que geralmente não acontece para gerar o frontend), você pode não precisar delas aqui.
-          # Contudo, se alguma página pré-renderizada durante o build precisar delas, configure os secrets.
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
 
       - name: Deploy to GitHub Pages 🚀
@@ -59,8 +47,6 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./out # A pasta de saída do Next.js para 'output: export'
-          # user_name: 'github-actions[bot]' # Opcional
-          # user_email: 'github-actions[bot]@users.noreply.github.com' # Opcional
           # Se você estiver usando um domínio personalizado para o GitHub Pages, adicione um arquivo CNAME
           # à raiz do seu projeto (na branch 'main') ou configure-o nas configurações do repositório.
           # cname: your.custom.domain.com
