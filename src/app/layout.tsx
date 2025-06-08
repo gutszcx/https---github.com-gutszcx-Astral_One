@@ -44,7 +44,7 @@ export default function RootLayout({
         {/* SUBSTITUA 'ca-pub-XXXXXXXXXXXXXXXX' PELO SEU ID DE EDITOR REAL QUANDO TIVER UM */}
         <Script
           async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX"
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7569595410032101"
           crossOrigin="anonymous"
           strategy="afterInteractive"
         />
