@@ -237,7 +237,7 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
       <FavoritesProvider>
         {pathname !== '/login' && <NewsBanner />}
         {pathname !== '/login' && (
-          <header className="bg-card text-card-foreground p-4 shadow-md sticky top-0 z-50 border-b border-[hsl(var(--cyberpunk-border))]">
+          <header className="bg-card text-card-foreground p-3 shadow-md sticky top-0 z-50 border-b border-[hsl(var(--cyberpunk-border))]">
             <nav className="container mx-auto flex justify-between items-center">
               <Link href="/" className="hover:opacity-80 transition-opacity">
                 <Image
