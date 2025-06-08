@@ -77,30 +77,32 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <FavoritesProvider>
-      <NewsBanner />
-      <header className="bg-card text-card-foreground p-4 shadow-md sticky top-0 z-50 border-b border-[hsl(var(--cyberpunk-border))]">
-        <nav className="container mx-auto flex justify-between items-center">
-          <Link href="/" className="text-2xl font-bold text-primary hover:text-[hsl(var(--cyberpunk-highlight))] transition-colors">
-            Astral One
-          </Link>
-          {user && ( // Only show nav links if user is authenticated
-            <div className="flex items-center space-x-4 md:space-x-6">
-              <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-                Catálogo
-              </Link>
-              <Link href="/favorites" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors flex items-center">
-                <Star className="mr-1 h-4 w-4" /> Favoritos
-              </Link>
-              <Link href="/manage" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-                Gerenciar Conteúdo
-              </Link>
-              <Button variant="ghost" size="icon" onClick={() => setIsSearchDialogOpen(true)} aria-label="Pesquisar conteúdo">
-                <SearchIcon className="h-5 w-5 text-primary hover:text-[hsl(var(--cyberpunk-highlight))]" />
-              </Button>
-            </div>
-          )}
-        </nav>
-      </header>
+      {pathname !== '/login' && <NewsBanner />}
+      {pathname !== '/login' && (
+        <header className="bg-card text-card-foreground p-4 shadow-md sticky top-0 z-50 border-b border-[hsl(var(--cyberpunk-border))]">
+          <nav className="container mx-auto flex justify-between items-center">
+            <Link href="/" className="text-2xl font-bold text-primary hover:text-[hsl(var(--cyberpunk-highlight))] transition-colors">
+              Astral One
+            </Link>
+            {user && ( // Only show nav links if user is authenticated
+              <div className="flex items-center space-x-4 md:space-x-6">
+                <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+                  Catálogo
+                </Link>
+                <Link href="/favorites" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors flex items-center">
+                  <Star className="mr-1 h-4 w-4" /> Favoritos
+                </Link>
+                <Link href="/manage" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+                  Gerenciar Conteúdo
+                </Link>
+                <Button variant="ghost" size="icon" onClick={() => setIsSearchDialogOpen(true)} aria-label="Pesquisar conteúdo">
+                  <SearchIcon className="h-5 w-5 text-primary hover:text-[hsl(var(--cyberpunk-highlight))]" />
+                </Button>
+              </div>
+            )}
+          </nav>
+        </header>
+      )}
       <main className="flex-grow">
         {children}
       </main>
