@@ -251,7 +251,7 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
           router.push('/');
           setIsShowingThemedLoader(false); 
           themedLoaderTimerId.current = null;
-        }, 15000);
+        }, 10000); // Changed from 15000 to 10000
       }
     } else {
       if (isShowingThemedLoader) {
@@ -319,9 +319,9 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
                 <Image
                   src="https://i.postimg.cc/ZKyGZfPs/Chat-GPT-Image-8-de-jun-de-2025-10-20-23.png"
                   alt="Astral One Logo"
-                  width={130}
-                  height={39}
-                  className="rounded-sm"
+                  width={100} 
+                  height={30} 
+                  className="rounded-sm" 
                   style={{ height: 'auto' }}
                   priority
                   data-ai-hint="website logo brand"
