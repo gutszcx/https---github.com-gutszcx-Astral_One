@@ -52,7 +52,7 @@ function AvatarDropdownContent() {
 
   return (
     <DropdownMenuContent className="w-72 mr-4 mt-2 p-0" align="end">
-      <div className="p-3 border-b border-[hsl(var(--prime-border))] mb-1">
+      <div className="p-3 border-b border-[hsl(var(--border))] mb-1">
         <div className="flex justify-center mb-3">
           <Image
             src="https://i.postimg.cc/ZKyGZfPs/Chat-GPT-Image-8-de-jun-de-2025-10-20-23.png"
