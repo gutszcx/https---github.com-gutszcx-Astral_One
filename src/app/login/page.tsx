@@ -69,7 +69,7 @@ export default function LoginPage() {
         <CardHeader className="text-center p-6 space-y-4">
           <div className="mx-auto">
             <Image
-              src="https://chatgpt.com/s/m_68458e10ada88191989eaf020a0bd3ea"
+              src="https://i.postimg.cc/ZKyGZfPs/Chat-GPT-Image-8-de-jun-de-2025-10-20-23.png"
               alt="Logo Astral One"
               width={200}
               height={60}

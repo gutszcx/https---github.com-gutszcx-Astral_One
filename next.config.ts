@@ -42,6 +42,12 @@ const nextConfig: NextConfig = {
         hostname: 'chatgpt.com',
         port: '',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'i.postimg.cc',
+        port: '',
+        pathname: '/**',
       }
     ],
   },
