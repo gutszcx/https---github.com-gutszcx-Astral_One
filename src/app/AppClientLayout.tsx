@@ -23,7 +23,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ScrollArea } from '@/components/ui/scroll-area'; // Import ScrollArea
+import { ScrollArea } from '@/components/ui/scroll-area'; 
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -82,8 +82,8 @@ function AvatarDropdownContent() {
         </div>
       </div>
 
-      <ScrollArea className="max-h-60 pr-1"> {/* Added ScrollArea and max-h, pr for scrollbar */}
-        <div className="px-1 py-1"> {/* Wrapper for menu items to keep p-1 consistent */}
+      <ScrollArea className="max-h-60 pr-1"> 
+        <div className="px-1 py-1"> 
           <DropdownMenuItem asChild>
             <Link href="/favorites" className="cursor-pointer">
               <Star className="mr-2 h-4 w-4" />
@@ -237,7 +237,7 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
       <FavoritesProvider>
         {pathname !== '/login' && <NewsBanner />}
         {pathname !== '/login' && (
-          <header className="bg-card text-card-foreground p-3 shadow-md sticky top-0 z-50 border-b border-[hsl(var(--cyberpunk-border))]">
+          <header className="bg-background/80 backdrop-blur-md text-card-foreground p-3 shadow-md sticky top-0 z-50 border-b border-border">
             <nav className="container mx-auto flex justify-between items-center">
               <Link href="/" className="hover:opacity-80 transition-opacity">
                 <Image

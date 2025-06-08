@@ -75,8 +75,8 @@ export function NewsBanner() {
 
   return (
     <div className={cn(
-      "w-full p-2 bg-[hsl(var(--cyberpunk-bg-lighter))] border-b border-[hsl(var(--cyberpunk-border))]",
-      "animate-in fade-in slide-in-from-top-8 duration-500 ease-out" // Animation classes added
+      "w-full p-2 bg-card border-b border-border", // Updated background and border
+      "animate-in fade-in slide-in-from-top-8 duration-500 ease-out" 
     )}>
       <Alert
         variant={variantMap[bannerMessage.type]}
@@ -113,3 +113,4 @@ export function NewsBanner() {
     </div>
   );
 }
+
