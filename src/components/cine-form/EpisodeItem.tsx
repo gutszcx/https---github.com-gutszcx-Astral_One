@@ -3,7 +3,7 @@
 'use client';
 
 import type { Control, UseFieldArrayRemove, UseFormRegister } from 'react-hook-form';
-import { useFieldArray } from 'react-hook-form';
+import { useFieldArray, useWatch } from 'react-hook-form'; // Import useWatch
 import {
   FormControl,
   FormField,
@@ -16,7 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Trash2, PlusCircle, Film, Link, Code } from 'lucide-react';
-import type { SeriesFormValues, VideoSource as VideoSourceType } from '@/lib/schemas'; // Import VideoSourceType
+import type { SeriesFormValues, VideoSource as VideoSourceType } from '@/lib/schemas';
 import { Separator } from '@/components/ui/separator';
 
 interface EpisodeItemProps {
@@ -165,10 +165,10 @@ export function EpisodeItem({ control, seasonIndex, episodeIndex, removeEpisode 
                 control={control}
                 name={`temporadas.${seasonIndex}.episodios.${episodeIndex}.videoSources.${sourceIndex}.content`}
                 render={({ field: contentField }) => {
-                  const currentSourceType = (control.getValues() as SeriesFormValues)
-                    .temporadas?.[seasonIndex]
-                    ?.episodios?.[episodeIndex]
-                    ?.videoSources?.[sourceIndex]?.sourceType;
+                  const currentSourceType = useWatch({
+                    control,
+                    name: `temporadas.${seasonIndex}.episodios.${episodeIndex}.videoSources.${sourceIndex}.sourceType`,
+                  });
                   return (
                     <FormItem>
                        <FormLabel className="text-xs">

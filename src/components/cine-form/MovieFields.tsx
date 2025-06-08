@@ -3,7 +3,7 @@
 'use client';
 
 import type { Control } from 'react-hook-form';
-import { useFieldArray } from 'react-hook-form';
+import { useFieldArray, useWatch } from 'react-hook-form'; // Import useWatch
 import {
   FormControl,
   FormDescription,
@@ -13,10 +13,10 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea'; // Added for embed code
+import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Added
-import { PlusCircle, Trash2, Film, Link, Code } from 'lucide-react'; // Added Link and Code icons
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { PlusCircle, Trash2, Film, Link, Code } from 'lucide-react';
 import type { MovieFormValues } from '@/lib/schemas';
 import { Separator } from '@/components/ui/separator';
 
@@ -106,7 +106,10 @@ export function MovieFields({ control }: MovieFieldsProps) {
                 control={control}
                 name={`videoSources.${index}.content`}
                 render={({ field: contentField }) => {
-                  const currentSourceType = (control.getValues() as MovieFormValues).videoSources?.[index]?.sourceType;
+                  const currentSourceType = useWatch({
+                    control,
+                    name: `videoSources.${index}.sourceType`,
+                  });
                   return (
                     <FormItem>
                       <FormLabel className="text-xs">
