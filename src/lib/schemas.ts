@@ -39,13 +39,6 @@ export const videoSourceSchema = z.object({
 });
 export type VideoSource = z.infer<typeof videoSourceSchema>;
 
-// EmbedUrlItem schema is no longer needed as it's merged into videoSourceSchema.
-// export const embedUrlItemSchema = z.object({
-//   id: z.string().optional(), 
-//   url: z.string().url({ message: "URL de embed inválida." }).or(z.literal('')),
-// });
-// export type EmbedUrlItem = z.infer<typeof embedUrlItemSchema>;
-
 export const episodeSchema = z.object({
   id: z.string().optional(), // for useFieldArray key
   titulo: z.string().min(1, "Título do episódio é obrigatório."),
@@ -64,6 +57,7 @@ export const seasonSchema = z.object({
 export type SeasonFormValues = z.infer<typeof seasonSchema>;
 
 export const baseContentSchema = z.object({
+  tmdbId: z.number().nullable().optional(), // Added TMDB ID
   tmdbSearchQuery: z.string().optional(),
   tituloOriginal: z.string().min(1, "Título Original é obrigatório."),
   tituloLocalizado: z.string().optional(),
@@ -80,7 +74,6 @@ export const baseContentSchema = z.object({
   tags: z.string().optional(),
   destaqueHome: z.boolean().optional().default(false),
   status: z.enum(['ativo', 'inativo']).default('ativo'),
-  // embedUrls: z.array(embedUrlItemSchema).optional().default([]), // Removed, merged into videoSources
 });
 
 export const movieSchema = baseContentSchema.extend({
@@ -105,6 +98,7 @@ export type CineFormValues = z.infer<typeof cineFormSchema>;
 
 export const defaultMovieValues: MovieFormValues = {
   contentType: 'movie',
+  tmdbId: null,
   tmdbSearchQuery: '',
   tituloOriginal: '',
   tituloLocalizado: '',
@@ -121,13 +115,13 @@ export const defaultMovieValues: MovieFormValues = {
   tags: '',
   destaqueHome: false,
   status: 'ativo',
-  // embedUrls: [], // Removed
   videoSources: [],
   linkLegendas: '',
 };
 
 export const defaultSeriesValues: SeriesFormValues = {
   contentType: 'series',
+  tmdbId: null,
   tmdbSearchQuery: '',
   tituloOriginal: '',
   tituloLocalizado: '',
@@ -144,7 +138,6 @@ export const defaultSeriesValues: SeriesFormValues = {
   tags: '',
   destaqueHome: false,
   status: 'ativo',
-  // embedUrls: [], // Removed
   totalTemporadas: 1,
   temporadas: [{ numeroTemporada: 1, episodios: [{ titulo: '', videoSources: [], linkLegenda: ''}] }],
 };
@@ -164,3 +157,4 @@ export const adminFeedbackResponseSchema = z.object({
   status: z.enum(FEEDBACK_STATUSES),
 });
 export type AdminFeedbackResponseFormValues = z.infer<typeof adminFeedbackResponseSchema>;
+

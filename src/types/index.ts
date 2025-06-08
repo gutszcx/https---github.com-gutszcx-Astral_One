@@ -28,6 +28,7 @@ export interface Season {
 // Base structure for all stored items
 interface StoredBaseCineItem {
   id: string;
+  tmdbId: number | null; // Added TMDB ID
   tmdbSearchQuery: string;
   tituloOriginal: string;
   tituloLocalizado: string;
@@ -118,3 +119,18 @@ export interface UserFeedbackItem {
   submittedAt: string; // ISO string date
   respondedAt?: string; // ISO string date
 }
+
+// Type for Anime Calendar
+export interface UpcomingTmdbEpisodeInfo {
+  seriesTmdbId: number;
+  seriesTitle: string;
+  posterUrl: string; // Full URL
+  episodeNumber: number;
+  seasonNumber: number;
+  airDate: string; // YYYY-MM-DD
+  episodeName: string;
+  episodeOverview: string;
+  seriesOverview: string;
+}
+export type FetchUpcomingAnimeEpisodesOutput = UpcomingTmdbEpisodeInfo[];
+

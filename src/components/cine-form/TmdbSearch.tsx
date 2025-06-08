@@ -58,7 +58,7 @@ export function TmdbSearch({ form, contentType }: TmdbSearchProps) {
     setIsFetchingDetails(true);
     try {
       const detailedData = await fetchTmdbContentDetails({ id, mediaType });
-      updateFormFields(detailedData);
+      updateFormFields(detailedData); // detailedData includes tmdbId from the flow
       toast({ title: "Dados Preenchidos", description: `Dados de "${detailedData.title}" foram carregados no formulário.` });
       setSearchResults([]); // Clear results after selection
     } catch (error) {
@@ -70,6 +70,7 @@ export function TmdbSearch({ form, contentType }: TmdbSearchProps) {
   };
 
   const updateFormFields = (data: TmdbDetailedContentOutput) => {
+    form.setValue('tmdbId', data.tmdbId, { shouldValidate: true }); // Set tmdbId
     form.setValue('tituloOriginal', data.title, { shouldValidate: true });
     form.setValue('sinopse', data.synopsis, { shouldValidate: true });
     form.setValue('generos', data.genres.join(', '), { shouldValidate: true });
@@ -89,8 +90,6 @@ export function TmdbSearch({ form, contentType }: TmdbSearchProps) {
       form.setValue('duracaoMedia', null);
     }
 
-    // Check if the content type derived from TMDB matches the form's current content type
-    // This is important if the user searched for a series name while "Movie" type is selected, or vice-versa.
     const tmdbMediaType = data.numberOfSeasons !== undefined ? 'series' : 'movie';
 
     if (form.getValues('contentType') === 'series' && tmdbMediaType === 'series' && data.numberOfSeasons) {
@@ -110,10 +109,8 @@ export function TmdbSearch({ form, contentType }: TmdbSearchProps) {
             variant: "default",
             duration: 7000,
         })
-        // Still populate common fields even if type mismatches
          if (tmdbMediaType === 'series' && data.numberOfSeasons) {
             (form.setValue as UseFormReturn<CineFormValues>['setValue'])('duracaoMedia', data.duration || null, { shouldValidate: true });
-            // We don't set totalTemporadas if the form is for 'movie'
          }
     }
   };
@@ -177,3 +174,4 @@ export function TmdbSearch({ form, contentType }: TmdbSearchProps) {
     </div>
   );
 }
+

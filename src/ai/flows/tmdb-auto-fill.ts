@@ -48,6 +48,7 @@ const TmdbFetchDetailsInputSchema = z.object({
 export type TmdbFetchDetailsInput = z.infer<typeof TmdbFetchDetailsInputSchema>;
 
 const TmdbDetailedContentOutputSchema = z.object({
+  tmdbId: z.number().describe('The TMDB ID of the content.'), // Added tmdbId
   title: z.string().describe('The title of the content.'),
   synopsis: z.string().describe('The synopsis of the content.'),
   genres: z.array(z.string()).describe('The genres of the content.'),
@@ -179,6 +180,7 @@ async function _fetchTmdbContentDetailsInternal(input: TmdbFetchDetailsInput): P
                      (detailsData.genre_ids?.map((gid: number) => currentGenreMap.get(gid)).filter(Boolean) as string[] ?? []);
 
   let output: TmdbDetailedContentOutput = {
+    tmdbId: detailsData.id, // Ensure tmdbId is populated from the response
     title: detailsData.title || detailsData.name || 'N/A',
     synopsis: detailsData.overview || '',
     genres: genreNames,
@@ -241,3 +243,4 @@ const tmdbFetchDetailsFlow = ai.defineFlow(
     }
   }
 );
+

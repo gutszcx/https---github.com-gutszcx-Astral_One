@@ -80,6 +80,7 @@ function mapDocToStoredCineItem(document: { data: () => any; id: string }): Stor
 
     const baseMappedItem = {
         id: document.id,
+        tmdbId: (data.tmdbId !== undefined && !isNaN(Number(data.tmdbId))) ? Number(data.tmdbId) : null, // Map tmdbId
         tmdbSearchQuery: typeof data.tmdbSearchQuery === 'string' ? data.tmdbSearchQuery : '',
         tituloOriginal: typeof data.tituloOriginal === 'string' ? data.tituloOriginal : '',
         tituloLocalizado: typeof data.tituloLocalizado === 'string' ? data.tituloLocalizado : '',
@@ -96,7 +97,6 @@ function mapDocToStoredCineItem(document: { data: () => any; id: string }): Stor
         tags: typeof data.tags === 'string' ? data.tags : '',
         destaqueHome: typeof data.destaqueHome === 'boolean' ? data.destaqueHome : false,
         status: (data.status === 'ativo' || data.status === 'inativo') ? data.status : 'ativo',
-        // embedUrls field removed from here
         createdAt: createdAtISO,
         updatedAt: updatedAtISO,
     };
@@ -105,7 +105,7 @@ function mapDocToStoredCineItem(document: { data: () => any; id: string }): Stor
         return {
             ...baseMappedItem,
             contentType: 'movie',
-            videoSources: mapVideoSources(data.videoSources), // Uses updated mapVideoSources
+            videoSources: mapVideoSources(data.videoSources), 
             linkLegendas: typeof data.linkLegendas === 'string' ? data.linkLegendas : '',
         } as StoredMovieItem;
     } else if (data.contentType === 'series') {
@@ -113,7 +113,7 @@ function mapDocToStoredCineItem(document: { data: () => any; id: string }): Stor
             ...baseMappedItem,
             contentType: 'series',
             totalTemporadas: (data.totalTemporadas !== undefined && data.totalTemporadas !== null && !isNaN(Number(data.totalTemporadas))) ? Number(data.totalTemporadas) : null,
-            temporadas: mapSeasons(data.temporadas), // mapSeasons internally uses updated mapEpisodes -> mapVideoSources
+            temporadas: mapSeasons(data.temporadas), 
         } as StoredSeriesItem;
     }
 
@@ -130,8 +130,8 @@ function mapDocToStoredCineItem(document: { data: () => any; id: string }): Stor
 export async function addContentItem(itemData: CineFormValues): Promise<string> {
   try {
     const { createdAt, updatedAt, ...dataToSend } = itemData as any;
+    dataToSend.tmdbId = itemData.tmdbId || null; // Ensure tmdbId is included
 
-    // Ensure videoSources are correctly structured
     if (dataToSend.videoSources && Array.isArray(dataToSend.videoSources)) {
       dataToSend.videoSources = dataToSend.videoSources.map((vs: any) => ({
         serverName: vs.serverName || '',
@@ -159,15 +159,6 @@ export async function addContentItem(itemData: CineFormValues): Promise<string> 
       updatedAt: serverTimestamp(),
     });
     
-    // Placeholder: Logic to trigger notifications for new series episodes would go here.
-    // This typically involves checking if itemData.contentType === 'series' and if
-    // new episodes were added compared to a previous state (if updating).
-    // Then, fetch relevant user push tokens and send notifications via FCM Admin SDK.
-    // This requires server-side logic (e.g., Firebase Functions).
-    // Example: if (itemData.contentType === 'series' && detectNewEpisodes(itemData, null)) {
-    //   await sendNewEpisodeNotifications(docRef.id, itemData.tituloOriginal);
-    // }
-
     return docRef.id;
   } catch (error) {
     console.error("Error adding document: ", error);
@@ -205,11 +196,10 @@ export async function getContentItemById(id: string): Promise<StoredCineItem | n
 export async function updateContentItem(id: string, itemData: CineFormValues): Promise<void> {
   try {
     const docRef = doc(db, CONTENT_COLLECTION, id);
-    // const existingItem = await getContentItemById(id); // To compare for new episodes
 
     const { createdAt, updatedAt, ...dataToUpdate } = itemData as any;
+    dataToUpdate.tmdbId = itemData.tmdbId || null; // Ensure tmdbId is included
 
-    // Ensure videoSources are correctly structured
     if (dataToUpdate.videoSources && Array.isArray(dataToUpdate.videoSources)) {
       dataToUpdate.videoSources = dataToUpdate.videoSources.map((vs: any) => ({
         serverName: vs.serverName || '',
@@ -236,15 +226,6 @@ export async function updateContentItem(id: string, itemData: CineFormValues): P
       ...dataToUpdate,
       updatedAt: serverTimestamp(),
     });
-
-    // Placeholder: Logic to trigger notifications for new series episodes would go here.
-    // This typically involves checking if itemData.contentType === 'series' and if
-    // new episodes were added compared to the 'existingItem' state.
-    // Then, fetch relevant user push tokens and send notifications via FCM Admin SDK.
-    // This requires server-side logic (e.g., Firebase Functions).
-    // Example: if (itemData.contentType === 'series' && detectNewEpisodes(itemData, existingItem)) {
-    //  await sendNewEpisodeNotifications(id, itemData.tituloOriginal);
-    // }
 
   } catch (error) {
     console.error("Error updating document: ", error);
@@ -382,13 +363,11 @@ export async function updateFeedbackItemAdmin(feedbackId: string, updates: { adm
 // Push Notification Token Management
 export async function saveUserPushToken(userId: string, token: string): Promise<void> {
   try {
-    // Check if the token already exists for this user to avoid duplicates
     const tokensRef = collection(db, USER_PUSH_TOKENS_COLLECTION);
     const q = query(tokensRef, where("userId", "==", userId), where("token", "==", token));
     const querySnapshot = await getDocs(q);
 
     if (querySnapshot.empty) {
-      // Token does not exist for this user, add it
       await addDoc(tokensRef, {
         userId,
         token,
@@ -396,9 +375,7 @@ export async function saveUserPushToken(userId: string, token: string): Promise<
       });
       console.log("Push token saved for user:", userId);
     } else {
-      // Token already exists, maybe update timestamp or do nothing
       console.log("Push token already exists for user:", userId);
-      // Optionally, update a 'lastSeenAt' field on the existing token document
       querySnapshot.forEach(async (docSnap) => {
         await updateDoc(doc(db, USER_PUSH_TOKENS_COLLECTION, docSnap.id), {
           updatedAt: serverTimestamp() 
@@ -407,7 +384,6 @@ export async function saveUserPushToken(userId: string, token: string): Promise<
     }
   } catch (error) {
     console.error("Error saving user push token: ", error);
-    // Not throwing error to client, but logging it
   }
 }
 
@@ -425,7 +401,6 @@ export async function deleteUserPushToken(token: string): Promise<void> {
     console.log("Push token deleted:", token);
   } catch (error) {
     console.error("Error deleting user push token: ", error);
-    // Not throwing error to client
   }
 }
 

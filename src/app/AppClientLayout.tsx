@@ -7,7 +7,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { HomeAniDetailModal } from '@/components/homeani/HomeAniDetailModal';
 import { useModal } from '@/contexts/ModalContext';
 import { Button } from '@/components/ui/button';
-import { Search as SearchIcon, Star, Loader2, User as UserIcon, LogOut, UserCircle, CalendarDays, History as HistoryIcon, ExternalLink, PlayCircle, LayoutDashboard, Settings, Sun, Moon } from 'lucide-react'; // Added Sun, Moon
+import { Search as SearchIcon, Star, Loader2, User as UserIcon, LogOut, UserCircle, CalendarDays, History as HistoryIcon, ExternalLink, PlayCircle, LayoutDashboard, Settings, Sun, Moon, Calendar as CalendarLucideIcon } from 'lucide-react'; // Added Sun, Moon, CalendarLucideIcon
 import { useState, useEffect } from 'react';
 import { SearchDialog } from '@/components/SearchDialog';
 import { NewsBanner } from '@/components/layout/NewsBanner';
@@ -46,9 +46,11 @@ function AvatarDropdownContent() {
   const getDisplayedTitle = (item: ContinueWatchingItem) => {
     if (item.contentType === 'series' && item._playActionData) {
       const season = (item as any).temporadas?.find((s: any) => s.numeroTemporada === item._playActionData!.seasonNumber);
-      const episode = season?.episodios?.[item._playActionData!.episodeIndex];
+      // Ensure episodeIndex is valid
+      const episodeIndex = item._playActionData!.episodeIndex;
+      const episode = season?.episodios?.[episodeIndex];
       if (episode) {
-        return item.tituloOriginal + " - T" + season.numeroTemporada + "E" + (item._playActionData.episodeIndex + 1) + ": " + episode.titulo;
+        return item.tituloOriginal + " - T" + season.numeroTemporada + "E" + (episodeIndex + 1) + ": " + episode.titulo;
       }
     }
     return item.tituloOriginal;
@@ -86,7 +88,7 @@ function AvatarDropdownContent() {
         </div>
       </div>
 
-      <ScrollArea className="max-h-72 pr-1"> {/* Increased max-h slightly for new item */}
+      <ScrollArea className="max-h-72 pr-1"> 
         <div className="px-1 py-1">
           <DropdownMenuItem asChild>
             <Link href="/favorites" className="cursor-pointer">
@@ -94,8 +96,14 @@ function AvatarDropdownContent() {
               <span>Meus Favoritos</span>
             </Link>
           </DropdownMenuItem>
+
+          <DropdownMenuItem asChild>
+            <Link href="/anime-calendar" className="cursor-pointer">
+              <CalendarLucideIcon className="mr-2 h-4 w-4" />
+              <span>Calendário Anime</span>
+            </Link>
+          </DropdownMenuItem>
           
-          {/* Theme Toggle Item */}
           <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="focus:bg-transparent cursor-default !px-1">
             <div className="flex items-center justify-between w-full">
               <div className='flex items-center'>
@@ -139,9 +147,9 @@ function AvatarDropdownContent() {
                     <Image
                       src={mostRecentItem.capaPoster || `https://placehold.co/80x120.png?text=${encodeURIComponent(mostRecentItem.tituloOriginal.substring(0,1))}`}
                       alt={`Poster de ${getDisplayedTitle(mostRecentItem)}`}
-                      layout="fill"
-                      objectFit="cover"
-                      className="group-hover:scale-105 transition-transform duration-200"
+                      fill // Changed from layout="fill" objectFit="cover"
+                      sizes="(max-width: 768px) 10vw, 5vw"
+                      className="object-cover group-hover:scale-105 transition-transform duration-200"
                       data-ai-hint={mostRecentItem.contentType === "movie" ? "movie poster small" : "tv show poster small"}
                     />
                   </div>
@@ -189,22 +197,14 @@ function useUserAuth() {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
-        // Initialize Firebase Messaging for the logged-in user
         initializeFirebaseMessaging(currentUser, toast);
-      } else {
-        // User logged out, consider deleting their token if desired,
-        // or let it expire/be cleaned up by backend logic on send failure.
-        // For explicit client-side initiated "unsubscribe", you might call:
-        // deleteCurrentToken(); 
-      }
+      } 
     });
     return () => unsubscribe();
-  }, [auth, toast]); // Added toast to dependencies
+  }, [auth, toast]); 
 
   const handleSignOut = async () => {
     try {
-      // Optionally, delete the user's push token from your server before signing out
-      // await deleteCurrentToken(); // If you want to remove token on sign-out
       await signOut(auth);
       toast({ title: "Deslogado com Sucesso!", description: "Você foi desconectado." });
       router.push('/login');
@@ -226,8 +226,8 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useUserAuth();
-   const { theme } = useTheme(); // Access theme for potential body class (already handled by ThemeProvider)
-   const { toast } = useToast(); // Get toast for FCM init
+   const { theme } = useTheme(); 
+   const { toast } = useToast(); 
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
