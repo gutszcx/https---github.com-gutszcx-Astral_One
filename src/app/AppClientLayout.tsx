@@ -89,8 +89,8 @@ function AvatarDropdownContent() {
         </div>
       </div>
 
-      <ScrollArea className="max-h-96">
-        <div className="px-1 py-1">
+      <ScrollArea className="max-h-96 py-1">
+        <div className="px-1">
           <DropdownMenuItem asChild>
             <Link href="/favorites" className="cursor-pointer">
               <Star className="mr-2 h-4 w-4" />
@@ -251,7 +251,7 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
           router.push('/');
           setIsShowingThemedLoader(false); 
           themedLoaderTimerId.current = null;
-        }, 15000); // Changed to 15000ms for 15 seconds
+        }, 15000);
       }
     } else {
       if (isShowingThemedLoader) {

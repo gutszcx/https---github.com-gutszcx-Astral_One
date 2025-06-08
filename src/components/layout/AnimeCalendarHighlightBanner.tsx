@@ -1,4 +1,3 @@
-
 // src/components/layout/AnimeCalendarHighlightBanner.tsx
 'use client';
 
@@ -71,7 +70,6 @@ export function AnimeCalendarHighlightBanner() {
 
   return (
     <div className="bg-card/90 backdrop-blur-md border-b border-border shadow-sm py-2.5 px-4 w-full sticky top-[47px] z-40">
-      {/* Header height assumed to be 47px. This is based on p-1 (8px) + logo height (39px) = 47px. */}
       <div className="container mx-auto flex flex-col sm:flex-row items-center justify-between text-sm">
         <div className="flex items-center mb-2 sm:mb-0 text-left">
           <CalendarDays className="h-5 w-5 sm:h-6 sm:w-6 mr-2 sm:mr-3 text-primary flex-shrink-0" />
