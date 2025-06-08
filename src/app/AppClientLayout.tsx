@@ -235,9 +235,9 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
     <RecentActivityProvider>
       <FavoritesProvider>
         {pathname !== '/login' && (
-          <header className="bg-background/80 backdrop-blur-md text-card-foreground p-3 shadow-md sticky top-0 z-50 border-b border-border">
-            
-            <nav className="container mx-auto flex justify-between items-center">
+          <header className="bg-background/80 backdrop-blur-md text-card-foreground shadow-md sticky top-0 z-50 border-b border-border">
+            {pathname !== '/manage' && <NewsBanner />}
+            <nav className="container mx-auto flex justify-between items-center p-1">
               <Link href="/" className="hover:opacity-80 transition-opacity">
                 <Image
                   src="https://i.postimg.cc/ZKyGZfPs/Chat-GPT-Image-8-de-jun-de-2025-10-20-23.png"
@@ -268,7 +268,7 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
                       </Button>
                     </>
                   )}
-                  <Button variant="ghost" size="sm" onClick={() => setIsSearchDialogOpen(true)} aria-label="Pesquisar conteúdo">
+                  <Button variant="ghost" size="sm" onClick={() => setIsSearchDialogOpen(true)} aria-label="Pesquisar conteúdo" className="flex items-center">
                     <SearchIcon className="h-5 w-5 text-primary mr-1 sm:mr-1.5" />
                     <span className="hidden sm:inline">Pesquisar</span>
                   </Button>
@@ -307,7 +307,7 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
         <main className="flex-grow">
           {children}
         </main>
-        {pathname !== '/manage' && <NewsBanner />}
+        
         <Toaster />
         <HomeAniDetailModal
           item={selectedItem}
