@@ -143,12 +143,23 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
                       </AvatarFallback>
                     </Avatar>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-56 mr-4 mt-2" align="end">
-                    <DropdownMenuLabel className="flex items-center">
-                      <UserCircle className="mr-2 h-4 w-4" />
-                      {user.displayName || user.email || "Usuário"}
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
+                  <DropdownMenuContent className="w-64 mr-4 mt-2" align="end">
+                    <div className="flex flex-col items-center p-3 border-b border-[hsl(var(--cyberpunk-border))] mb-1">
+                      <Avatar className="h-16 w-16 mb-2">
+                        {user.photoURL ? (
+                          <AvatarImage src={user.photoURL} alt={user.displayName || 'User avatar'} />
+                        ) : null}
+                        <AvatarFallback>
+                          {user.displayName ? (
+                            user.displayName.substring(0, 2).toUpperCase()
+                          ) : (
+                            <UserIcon className="h-8 w-8" />
+                          )}
+                        </AvatarFallback>
+                      </Avatar>
+                      <p className="font-semibold text-foreground text-center">{user.displayName || "Usuário"}</p>
+                      {user.email && <p className="text-xs text-muted-foreground text-center">{user.email}</p>}
+                    </div>
                     <DropdownMenuItem asChild>
                       <Link href="/favorites" className="cursor-pointer">
                         <Star className="mr-2 h-4 w-4" />
