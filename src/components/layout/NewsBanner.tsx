@@ -76,7 +76,7 @@ export function NewsBanner() {
 
   return (
     <div className={cn(
-      "w-full p-2 bg-card border-b border-border", 
+      "w-full p-2 bg-card", // Removed border-b border-border
       "animate-in fade-in slide-in-from-top-8 duration-500 ease-out" 
     )}>
       <Alert

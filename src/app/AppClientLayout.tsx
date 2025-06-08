@@ -28,7 +28,6 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { RecentActivityProvider, useRecentActivity } from '@/contexts/RecentActivityContext';
-import { cn } from '@/lib/utils';
 import type { ContinueWatchingItem } from '@/types';
 
 
@@ -235,9 +234,9 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
   return (
     <RecentActivityProvider>
       <FavoritesProvider>
-        {pathname !== '/login' && <NewsBanner />}
         {pathname !== '/login' && (
           <header className="bg-background/80 backdrop-blur-md text-card-foreground p-3 shadow-md sticky top-0 z-50 border-b border-border">
+            <NewsBanner />
             <nav className="container mx-auto flex justify-between items-center">
               <Link href="/" className="hover:opacity-80 transition-opacity">
                 <Image
@@ -312,4 +311,3 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
     </RecentActivityProvider>
   );
 }
-
