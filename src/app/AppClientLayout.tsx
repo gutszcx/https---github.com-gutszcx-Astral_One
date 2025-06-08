@@ -23,7 +23,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ScrollArea } from '@/components/ui/scroll-area'; 
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -52,7 +52,7 @@ function AvatarDropdownContent() {
 
   return (
     <DropdownMenuContent className="w-72 mr-4 mt-2 p-0" align="end">
-      <div className="p-3 border-b border-[hsl(var(--cyberpunk-border))] mb-1">
+      <div className="p-3 border-b border-[hsl(var(--prime-border))] mb-1">
         <div className="flex justify-center mb-3">
           <Image
             src="https://i.postimg.cc/ZKyGZfPs/Chat-GPT-Image-8-de-jun-de-2025-10-20-23.png"
@@ -82,8 +82,8 @@ function AvatarDropdownContent() {
         </div>
       </div>
 
-      <ScrollArea className="max-h-60 pr-1"> 
-        <div className="px-1 py-1"> 
+      <ScrollArea className="max-h-60 pr-1">
+        <div className="px-1 py-1">
           <DropdownMenuItem asChild>
             <Link href="/favorites" className="cursor-pointer">
               <Star className="mr-2 h-4 w-4" />
@@ -180,7 +180,7 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
   const { selectedItem, isModalOpen, closeModal, initialModalAction, onInitialActionConsumed } = useModal();
   const [isSearchDialogOpen, setIsSearchDialogOpen] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
-  
+
   const auth = getAuth(app);
   const router = useRouter();
   const pathname = usePathname();
@@ -252,18 +252,14 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
                 />
               </Link>
               {user && (
-                <div className="flex items-center space-x-2 md:space-x-4">
-                  <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors hidden sm:inline-block">
-                    Catálogo
-                  </Link>
-                  <Link href="/favorites" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors flex items-center">
-                    <Star className="mr-1 h-4 w-4" /> <span className="hidden sm:inline-block">Favoritos</span>
-                  </Link>
-                  <Link href="/manage" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors hidden sm:inline-block">
-                    Gerenciar
-                  </Link>
+                <div className="flex items-center space-x-1 md:space-x-2">
+                  <Button variant="ghost" size="icon" asChild>
+                    <Link href="/favorites" aria-label="Favoritos">
+                      <Star className="h-5 w-5 text-primary hover:text-accent" />
+                    </Link>
+                  </Button>
                   <Button variant="ghost" size="icon" onClick={() => setIsSearchDialogOpen(true)} aria-label="Pesquisar conteúdo">
-                    <SearchIcon className="h-5 w-5 text-primary hover:text-[hsl(var(--cyberpunk-highlight))]" />
+                    <SearchIcon className="h-5 w-5 text-primary hover:text-accent" />
                   </Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
