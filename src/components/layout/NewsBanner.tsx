@@ -2,7 +2,7 @@
 // src/components/layout/NewsBanner.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { getNewsBannerMessage } from '@/lib/firebaseService';
@@ -38,7 +38,7 @@ const colorClasses: Record<NewsBannerMessageType, string> = {
 
 
 export function NewsBanner() {
-  const [isVisible, setIsVisible] = useState(true);
+  const [isVisible, setIsVisible] = useState(false); // Start as false
   const { data: bannerMessage, isLoading } = useQuery<NewsBannerMessage | null>({
     queryKey: ['newsBannerClient'], 
     queryFn: getNewsBannerMessage,
@@ -46,16 +46,7 @@ export function NewsBanner() {
     staleTime: 5 * 60 * 1000, 
   });
 
-  useEffect(() => {
-    if (bannerMessage?.isActive) {
-      const dismissedMessage = sessionStorage.getItem('dismissedNewsBannerMessage');
-      if (dismissedMessage !== bannerMessage.message || !sessionStorage.getItem(`dismissedNewsBannerTime-${bannerMessage.updatedAt}`)) {
-        setIsVisible(true);
-      }
-    }
-  }, [bannerMessage]);
-
-  const handleDismiss = () => {
+  const handleDismiss = useCallback(() => {
     setIsVisible(false);
     if (bannerMessage?.message) {
       sessionStorage.setItem('dismissedNewsBannerMessage', bannerMessage.message);
@@ -63,7 +54,39 @@ export function NewsBanner() {
         sessionStorage.setItem(`dismissedNewsBannerTime-${bannerMessage.updatedAt}`, 'true');
       }
     }
-  };
+  }, [bannerMessage]);
+
+  useEffect(() => {
+    if (bannerMessage?.isActive) {
+      const dismissedMessage = sessionStorage.getItem('dismissedNewsBannerMessage');
+      const dismissedTimeKey = `dismissedNewsBannerTime-${bannerMessage.updatedAt}`;
+      const hasBeenDismissedForThisVersion = sessionStorage.getItem(dismissedTimeKey);
+
+      if (dismissedMessage !== bannerMessage.message || !hasBeenDismissedForThisVersion) {
+        setIsVisible(true);
+      } else {
+        setIsVisible(false);
+      }
+    } else {
+      setIsVisible(false); // If banner is not active in DB, ensure it's not visible
+    }
+  }, [bannerMessage]);
+
+  useEffect(() => {
+    let timerId: NodeJS.Timeout | null = null;
+
+    if (isVisible && bannerMessage?.isActive) {
+      timerId = setTimeout(() => {
+        handleDismiss();
+      }, 5000); // 5 seconds
+    }
+
+    return () => {
+      if (timerId) {
+        clearTimeout(timerId);
+      }
+    };
+  }, [isVisible, bannerMessage, handleDismiss]);
 
   if (isLoading || !bannerMessage || !bannerMessage.isActive || !bannerMessage.message || !isVisible) {
     return null;
@@ -79,7 +102,7 @@ export function NewsBanner() {
       <Alert
         variant={variantMap[bannerMessage.type]}
         className={cn(
-          "relative items-center", // Removed container mx-auto
+          "relative items-center",
           colorClasses[bannerMessage.type]
         )}
       >
