@@ -1,6 +1,11 @@
+
 // src/lib/firebase.ts
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth'; // Import getAuth
+// Firebase Messaging needs to be imported for side effects if you use it directly on client,
+// but usually it's initialized in a dedicated messaging file.
+// import 'firebase/messaging'; 
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -21,6 +26,7 @@ if (!getApps().length) {
 }
 
 const db = getFirestore(app);
+const auth = getAuth(app); // Initialize Auth
 
 // Export the app instance, and other initialized services as needed
-export { app, db };
+export { app, db, auth };

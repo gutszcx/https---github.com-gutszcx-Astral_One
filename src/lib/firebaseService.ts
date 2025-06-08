@@ -3,7 +3,7 @@
 'use server';
 
 import { db } from './firebase';
-import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, getDoc, serverTimestamp, query, orderBy, Timestamp, setDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, getDoc, serverTimestamp, query, orderBy, Timestamp, setDoc, where, writeBatch } from 'firebase/firestore';
 import type { CineFormValues, VideoSource as FormVideoSource, EpisodeFormValues, SeasonFormValues } from './schemas';
 import type { StoredCineItem, StoredMovieItem, StoredSeriesItem, VideoSource as StoredVideoSource, Episode, Season, NewsBannerMessage, UserFeedbackItem, FeedbackStatus } from '@/types';
 
@@ -11,6 +11,7 @@ const CONTENT_COLLECTION = 'contentItems';
 const SITE_CONFIGURATION_COLLECTION = 'siteConfiguration';
 const NEWS_BANNER_DOC_ID = 'newsBannerControls';
 const FEEDBACK_COLLECTION = 'feedbackItems';
+const USER_PUSH_TOKENS_COLLECTION = 'userPushTokens';
 
 
 // Helper to safely map video sources, ensuring all fields are present or defaulted
@@ -116,7 +117,7 @@ function mapDocToStoredCineItem(document: { data: () => any; id: string }): Stor
         } as StoredSeriesItem;
     }
 
-    console.warn(`Unknown or missing content type for document ID: ${document.id}. Data:`, data);
+    console.warn(\`Unknown or missing content type for document ID: \${document.id}. Data:\`, data);
     return {
         ...baseMappedItem,
         contentType: 'movie', 
@@ -157,6 +158,16 @@ export async function addContentItem(itemData: CineFormValues): Promise<string> 
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
+    
+    // Placeholder: Logic to trigger notifications for new series episodes would go here.
+    // This typically involves checking if itemData.contentType === 'series' and if
+    // new episodes were added compared to a previous state (if updating).
+    // Then, fetch relevant user push tokens and send notifications via FCM Admin SDK.
+    // This requires server-side logic (e.g., Firebase Functions).
+    // Example: if (itemData.contentType === 'series' && detectNewEpisodes(itemData, null)) {
+    //   await sendNewEpisodeNotifications(docRef.id, itemData.tituloOriginal);
+    // }
+
     return docRef.id;
   } catch (error) {
     console.error("Error adding document: ", error);
@@ -194,6 +205,8 @@ export async function getContentItemById(id: string): Promise<StoredCineItem | n
 export async function updateContentItem(id: string, itemData: CineFormValues): Promise<void> {
   try {
     const docRef = doc(db, CONTENT_COLLECTION, id);
+    // const existingItem = await getContentItemById(id); // To compare for new episodes
+
     const { createdAt, updatedAt, ...dataToUpdate } = itemData as any;
 
     // Ensure videoSources are correctly structured
@@ -223,6 +236,16 @@ export async function updateContentItem(id: string, itemData: CineFormValues): P
       ...dataToUpdate,
       updatedAt: serverTimestamp(),
     });
+
+    // Placeholder: Logic to trigger notifications for new series episodes would go here.
+    // This typically involves checking if itemData.contentType === 'series' and if
+    // new episodes were added compared to the 'existingItem' state.
+    // Then, fetch relevant user push tokens and send notifications via FCM Admin SDK.
+    // This requires server-side logic (e.g., Firebase Functions).
+    // Example: if (itemData.contentType === 'series' && detectNewEpisodes(itemData, existingItem)) {
+    //  await sendNewEpisodeNotifications(id, itemData.tituloOriginal);
+    // }
+
   } catch (error) {
     console.error("Error updating document: ", error);
     throw new Error("Failed to update content item.");
@@ -352,5 +375,56 @@ export async function updateFeedbackItemAdmin(feedbackId: string, updates: { adm
   } catch (error) {
     console.error("Error updating feedback item: ", error);
     throw new Error("Failed to update feedback item.");
+  }
+}
+
+
+// Push Notification Token Management
+export async function saveUserPushToken(userId: string, token: string): Promise<void> {
+  try {
+    // Check if the token already exists for this user to avoid duplicates
+    const tokensRef = collection(db, USER_PUSH_TOKENS_COLLECTION);
+    const q = query(tokensRef, where("userId", "==", userId), where("token", "==", token));
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) {
+      // Token does not exist for this user, add it
+      await addDoc(tokensRef, {
+        userId,
+        token,
+        createdAt: serverTimestamp(),
+      });
+      console.log("Push token saved for user:", userId);
+    } else {
+      // Token already exists, maybe update timestamp or do nothing
+      console.log("Push token already exists for user:", userId);
+      // Optionally, update a 'lastSeenAt' field on the existing token document
+      querySnapshot.forEach(async (docSnap) => {
+        await updateDoc(doc(db, USER_PUSH_TOKENS_COLLECTION, docSnap.id), {
+          updatedAt: serverTimestamp() 
+        });
+      });
+    }
+  } catch (error) {
+    console.error("Error saving user push token: ", error);
+    // Not throwing error to client, but logging it
+  }
+}
+
+export async function deleteUserPushToken(token: string): Promise<void> {
+  try {
+    const tokensRef = collection(db, USER_PUSH_TOKENS_COLLECTION);
+    const q = query(tokensRef, where("token", "==", token));
+    const querySnapshot = await getDocs(q);
+    
+    const batch = writeBatch(db);
+    querySnapshot.forEach(docSnap => {
+      batch.delete(docSnap.ref);
+    });
+    await batch.commit();
+    console.log("Push token deleted:", token);
+  } catch (error) {
+    console.error("Error deleting user push token: ", error);
+    // Not throwing error to client
   }
 }

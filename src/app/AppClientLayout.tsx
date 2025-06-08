@@ -32,6 +32,7 @@ import { useToast } from '@/hooks/use-toast';
 import { RecentActivityProvider, useRecentActivity } from '@/contexts/RecentActivityContext';
 import type { ContinueWatchingItem } from '@/types';
 import { useTheme } from '@/contexts/ThemeContext'; // Import useTheme
+import { initializeFirebaseMessaging, deleteCurrentToken } from '@/lib/firebaseMessaging'; // Import FCM functions
 
 
 function AvatarDropdownContent() {
@@ -47,7 +48,7 @@ function AvatarDropdownContent() {
       const season = (item as any).temporadas?.find((s: any) => s.numeroTemporada === item._playActionData!.seasonNumber);
       const episode = season?.episodios?.[item._playActionData!.episodeIndex];
       if (episode) {
-        return `${item.tituloOriginal} - T${season.numeroTemporada}E${item._playActionData.episodeIndex + 1}: ${episode.titulo}`;
+        return \`\${item.tituloOriginal} - T\${season.numeroTemporada}E\${item._playActionData.episodeIndex + 1}: \${episode.titulo}\`;
       }
     }
     return item.tituloOriginal;
@@ -112,13 +113,12 @@ function AvatarDropdownContent() {
             </div>
           </DropdownMenuItem>
           
-          {/* Removed direct link to /settings, can be re-added if a settings page is needed later */}
-          {/* <DropdownMenuItem asChild>
+          <DropdownMenuItem asChild>
             <Link href="/settings" className="cursor-pointer">
               <Settings className="mr-2 h-4 w-4" />
               <span>Configurações</span>
             </Link>
-          </DropdownMenuItem> */}
+          </DropdownMenuItem>
 
 
           {mostRecentItem && (
@@ -137,8 +137,8 @@ function AvatarDropdownContent() {
                 <div className="flex items-center space-x-2">
                   <div className="relative w-12 h-[71px] rounded flex-shrink-0 overflow-hidden bg-muted">
                     <Image
-                      src={mostRecentItem.capaPoster || `https://placehold.co/80x120.png?text=${encodeURIComponent(mostRecentItem.tituloOriginal.substring(0,1))}`}
-                      alt={`Poster de ${getDisplayedTitle(mostRecentItem)}`}
+                      src={mostRecentItem.capaPoster || \`https://placehold.co/80x120.png?text=\${encodeURIComponent(mostRecentItem.tituloOriginal.substring(0,1))}\`}
+                      alt={\`Poster de \${getDisplayedTitle(mostRecentItem)}\`}
                       layout="fill"
                       objectFit="cover"
                       className="group-hover:scale-105 transition-transform duration-200"
@@ -151,7 +151,7 @@ function AvatarDropdownContent() {
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {mostRecentItem.contentType === 'movie' ? 'Filme' : 'Série'}
-                      {mostRecentItem.anoLancamento && ` - ${mostRecentItem.anoLancamento}`}
+                      {mostRecentItem.anoLancamento && \` - \${mostRecentItem.anoLancamento}\`}
                     </p>
                     <span className="text-xs text-primary group-hover:underline flex items-center mt-1">
                       <PlayCircle className="mr-1 h-3.5 w-3.5" /> Continuar
@@ -188,12 +188,23 @@ function useUserAuth() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
+      if (currentUser) {
+        // Initialize Firebase Messaging for the logged-in user
+        initializeFirebaseMessaging(currentUser, toast);
+      } else {
+        // User logged out, consider deleting their token if desired,
+        // or let it expire/be cleaned up by backend logic on send failure.
+        // For explicit client-side initiated "unsubscribe", you might call:
+        // deleteCurrentToken(); 
+      }
     });
     return () => unsubscribe();
-  }, [auth]);
+  }, [auth, toast]); // Added toast to dependencies
 
   const handleSignOut = async () => {
     try {
+      // Optionally, delete the user's push token from your server before signing out
+      // await deleteCurrentToken(); // If you want to remove token on sign-out
       await signOut(auth);
       toast({ title: "Deslogado com Sucesso!", description: "Você foi desconectado." });
       router.push('/login');
@@ -216,6 +227,7 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user } = useUserAuth();
    const { theme } = useTheme(); // Access theme for potential body class (already handled by ThemeProvider)
+   const { toast } = useToast(); // Get toast for FCM init
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {

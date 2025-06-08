@@ -13,6 +13,12 @@ const withPWA = NextPWAPlugin({
     // font: '/static/fonts/fallback.woff2', // Example: if you want a fallback font
   },
   // You can add more caching strategies here if needed
+  // If you want your PWA service worker to import the FCM service worker:
+  // workboxOptions: {
+  //   importScripts: ['/firebase-messaging-sw.js'], // Path relative to public directory
+  // },
+  // However, firebase/messaging typically handles its own SW registration.
+  // So, explicit importScripts might not be needed unless you want a single SW.
 });
 
 const nextConfig: NextConfig = {
