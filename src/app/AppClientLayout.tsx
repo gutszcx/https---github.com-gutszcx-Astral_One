@@ -11,7 +11,8 @@ import { Search as SearchIcon, Star, Loader2, User as UserIcon, LogOut, UserCirc
 import { useState, useEffect } from 'react';
 import { SearchDialog } from '@/components/SearchDialog';
 import { NewsBanner } from '@/components/layout/NewsBanner';
-import { AnimeCalendarHighlightBanner } from '@/components/layout/AnimeCalendarHighlightBanner'; // New import
+import { AnimeCalendarHighlightBanner } from '@/components/layout/AnimeCalendarHighlightBanner';
+import { AnimeLoadingScreen } from '@/components/layout/AnimeLoadingScreen'; // Import da nova tela de carregamento
 import { FavoritesProvider } from '@/contexts/FavoritesContext';
 import { getAuth, onAuthStateChanged, User, signOut } from 'firebase/auth';
 import { app } from '@/lib/firebase';
@@ -251,6 +252,7 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
 
 
   if (isLoadingAuth) {
+    // Mostra tela de carregamento genérica enquanto verifica o estado de autenticação
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -261,6 +263,8 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
 
   const allowedNonAuthPaths = ['/login', '/manage'];
   if (!user && !allowedNonAuthPaths.includes(pathname)) {
+    // Se não estiver logado e tentar acessar página protegida, mostra loader antes de redirecionar
+    // (o useEffect acima cuidará do redirecionamento)
     return (
        <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -270,12 +274,8 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
   }
 
   if (user && pathname === '/login') {
-    return (
-       <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Redirecionando para a página inicial...</p>
-      </div>
-    );
+    // Se estiver logado e na página de login, mostra a nova tela de carregamento temática
+    return <AnimeLoadingScreen message="Carregando seu universo Astral One..." />;
   }
 
   const showAnimeCalendarBanner = user && !['/login', '/manage', '/anime-calendar', '/offline'].includes(pathname);
