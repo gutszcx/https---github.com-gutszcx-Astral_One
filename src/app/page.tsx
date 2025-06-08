@@ -5,7 +5,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getContentItems } from '@/lib/firebaseService';
-import type { StoredCineItem, ContinueWatchingItem, StoredSeriesItem } from '@/types'; // Import ContinueWatchingItem
+import type { StoredCineItem, ContinueWatchingItem, StoredSeriesItem, Episode, Season } from '@/types'; // Import ContinueWatchingItem
 import { HomeAniContentCard } from '@/components/homeani/HomeAniContentCard';
 import { HomeAniHeroCard } from '@/components/homeani/HomeAniHeroCard';
 import { Loader2, AlertTriangle, Flame, Tag, PlaySquare, Layers, Sparkles } from 'lucide-react'; // Added Sparkles
@@ -197,10 +197,34 @@ export default function HomeAniPage() {
 
   const newEpisodeSeries = useMemo(() => {
     if (!activeItems) return [];
-    return activeItems
-      .filter(item => item.contentType === 'series')
-      .slice(0, 12) as StoredSeriesItem[]; // activeItems is already sorted by updatedAt desc
-  }, [activeItems]);
+    const seriesItems = activeItems.filter(item => item.contentType === 'series') as StoredSeriesItem[];
+    
+    return seriesItems.map(series => {
+        let latestSeason: Season | undefined;
+        if (series.temporadas && series.temporadas.length > 0) {
+            latestSeason = series.temporadas.reduce((latest, current) => 
+                current.numeroTemporada > latest.numeroTemporada ? current : latest
+            );
+        }
+
+        let firstEpisodeOfLatestSeason: Episode | undefined;
+        if (latestSeason && latestSeason.episodios && latestSeason.episodios.length > 0) {
+            firstEpisodeOfLatestSeason = latestSeason.episodios[0]; // Assuming episodes are ordered
+        }
+        
+        return {
+            ...series,
+            _displayNewEpisodeInfo: firstEpisodeOfLatestSeason && latestSeason ? {
+                season: latestSeason.numeroTemporada,
+                episode: 1, // We're displaying "E1" as the representative new episode
+                episodeTitle: firstEpisodeOfLatestSeason.titulo,
+            } : undefined,
+        };
+    })
+    .filter(item => item._displayNewEpisodeInfo !== undefined) // Only include series where we found new episode info
+    .sort((a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime()) // Sort by most recently updated overall
+    .slice(0, 12);
+}, [activeItems]);
 
 
   const handleCardClick = (item: StoredCineItem & { _playActionData?: { seasonNumber: number; episodeIndex: number } }, playDirectly: boolean = false) => {
@@ -213,7 +237,7 @@ export default function HomeAniPage() {
       <main className="flex-grow container mx-auto px-4 py-8">
         <div className="flex flex-col items-center justify-center text-center h-[80vh]">
           <Loader2 className="h-16 w-16 animate-spin text-primary mb-4" />
-          <p className="text-lg text-muted-foreground">Carregando sua experiência cinéfila...</p>
+          <p className="text-lg text-muted-foreground">Carregando sua experiência Astral One...</p>
         </div>
       </main>
     );
@@ -319,7 +343,7 @@ export default function HomeAniPage() {
 
 interface ContentRowProps {
   title: string;
-  items: (StoredCineItem & { progressTime?: number; progressDuration?: number; _playActionData?: { seasonNumber: number; episodeIndex: number } })[];
+  items: (StoredCineItem & { progressTime?: number; progressDuration?: number; _playActionData?: { seasonNumber: number; episodeIndex: number }, _displayNewEpisodeInfo?: { season: number; episode: number; episodeTitle?: string } })[];
   onCardClick: (item: StoredCineItem & { _playActionData?: { seasonNumber: number; episodeIndex: number } }) => void;
   icon?: React.ReactNode;
 }
@@ -382,8 +406,8 @@ function ContentRow({ title, items, onCardClick, icon }: ContentRowProps) {
         >
           {items.map((item) => (
             <HomeAniContentCard
-              key={item.id + ((item as ContinueWatchingItem).lastSaved || '')} // Ensure unique key if items can appear in multiple lists
-              item={item as StoredCineItem & { progressTime?: number; progressDuration?: number }}
+              key={item.id + ((item as ContinueWatchingItem).lastSaved || '') + (item._displayNewEpisodeInfo ? `_s${item._displayNewEpisodeInfo.season}e${item._displayNewEpisodeInfo.episode}` : '')}
+              item={item}
               onClick={() => {
                 // Prevent click if it was a drag
                 if (startX !== 0 && scrollContainerRef.current && Math.abs(scrollContainerRef.current.scrollLeft - scrollLeftStart) > 5) {
@@ -403,4 +427,5 @@ function ContentRow({ title, items, onCardClick, icon }: ContentRowProps) {
     </section>
   );
 }
+
 
