@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
+import Image from 'next/image'; // Ensure Image is imported
 import { Toaster } from "@/components/ui/toaster";
 import { HomeAniDetailModal } from '@/components/homeani/HomeAniDetailModal';
 import { useModal } from '@/contexts/ModalContext';
@@ -145,6 +145,15 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-64 mr-4 mt-2" align="end">
                     <div className="flex flex-col items-center p-3 border-b border-[hsl(var(--cyberpunk-border))] mb-1">
+                      <Image
+                        src="https://i.postimg.cc/ZKyGZfPs/Chat-GPT-Image-8-de-jun-de-2025-10-20-23.png"
+                        alt="Astral One Mini Logo"
+                        width={80}
+                        height={24} 
+                        className="rounded-sm mb-3" 
+                        style={{ height: 'auto' }}
+                        data-ai-hint="website logo small"
+                      />
                       <Avatar className="h-16 w-16 mb-2">
                         {user.photoURL ? (
                           <AvatarImage src={user.photoURL} alt={user.displayName || 'User avatar'} />
@@ -169,7 +178,7 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
                     <DropdownMenuItem asChild>
                        <Link href="/" className="cursor-pointer">
                         <HistoryIcon className="mr-2 h-4 w-4" />
-                        <span>Continuar Assistindo</span>
+                        <span>Assistido recentemente</span>
                        </Link>
                     </DropdownMenuItem>
                      {user.metadata.creationTime && (
@@ -210,3 +219,5 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
     </FavoritesProvider>
   );
 }
+
+    
