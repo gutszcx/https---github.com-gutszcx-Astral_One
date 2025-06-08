@@ -4,26 +4,23 @@ import type { CineFormValues, VideoSource as FormVideoSourceSchema, EpisodeFormV
 
 // Updated VideoSource type for storage, reflecting new schema
 export interface VideoSource {
-  id?: string; 
+  id?: string;
   serverName: string;
   sourceType: 'directUrl' | 'embedCode';
   content: string; // Holds URL or embed code
 }
 
-// StoredEmbedUrl is no longer needed as it's merged into VideoSource
-// export interface StoredEmbedUrl { ... }
-
 export interface Episode {
-  id?: string; 
+  id?: string;
   titulo: string;
-  descricao: string; 
-  duracao: number | null; 
+  descricao: string;
+  duracao: number | null;
   videoSources: VideoSource[]; // Uses the new VideoSource type
-  linkLegenda: string; 
+  linkLegenda: string;
 }
 
 export interface Season {
-  id?: string; 
+  id?: string;
   numeroTemporada: number;
   episodios: Episode[];
 }
@@ -47,7 +44,6 @@ interface StoredBaseCineItem {
   tags: string;
   destaqueHome: boolean;
   status: 'ativo' | 'inativo';
-  // embedUrls?: StoredEmbedUrl[]; // Removed
   createdAt?: string; // ISO string date
   updatedAt?: string; // ISO string date
 }
@@ -66,15 +62,25 @@ export type StoredSeriesItem = StoredBaseCineItem & {
 
 export type StoredCineItem = StoredMovieItem | StoredSeriesItem;
 
+// Type for items in the "Continue Watching" list
+export interface ContinueWatchingItem extends StoredCineItem {
+  lastSaved: number; // Timestamp for sorting
+  progressTime?: number;
+  progressDuration?: number;
+  _playActionData?: { seasonNumber: number; episodeIndex: number };
+  interactionType?: 'direct' | 'embed';
+}
+
+
 // Export form types for use elsewhere if needed, but primarily we use Stored types for fetched data
-export type { CineFormValues, FormVideoSourceSchema as FormVideoSource, OriginalEpisodeFormValues, OriginalSeasonFormValues }; // Removed FormEmbedUrlItem
+export type { CineFormValues, FormVideoSourceSchema as FormVideoSource, OriginalEpisodeFormValues, OriginalSeasonFormValues };
 
 // News Banner Types
 export const NEWS_BANNER_TYPES = ['none', 'info', 'success', 'warning', 'error'] as const;
 export type NewsBannerMessageType = (typeof NEWS_BANNER_TYPES)[number];
 
 export interface NewsBannerMessage {
-  id?: string; 
+  id?: string;
   message: string;
   type: NewsBannerMessageType;
   isActive: boolean;
@@ -102,9 +108,9 @@ export type FeedbackStatus = (typeof FEEDBACK_STATUSES)[number];
 
 export interface UserFeedbackItem {
   id: string;
-  userId?: string; 
-  contentId?: string; 
-  contentTitle?: string; 
+  userId?: string;
+  contentId?: string;
+  contentTitle?: string;
   feedbackType: FeedbackType;
   message: string;
   status: FeedbackStatus;
