@@ -8,13 +8,13 @@ import { getAuth } from 'firebase/auth'; // Import getAuth
 // import 'firebase/messaging'; 
 
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY="AIzaSyCYHqcCjJlzLMaTcEtOM8tH-aulQzgSCZ8",
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="astral-ash.firebaseapp.com",
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID="astral-ash",
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="astral-ash.firebasestorage.app",
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="927167691540",
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID="1:927167691540:web:81ceffbf84efb97363a001",
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID="G-PZD29VJXCN"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY="AIzaSyBtAHiliXkawyJMOgm_1K8gPS8Sni8C9lM",
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="astralone-c0bef.firebaseapp.com",
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID="astralone-c0bef",
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="astralone-c0bef.firebasestorage.app",
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="765989449839",
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID="1:765989449839:web:45d8d966e61c30f7a89d9a",
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID="G-XX1M4VJYKB"
 };
 
 // Initialize Firebase

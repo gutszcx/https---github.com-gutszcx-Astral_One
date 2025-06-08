@@ -123,6 +123,13 @@ function AvatarDropdownContent() {
           </DropdownMenuItem>
           
           <DropdownMenuItem asChild>
+            <Link href="/manage" className="cursor-pointer">
+              <LayoutDashboard className="mr-2 h-4 w-4" />
+              <span>Painel Admin</span>
+            </Link>
+          </DropdownMenuItem>
+
+          <DropdownMenuItem asChild>
             <Link href="/settings" className="cursor-pointer">
               <Settings className="mr-2 h-4 w-4" />
               <span>Configurações</span>
@@ -331,7 +338,6 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
                 <div className="flex items-center space-x-2 md:space-x-3">
                  {user && ( 
                     <>
-                      {/* Botão Painel removido daqui */}
                       <Button variant="ghost" size="sm" asChild>
                         <Link href="/favorites" aria-label="Favoritos" className="flex items-center">
                           <Star className="h-5 w-5 text-primary mr-1 sm:mr-1.5" />
@@ -400,3 +406,4 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
     </RecentActivityProvider>
   );
 }
+
