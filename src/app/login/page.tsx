@@ -69,7 +69,7 @@ export default function LoginPage() {
         <CardHeader className="text-center p-6 space-y-4">
           <div className="mx-auto">
             <Image
-              src="https://placehold.co/200x60.png?text=Astral+One+Logo"
+              src="https://chatgpt.com/s/m_68458e10ada88191989eaf020a0bd3ea"
               alt="Logo Astral One"
               width={200}
               height={60}

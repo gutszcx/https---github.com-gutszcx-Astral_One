@@ -1,3 +1,4 @@
+
 import type {NextConfig} from 'next';
 import NextPWAPlugin from '@ducanh2912/next-pwa';
 
@@ -33,6 +34,12 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'image.tmdb.org',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'chatgpt.com',
         port: '',
         pathname: '/**',
       }
