@@ -195,7 +195,7 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isLoadingAuth) {
-      if (!user && pathname !== '/login') {
+      if (!user && pathname !== '/login' && pathname !== '/manage') {
         router.push('/login');
       } else if (user && pathname === '/login') {
         router.push('/');
@@ -212,7 +212,7 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!user && pathname !== '/login') {
+  if (!user && pathname !== '/login' && pathname !== '/manage') {
     return (
        <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -250,41 +250,55 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
                   data-ai-hint="website logo brand"
                 />
               </Link>
-              {user && (
+              {(user || pathname === '/manage') && ( // Show controls if user is logged in OR on manage page
                 <div className="flex items-center space-x-2 md:space-x-3">
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link href="/manage" aria-label="Painel" className="flex items-center">
-                      <LayoutDashboard className="h-5 w-5 text-primary mr-1 sm:mr-1.5" />
-                      <span className="hidden sm:inline">Painel</span>
-                    </Link>
-                  </Button>
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link href="/favorites" aria-label="Favoritos" className="flex items-center">
-                      <Star className="h-5 w-5 text-primary mr-1 sm:mr-1.5" />
-                      <span className="hidden sm:inline">Favoritos</span>
-                    </Link>
-                  </Button>
+                 {user && ( // Only show panel and favorites if user is logged in
+                    <>
+                       <Button variant="ghost" size="sm" asChild>
+                        <Link href="/manage" aria-label="Painel" className="flex items-center">
+                          <LayoutDashboard className="h-5 w-5 text-primary mr-1 sm:mr-1.5" />
+                          <span className="hidden sm:inline">Painel</span>
+                        </Link>
+                      </Button>
+                      <Button variant="ghost" size="sm" asChild>
+                        <Link href="/favorites" aria-label="Favoritos" className="flex items-center">
+                          <Star className="h-5 w-5 text-primary mr-1 sm:mr-1.5" />
+                          <span className="hidden sm:inline">Favoritos</span>
+                        </Link>
+                      </Button>
+                    </>
+                  )}
                   <Button variant="ghost" size="sm" onClick={() => setIsSearchDialogOpen(true)} aria-label="Pesquisar conteúdo">
                     <SearchIcon className="h-5 w-5 text-primary mr-1 sm:mr-1.5" />
                     <span className="hidden sm:inline">Pesquisar</span>
                   </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Avatar className="h-8 w-8 cursor-pointer ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
-                        {user.photoURL ? (
-                          <AvatarImage src={user.photoURL} alt={user.displayName || 'User avatar'} />
-                        ) : null}
-                        <AvatarFallback>
-                          {user.displayName ? (
-                            user.displayName.substring(0, 2).toUpperCase()
-                          ) : (
-                            <UserIcon className="h-4 w-4" />
-                          )}
-                        </AvatarFallback>
-                      </Avatar>
-                    </DropdownMenuTrigger>
-                    <AvatarDropdownContent />
-                  </DropdownMenu>
+                  {user && ( // Only show avatar dropdown if user is logged in
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Avatar className="h-8 w-8 cursor-pointer ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                          {user.photoURL ? (
+                            <AvatarImage src={user.photoURL} alt={user.displayName || 'User avatar'} />
+                          ) : null}
+                          <AvatarFallback>
+                            {user.displayName ? (
+                              user.displayName.substring(0, 2).toUpperCase()
+                            ) : (
+                              <UserIcon className="h-4 w-4" />
+                            )}
+                          </AvatarFallback>
+                        </Avatar>
+                      </DropdownMenuTrigger>
+                      <AvatarDropdownContent />
+                    </DropdownMenu>
+                  )}
+                  {!user && pathname === '/manage' && ( // Show a login prompt on /manage if not logged in
+                     <Button variant="ghost" size="sm" asChild>
+                        <Link href="/login" aria-label="Login" className="flex items-center">
+                          <UserIcon className="h-5 w-5 text-primary mr-1 sm:mr-1.5" />
+                          <span className="hidden sm:inline">Login</span>
+                        </Link>
+                      </Button>
+                  )}
                 </div>
               )}
             </nav>
@@ -301,7 +315,7 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
           initialAction={initialModalAction}
           onInitialActionConsumed={onInitialActionConsumed}
         />
-        {user && (
+        {(user || pathname === '/manage') && ( // Open search dialog if user or on manage page
            <SearchDialog
              isOpen={isSearchDialogOpen}
              onClose={() => setIsSearchDialogOpen(false)}
