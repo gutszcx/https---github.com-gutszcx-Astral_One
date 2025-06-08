@@ -1,5 +1,5 @@
-# Astral One
+estúdio
+Astral Um
+Este é um iniciador do NextJS no Firebase Studio.
 
-This is a NextJS starter in Firebase Studio.
-
-To get started, take a look at src/app/page.tsx.
+Para começar, dê uma olhada em src/app/page.tsx.
