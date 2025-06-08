@@ -1,4 +1,3 @@
-
 // src/components/layout/AnimeLoadingScreen.tsx
 'use client';
 
@@ -45,8 +44,8 @@ export function AnimeLoadingScreen({ message }: AnimeLoadingScreenProps) {
           style={{ animationDelay: '0.7s', bottom: '15%', right: '55%', animationDuration: '2s' }}
         />
       </div>
-      <p className="mt-8 text-xl md:text-2xl font-semibold text-white drop-shadow-md">{message}</p>
-      <p className="text-white/80 text-sm md:text-base drop-shadow-sm">Prepare-se para a ação!</p>
+      <p className="mt-8 text-2xl md:text-3xl font-bold text-black drop-shadow-[0_1px_1px_rgba(255,255,255,0.7)]">{message}</p>
+      <p className="text-black/80 text-base md:text-lg drop-shadow-[0_1px_1px_rgba(255,255,255,0.5)]">Prepare-se para a ação!</p>
     </div>
   );
 }
