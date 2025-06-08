@@ -11,13 +11,14 @@ import { Search as SearchIcon, Star, Loader2, User as UserIcon, LogOut, UserCirc
 import { useState, useEffect } from 'react';
 import { SearchDialog } from '@/components/SearchDialog';
 import { NewsBanner } from '@/components/layout/NewsBanner';
+import { AnimeCalendarHighlightBanner } from '@/components/layout/AnimeCalendarHighlightBanner'; // New import
 import { FavoritesProvider } from '@/contexts/FavoritesContext';
 import { getAuth, onAuthStateChanged, User, signOut } from 'firebase/auth';
 import { app } from '@/lib/firebase';
 import { usePathname, useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Label } from '@/components/ui/label'; // Added Label
-import { Switch } from '@/components/ui/switch'; // Added Switch
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,15 +32,15 @@ import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { RecentActivityProvider, useRecentActivity } from '@/contexts/RecentActivityContext';
 import type { ContinueWatchingItem } from '@/types';
-import { useTheme } from '@/contexts/ThemeContext'; // Import useTheme
-import { initializeFirebaseMessaging, deleteCurrentToken } from '@/lib/firebaseMessaging'; // Import FCM functions
+import { useTheme } from '@/contexts/ThemeContext';
+import { initializeFirebaseMessaging, deleteCurrentToken } from '@/lib/firebaseMessaging';
 
 
 function AvatarDropdownContent() {
   const { user, handleSignOut } = useUserAuth();
   const { mostRecentItem } = useRecentActivity();
   const { openModal } = useModal();
-  const { theme, toggleTheme } = useTheme(); // Use theme context
+  const { theme, toggleTheme } = useTheme();
 
   if (!user) return null;
 
@@ -50,7 +51,7 @@ function AvatarDropdownContent() {
       const episodeIndex = item._playActionData!.episodeIndex;
       const episode = season?.episodios?.[episodeIndex];
       if (episode) {
-        return item.tituloOriginal + " - T" + season.numeroTemporada + "E" + (episodeIndex + 1) + ": " + episode.titulo;
+        return item.tituloOriginal + " - T" + season.numeroTemporada + "E" + (item._playActionData.episodeIndex + 1) + ": " + episode.titulo;
       }
     }
     return item.tituloOriginal;
@@ -147,7 +148,7 @@ function AvatarDropdownContent() {
                     <Image
                       src={mostRecentItem.capaPoster || `https://placehold.co/80x120.png?text=${encodeURIComponent(mostRecentItem.tituloOriginal.substring(0,1))}`}
                       alt={`Poster de ${getDisplayedTitle(mostRecentItem)}`}
-                      fill // Changed from layout="fill" objectFit="cover"
+                      fill
                       sizes="(max-width: 768px) 10vw, 5vw"
                       className="object-cover group-hover:scale-105 transition-transform duration-200"
                       data-ai-hint={mostRecentItem.contentType === "movie" ? "movie poster small" : "tv show poster small"}
@@ -277,6 +278,8 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
+  const showAnimeCalendarBanner = user && !['/login', '/manage', '/anime-calendar', '/offline'].includes(pathname);
+  const showNewsBanner = !['/manage', '/offline'].includes(pathname);
 
   return (
     <RecentActivityProvider>
@@ -351,7 +354,8 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
             </nav>
           </header>
         )}
-        {pathname !== '/manage' && <NewsBanner />}
+        {showAnimeCalendarBanner && <AnimeCalendarHighlightBanner />}
+        {showNewsBanner && <NewsBanner />}
         <main className="flex-grow">
           {children}
         </main>
@@ -374,4 +378,3 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
     </RecentActivityProvider>
   );
 }
-
