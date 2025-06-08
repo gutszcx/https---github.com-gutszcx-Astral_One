@@ -7,7 +7,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { HomeAniDetailModal } from '@/components/homeani/HomeAniDetailModal';
 import { useModal } from '@/contexts/ModalContext';
 import { Button } from '@/components/ui/button';
-import { Search as SearchIcon, Star, Loader2, User as UserIcon, LogOut, UserCircle, CalendarDays, History as HistoryIcon, ExternalLink, PlayCircle, LayoutDashboard } from 'lucide-react';
+import { Search as SearchIcon, Star, Loader2, User as UserIcon, LogOut, UserCircle, CalendarDays, History as HistoryIcon, ExternalLink, PlayCircle, LayoutDashboard, Settings } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { SearchDialog } from '@/components/SearchDialog';
 import { NewsBanner } from '@/components/layout/NewsBanner';
@@ -87,6 +87,12 @@ function AvatarDropdownContent() {
             <Link href="/favorites" className="cursor-pointer">
               <Star className="mr-2 h-4 w-4" />
               <span>Meus Favoritos</span>
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/settings" className="cursor-pointer">
+              <Settings className="mr-2 h-4 w-4" />
+              <span>Configurações</span>
             </Link>
           </DropdownMenuItem>
 
@@ -195,13 +201,15 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isLoadingAuth) {
-      if (!user && pathname !== '/login' && pathname !== '/manage') {
+      const allowedNonAuthPaths = ['/login', '/manage'];
+      if (!user && !allowedNonAuthPaths.includes(pathname)) {
         router.push('/login');
       } else if (user && pathname === '/login') {
         router.push('/');
       }
     }
   }, [user, pathname, router, isLoadingAuth]);
+
 
   if (isLoadingAuth) {
     return (
@@ -212,7 +220,8 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!user && pathname !== '/login' && pathname !== '/manage') {
+  const allowedNonAuthPaths = ['/login', '/manage'];
+  if (!user && !allowedNonAuthPaths.includes(pathname)) {
     return (
        <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -236,7 +245,7 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
       <FavoritesProvider>
         {pathname !== '/login' && (
           <header className="bg-background/80 backdrop-blur-md text-card-foreground shadow-md sticky top-0 z-50 border-b border-border">
-            {pathname !== '/manage' && <NewsBanner />}
+            
             <nav className="container mx-auto flex justify-between items-center p-1">
               <Link href="/" className="hover:opacity-80 transition-opacity">
                 <Image
@@ -304,6 +313,7 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
             </nav>
           </header>
         )}
+        {pathname !== '/manage' && <NewsBanner />}
         <main className="flex-grow">
           {children}
         </main>
