@@ -7,12 +7,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { HomeAniDetailModal } from '@/components/homeani/HomeAniDetailModal';
 import { useModal } from '@/contexts/ModalContext';
 import { Button } from '@/components/ui/button';
-import { Search as SearchIcon, Star, Loader2, User as UserIcon, LogOut, UserCircle, CalendarDays, History as HistoryIcon, ExternalLink, PlayCircle, LayoutDashboard, Settings, Sun, Moon, Calendar as CalendarLucideIcon } from 'lucide-react'; // Added Sun, Moon, CalendarLucideIcon
-import { useState, useEffect } from 'react';
+import { Search as SearchIcon, Star, Loader2, User as UserIcon, LogOut, UserCircle, CalendarDays, History as HistoryIcon, ExternalLink, PlayCircle, LayoutDashboard, Settings, Sun, Moon, Calendar as CalendarLucideIcon } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import { SearchDialog } from '@/components/SearchDialog';
 import { NewsBanner } from '@/components/layout/NewsBanner';
 import { AnimeCalendarHighlightBanner } from '@/components/layout/AnimeCalendarHighlightBanner';
-import { AnimeLoadingScreen } from '@/components/layout/AnimeLoadingScreen'; // Import da nova tela de carregamento
+import { AnimeLoadingScreen } from '@/components/layout/AnimeLoadingScreen';
 import { FavoritesProvider } from '@/contexts/FavoritesContext';
 import { getAuth, onAuthStateChanged, User, signOut } from 'firebase/auth';
 import { app } from '@/lib/firebase';
@@ -48,7 +48,6 @@ function AvatarDropdownContent() {
   const getDisplayedTitle = (item: ContinueWatchingItem) => {
     if (item.contentType === 'series' && item._playActionData) {
       const season = (item as any).temporadas?.find((s: any) => s.numeroTemporada === item._playActionData!.seasonNumber);
-      // Ensure episodeIndex is valid
       const episodeIndex = item._playActionData!.episodeIndex;
       const episode = season?.episodios?.[episodeIndex];
       if (episode) {
@@ -90,7 +89,7 @@ function AvatarDropdownContent() {
         </div>
       </div>
 
-      <ScrollArea className="max-h-96"> 
+      <ScrollArea className="max-h-96">
         <div className="px-1 py-1">
           <DropdownMenuItem asChild>
             <Link href="/favorites" className="cursor-pointer">
@@ -223,13 +222,15 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
   const { selectedItem, isModalOpen, closeModal, initialModalAction, onInitialActionConsumed } = useModal();
   const [isSearchDialogOpen, setIsSearchDialogOpen] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const [isShowingThemedLoader, setIsShowingThemedLoader] = useState(false);
+  const themedLoaderTimerId = useRef<NodeJS.Timeout | null>(null);
 
   const auth = getAuth(app);
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useUserAuth();
-   const { theme } = useTheme(); 
-   const { toast } = useToast(); 
+  const { theme } = useTheme(); 
+  const { toast } = useToast(); 
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -238,21 +239,50 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
     return () => unsubscribe();
   }, [auth]);
 
-
   useEffect(() => {
-    if (!isLoadingAuth) {
-      const allowedNonAuthPaths = ['/login', '/manage'];
-      if (!user && !allowedNonAuthPaths.includes(pathname)) {
-        router.push('/login');
-      } else if (user && pathname === '/login') {
-        router.push('/');
+    if (isLoadingAuth) {
+      return; 
+    }
+
+    if (user && pathname === '/login') {
+      if (!isShowingThemedLoader && !themedLoaderTimerId.current) {
+        setIsShowingThemedLoader(true);
+        themedLoaderTimerId.current = setTimeout(() => {
+          router.push('/');
+          setIsShowingThemedLoader(false); 
+          themedLoaderTimerId.current = null;
+        }, 10000); // 10 seconds
+      }
+    } else {
+      if (isShowingThemedLoader) {
+        setIsShowingThemedLoader(false);
+      }
+      if (themedLoaderTimerId.current) {
+        clearTimeout(themedLoaderTimerId.current);
+        themedLoaderTimerId.current = null;
       }
     }
-  }, [user, pathname, router, isLoadingAuth]);
+
+    return () => {
+      if (themedLoaderTimerId.current) {
+        clearTimeout(themedLoaderTimerId.current);
+      }
+    };
+  }, [user, pathname, router, isLoadingAuth, isShowingThemedLoader]);
+
+  useEffect(() => {
+    if (isLoadingAuth || isShowingThemedLoader) {
+      return; 
+    }
+
+    const allowedNonAuthPaths = ['/login', '/manage'];
+    if (!user && !allowedNonAuthPaths.includes(pathname)) {
+      router.push('/login');
+    }
+  }, [user, pathname, router, isLoadingAuth, isShowingThemedLoader]);
 
 
   if (isLoadingAuth) {
-    // Mostra tela de carregamento genérica enquanto verifica o estado de autenticação
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -261,10 +291,12 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
+  if (isShowingThemedLoader && user && pathname === '/login') {
+    return <AnimeLoadingScreen message="Carregando seu universo Astral One..." />;
+  }
+  
   const allowedNonAuthPaths = ['/login', '/manage'];
   if (!user && !allowedNonAuthPaths.includes(pathname)) {
-    // Se não estiver logado e tentar acessar página protegida, mostra loader antes de redirecionar
-    // (o useEffect acima cuidará do redirecionamento)
     return (
        <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -272,12 +304,7 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
-
-  if (user && pathname === '/login') {
-    // Se estiver logado e na página de login, mostra a nova tela de carregamento temática
-    return <AnimeLoadingScreen message="Carregando seu universo Astral One..." />;
-  }
-
+  
   const showAnimeCalendarBanner = user && !['/login', '/manage', '/anime-calendar', '/offline'].includes(pathname);
   const showNewsBanner = !['/manage', '/offline'].includes(pathname);
 
@@ -378,4 +405,3 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
     </RecentActivityProvider>
   );
 }
-
