@@ -9,6 +9,7 @@ import { AppClientLayout } from './AppClientLayout'; // New client component
 export const metadata: Metadata = {
   title: 'CineForm',
   description: 'Formulário unificado para filmes e séries',
+  manifest: '/manifest.json', // Added manifest link
 };
 
 export default function RootLayout({
@@ -22,6 +23,21 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet" />
+        <meta name="application-name" content="CineForm" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="CineForm" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="msapplication-config" content="/icons/browserconfig.xml" /> 
+        <meta name="msapplication-TileColor" content="#FF1EB3" />
+        <meta name="msapplication-tap-highlight" content="no" />
+        <meta name="theme-color" content="#FF1EB3" />
+        <link rel="apple-touch-icon" href="https://placehold.co/180x180.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="https://placehold.co/32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="https://placehold.co/16x16.png" />
+        {/* Viewport should be managed by Next.js by default, but explicitly adding for clarity */}
+        <meta name="viewport" content="minimum-scale=1, initial-scale=1, width=device-width, shrink-to-fit=no, viewport-fit=cover" />
       </head>
       <body className="font-body antialiased min-h-screen flex flex-col bg-background text-foreground">
         <QueryProvider>
