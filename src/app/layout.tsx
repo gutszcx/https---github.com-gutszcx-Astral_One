@@ -30,7 +30,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="Astral One" />
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="msapplication-config" content="/icons/browserconfig.xml" /> 
+        <meta name="msapplication-config" content="/icons/browserconfig.xml" />
         <meta name="msapplication-TileColor" content="#FF1EB3" /> {/* This color might need update based on new theme */}
         <meta name="msapplication-tap-highlight" content="no" />
         <meta name="theme-color" content="#FF1EB3" /> {/* This color might need update based on new theme */}
