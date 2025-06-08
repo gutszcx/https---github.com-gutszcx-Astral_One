@@ -2,12 +2,12 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image'; // Added Image import
+import Image from 'next/image';
 import { Toaster } from "@/components/ui/toaster";
 import { HomeAniDetailModal } from '@/components/homeani/HomeAniDetailModal';
 import { useModal } from '@/contexts/ModalContext';
 import { Button } from '@/components/ui/button';
-import { Search as SearchIcon, Star, Loader2 } from 'lucide-react';
+import { Search as SearchIcon, Star, Loader2, User as UserIcon } from 'lucide-react'; // Added UserIcon
 import { useState, useEffect } from 'react';
 import { SearchDialog } from '@/components/SearchDialog';
 import { NewsBanner } from '@/components/layout/NewsBanner';
@@ -15,6 +15,7 @@ import { FavoritesProvider } from '@/contexts/FavoritesContext';
 import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
 import { app } from '@/lib/firebase';
 import { usePathname, useRouter } from 'next/navigation';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'; // Added Avatar imports
 
 export function AppClientLayout({ children }: { children: React.ReactNode }) {
   const { selectedItem, isModalOpen, closeModal, initialModalAction, onInitialActionConsumed } = useModal();
@@ -82,27 +83,39 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
               <Image
                 src="https://i.postimg.cc/ZKyGZfPs/Chat-GPT-Image-8-de-jun-de-2025-10-20-23.png"
                 alt="Astral One Logo"
-                width={130} // Adjusted width for header
-                height={39} // Adjusted height to maintain aspect ratio (approx 200/60 * 130/x)
-                className="rounded-sm" // small rounding if any
-                priority // Good to have for LCP elements if this is above the fold
+                width={130} 
+                height={39} 
+                className="rounded-sm"
+                priority 
                 data-ai-hint="website logo brand"
               />
             </Link>
             {user && (
-              <div className="flex items-center space-x-4 md:space-x-6">
-                <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+              <div className="flex items-center space-x-2 md:space-x-4">
+                <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors hidden sm:inline-block">
                   Catálogo
                 </Link>
                 <Link href="/favorites" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors flex items-center">
-                  <Star className="mr-1 h-4 w-4" /> Favoritos
+                  <Star className="mr-1 h-4 w-4" /> <span className="hidden sm:inline-block">Favoritos</span>
                 </Link>
-                <Link href="/manage" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-                  Gerenciar Conteúdo
+                <Link href="/manage" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors hidden sm:inline-block">
+                  Gerenciar
                 </Link>
                 <Button variant="ghost" size="icon" onClick={() => setIsSearchDialogOpen(true)} aria-label="Pesquisar conteúdo">
                   <SearchIcon className="h-5 w-5 text-primary hover:text-[hsl(var(--cyberpunk-highlight))]" />
                 </Button>
+                <Avatar className="h-8 w-8 cursor-pointer">
+                  {user.photoURL ? (
+                    <AvatarImage src={user.photoURL} alt={user.displayName || 'User avatar'} />
+                  ) : null}
+                  <AvatarFallback>
+                    {user.displayName ? (
+                      user.displayName.substring(0, 2).toUpperCase()
+                    ) : (
+                      <UserIcon className="h-4 w-4" />
+                    )}
+                  </AvatarFallback>
+                </Avatar>
               </div>
             )}
           </nav>
