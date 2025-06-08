@@ -20,7 +20,6 @@ const iconMap: Record<NewsBannerMessageType, React.ElementType> = {
   none: Megaphone,
 };
 
-// Use ShadCN variants directly, colors will come from globals.css theme
 const variantMap: Record<NewsBannerMessageType, 'default' | 'destructive'> = {
   info: 'default',
   success: 'default', 
@@ -29,14 +28,12 @@ const variantMap: Record<NewsBannerMessageType, 'default' | 'destructive'> = {
   none: 'default',
 };
 
-// Custom color classes for specific banner types, using theme variables
-// These are applied on top of default/destructive variants from ShadCN
 const colorClasses: Record<NewsBannerMessageType, string> = {
-    none: 'bg-card text-card-foreground border-border', // Default card look
-    info: 'bg-accent/20 text-accent-foreground border-accent/50 [&>svg]:text-accent', // Using accent from theme
-    success: 'bg-green-500/20 text-green-400 border-green-500/50 [&>svg]:text-green-400', // Keeping custom green as it's standard for success
-    warning: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50 [&>svg]:text-yellow-400', // Custom yellow for warning
-    error: 'border-destructive/50 text-destructive bg-destructive/10 [&>svg]:text-destructive', // More subtle destructive bg
+    none: 'bg-card text-card-foreground border-border',
+    info: 'bg-accent/20 text-accent-foreground border-accent/50 [&>svg]:text-accent',
+    success: 'bg-green-500/20 text-green-400 border-green-500/50 [&>svg]:text-green-400',
+    warning: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50 [&>svg]:text-yellow-400',
+    error: 'border-destructive/50 text-destructive bg-destructive/10 [&>svg]:text-destructive',
 };
 
 
@@ -76,17 +73,17 @@ export function NewsBanner() {
 
   return (
     <div className={cn(
-      "w-full p-2 bg-card", // Removed border-b border-border
-      "animate-in fade-in slide-in-from-top-8 duration-500 ease-out" 
+      "fixed bottom-6 right-6 z-[60] w-full max-w-md rounded-lg shadow-2xl bg-card border border-border p-0",
+      "animate-in fade-in slide-in-from-bottom-10 duration-500 ease-out" 
     )}>
       <Alert
-        variant={variantMap[bannerMessage.type]} // Uses default or destructive from ShadCN
+        variant={variantMap[bannerMessage.type]}
         className={cn(
-          "container mx-auto relative items-center",
-          colorClasses[bannerMessage.type] // Apply specific color overrides
+          "relative items-center", // Removed container mx-auto
+          colorClasses[bannerMessage.type]
         )}
       >
-        <IconComponent className="h-5 w-5" /> {/* Icon color will be inherited or set by colorClasses */}
+        <IconComponent className="h-5 w-5" />
         <AlertTitle className={cn("font-semibold ml-2")}>
           {bannerMessage.type.charAt(0).toUpperCase() + bannerMessage.type.slice(1)}
         </AlertTitle>
@@ -97,7 +94,7 @@ export function NewsBanner() {
               href={bannerMessage.link} 
               target="_blank" 
               rel="noopener noreferrer" 
-              className="inline-flex items-center cyberpunk-button-secondary text-sm ml-3 px-2 py-0.5 h-auto" // Re-using secondary button style
+              className="inline-flex items-center cyberpunk-button-secondary text-sm ml-3 px-2 py-0.5 h-auto"
             >
               {bannerMessage.linkText} <ExternalLink className="ml-1.5 h-3 w-3" />
             </Link>
@@ -109,7 +106,6 @@ export function NewsBanner() {
           onClick={handleDismiss}
           className={cn(
             "absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7",
-            // Use general hover text color from the theme
             "text-muted-foreground hover:text-foreground"
           )}
           aria-label="Fechar banner"

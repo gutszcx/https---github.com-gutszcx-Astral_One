@@ -236,7 +236,7 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
       <FavoritesProvider>
         {pathname !== '/login' && (
           <header className="bg-background/80 backdrop-blur-md text-card-foreground p-3 shadow-md sticky top-0 z-50 border-b border-border">
-            <NewsBanner />
+            
             <nav className="container mx-auto flex justify-between items-center">
               <Link href="/" className="hover:opacity-80 transition-opacity">
                 <Image
@@ -250,9 +250,9 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
                   data-ai-hint="website logo brand"
                 />
               </Link>
-              {(user || pathname === '/manage') && ( // Show controls if user is logged in OR on manage page
+              {(user || pathname === '/manage') && ( 
                 <div className="flex items-center space-x-2 md:space-x-3">
-                 {user && ( // Only show panel and favorites if user is logged in
+                 {user && ( 
                     <>
                        <Button variant="ghost" size="sm" asChild>
                         <Link href="/manage" aria-label="Painel" className="flex items-center">
@@ -272,7 +272,7 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
                     <SearchIcon className="h-5 w-5 text-primary mr-1 sm:mr-1.5" />
                     <span className="hidden sm:inline">Pesquisar</span>
                   </Button>
-                  {user && ( // Only show avatar dropdown if user is logged in
+                  {user && ( 
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Avatar className="h-8 w-8 cursor-pointer ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
@@ -291,7 +291,7 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
                       <AvatarDropdownContent />
                     </DropdownMenu>
                   )}
-                  {!user && pathname === '/manage' && ( // Show a login prompt on /manage if not logged in
+                  {!user && pathname === '/manage' && ( 
                      <Button variant="ghost" size="sm" asChild>
                         <Link href="/login" aria-label="Login" className="flex items-center">
                           <UserIcon className="h-5 w-5 text-primary mr-1 sm:mr-1.5" />
@@ -307,6 +307,7 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
         <main className="flex-grow">
           {children}
         </main>
+        <NewsBanner />
         <Toaster />
         <HomeAniDetailModal
           item={selectedItem}
@@ -315,7 +316,7 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
           initialAction={initialModalAction}
           onInitialActionConsumed={onInitialActionConsumed}
         />
-        {(user || pathname === '/manage') && ( // Open search dialog if user or on manage page
+        {(user || pathname === '/manage') && ( 
            <SearchDialog
              isOpen={isSearchDialogOpen}
              onClose={() => setIsSearchDialogOpen(false)}
