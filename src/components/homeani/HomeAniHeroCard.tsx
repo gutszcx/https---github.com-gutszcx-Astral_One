@@ -23,7 +23,7 @@ export function HomeAniHeroCard({ item, onViewDetailsClick }: HomeAniHeroCardPro
         alt={`Destaque: ${item.tituloOriginal}`}
         layout="fill"
         objectFit="cover"
-        className="z-0 rounded-lg" // Ensure image itself is rounded if container is
+        className="z-0 rounded-lg"
         priority
         data-ai-hint={dataAiHint}
       />
@@ -48,7 +48,7 @@ export function HomeAniHeroCard({ item, onViewDetailsClick }: HomeAniHeroCardPro
           <Button 
             size="lg" 
             onClick={onViewDetailsClick} 
-            className="bg-[hsl(var(--neon-green-accent))] text-[hsl(var(--neon-green-accent-foreground))] hover:bg-[hsl(var(--neon-green-accent)/0.9)] font-semibold shadow-[0_0_10px_hsl(var(--neon-green-glow)),_0_0_20px_hsl(var(--neon-green-glow)/0.7)] hover:shadow-[0_0_15px_hsl(var(--neon-green-glow)),_0_0_25px_hsl(var(--neon-green-glow)/0.8)] transition-all duration-300 rounded-lg"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold shadow-lg hover:shadow-xl transition-all duration-300 rounded-md"
             aria-label={`Ver detalhes e assistir ${item.tituloOriginal}`}
           >
             <PlayCircle className="mr-2 h-5 w-5 md:h-6 md:w-6" /> Assistir Agora
@@ -57,7 +57,7 @@ export function HomeAniHeroCard({ item, onViewDetailsClick }: HomeAniHeroCardPro
             variant="outline" 
             size="lg" 
             onClick={onViewDetailsClick}
-            className="bg-transparent border-2 border-[hsl(var(--neon-green-accent))] text-[hsl(var(--neon-green-accent))] hover:bg-[hsl(var(--neon-green-accent)/0.15)] hover:text-[hsl(var(--neon-green-accent))] font-semibold shadow-[0_0_8px_hsl(var(--neon-green-glow)/0.5)] hover:shadow-[0_0_12px_hsl(var(--neon-green-glow)/0.7),_0_0_18px_hsl(var(--neon-green-glow)/0.5)] transition-all duration-300 rounded-lg"
+            className="bg-white/10 border-2 border-white/20 text-white hover:bg-white/20 font-semibold shadow-md hover:shadow-lg transition-all duration-300 rounded-md backdrop-blur-sm"
             aria-label={`Mais informações sobre ${item.tituloOriginal}`}
           >
             <Info className="mr-2 h-5 w-5 md:h-6 md:w-6" /> Mais Informações
