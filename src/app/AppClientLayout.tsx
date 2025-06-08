@@ -109,6 +109,7 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
                 width={130} 
                 height={39} 
                 className="rounded-sm"
+                style={{ height: 'auto' }} 
                 priority 
                 data-ai-hint="website logo brand"
               />
