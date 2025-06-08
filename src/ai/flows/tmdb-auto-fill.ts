@@ -89,6 +89,7 @@ async function fetchGenreMap(apiKey: string, type: 'movie' | 'tv'): Promise<Map<
 // Internal function for TMDB Multi-Search logic
 async function _fetchTmdbMultiSearchInternal(input: TmdbSearchInput): Promise<TmdbMultiSearchOutput> {
   const apiKey = process.env.TMDB_API_KEY;
+  console.log('TMDB_API_KEY being used in _fetchTmdbMultiSearchInternal:', apiKey ? 'Exists (length: ' + apiKey.length + ')' : 'UNDEFINED or EMPTY'); // DEBUG LOG
   if (!apiKey) {
     throw new Error('TMDB_API_KEY is not configured in environment variables.');
   }
@@ -163,6 +164,7 @@ const tmdbMultiSearchFlow = ai.defineFlow(
 // Internal function for TMDB Fetch Details logic
 async function _fetchTmdbContentDetailsInternal(input: TmdbFetchDetailsInput): Promise<TmdbDetailedContentOutput> {
   const apiKey = process.env.TMDB_API_KEY;
+  console.log('TMDB_API_KEY being used in _fetchTmdbContentDetailsInternal:', apiKey ? 'Exists (length: ' + apiKey.length + ')' : 'UNDEFINED or EMPTY'); // DEBUG LOG
   if (!apiKey) {
     throw new Error('TMDB_API_KEY is not configured in environment variables.');
   }
