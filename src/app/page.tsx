@@ -251,20 +251,28 @@ export default function HomeAniPage() {
             />
           )}
 
+          {continueWatchingItems.length > 0 && (
+            <ContentRow
+              key="trending-now"
+              title="Em Alta"
+              items={continueWatchingItems}
+              onCardClick={(item) => handleCardClick(item)}
+              icon={<Flame className="mr-2 h-6 w-6" />}
+            />
+          )}
+
           {genreRowItemsToDisplay.map(genreRow => {
-            if (genreRow.title === "Continue Assistindo" && continueWatchingItems.length > 0) return null;
-
-            const itemsForThisRow = genreRow.items.filter(item =>
-                !continueWatchingItems.some(cw => cw.id === item.id && genreRow.title !== "Continue Assistindo")
-            );
-
-            if (itemsForThisRow.length === 0) return null;
+            // If the genre title is one of the special rows handled above, skip it here.
+            // This check might be too simplistic if genreRows could naturally be named "Continue Assistindo"
+            if ((genreRow.title === "Continue Assistindo" || genreRow.title === "Em Alta") && continueWatchingItems.length > 0) return null;
+            
+            if (genreRow.items.length === 0) return null;
 
             return (
                 <ContentRow
                 key={genreRow.title}
                 title={genreRow.title}
-                items={itemsForThisRow}
+                items={genreRow.items}
                 onCardClick={(item) => handleCardClick(item)}
                 icon={genreRow.icon}
                 />
@@ -328,7 +336,7 @@ function ContentRow({ title, items, onCardClick, icon }: ContentRowProps) {
     if (!isDragging || !scrollContainerRef.current) return;
     e.preventDefault();
     const x = e.pageX - scrollContainerRef.current.offsetLeft;
-    const walk = (x - startX) * 2;
+    const walk = (x - startX) * 2; // Adjust scroll speed if needed
     scrollContainerRef.current.scrollLeft = scrollLeftStart - walk;
   };
 
@@ -350,17 +358,21 @@ function ContentRow({ title, items, onCardClick, icon }: ContentRowProps) {
         >
           {items.map((item) => (
             <HomeAniContentCard
-              key={item.id + ((item as ContinueWatchingItem).lastSaved || '')}
+              key={item.id + ((item as ContinueWatchingItem).lastSaved || '')} // Ensure unique key if items can appear in multiple lists
               item={item as StoredCineItem & { progressTime?: number; progressDuration?: number }}
               onClick={() => {
-                if (startX !== 0 && Math.abs(scrollContainerRef.current!.scrollLeft - scrollLeftStart) > 5) {
+                // Prevent click if it was a drag
+                if (startX !== 0 && scrollContainerRef.current && Math.abs(scrollContainerRef.current.scrollLeft - scrollLeftStart) > 5) {
+                    // Reset startX to allow click on next attempt if it's not a drag
+                    setStartX(0); 
                     return;
                 }
+                setStartX(0); // Reset for next click
                 onCardClick(item as ContinueWatchingItem)
               }}
             />
           ))}
-          <div className="flex-shrink-0 w-px h-px" />
+          <div className="flex-shrink-0 w-px h-px" /> {/* Helper for consistent spacing at the end */}
         </div>
       </div>
       <Separator className="my-8 bg-border/50" />
