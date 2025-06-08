@@ -15,6 +15,7 @@ import { useModal } from '@/contexts/ModalContext';
 import { useRecentActivity } from '@/contexts/RecentActivityContext'; // Import useRecentActivity
 import { cn } from '@/lib/utils';
 import { AnimeLoadingScreen } from '@/components/layout/AnimeLoadingScreen'; // Import the themed loading screen
+import { AdPlaceholder } from '@/components/ads/AdPlaceholder'; // Importar AdPlaceholder
 
 interface ProgressData {
   time: number;
@@ -333,6 +334,13 @@ export default function HomeAniPage() {
               <p className="text-lg text-muted-foreground">Adicione filmes e séries na área de gerenciamento para começar.</p>
             </div>
           )}
+
+          {/* Ad Placeholder Section */}
+          {!isLoading && activeItems.length > 0 && ( // Apenas mostra se houver conteúdo na página
+            <section className="mt-12">
+              <AdPlaceholder height={100} label="Anúncio Principal (ex: Leaderboard)" className="mx-auto max-w-4xl" />
+            </section>
+          )}
         </div>
       </main>
 
@@ -426,4 +434,3 @@ function ContentRow({ title, items, onCardClick, icon }: ContentRowProps) {
     </section>
   );
 }
-

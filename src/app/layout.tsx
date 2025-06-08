@@ -1,5 +1,6 @@
 
 import type { Metadata } from 'next';
+import Script from 'next/script'; // Importar Script
 import './globals.css';
 // QueryProvider and ModalProvider are kept here as they wrap client boundaries
 import { QueryProvider } from '@/components/QueryProvider';
@@ -38,6 +39,15 @@ export default function RootLayout({
         <link rel="icon" type="image/png" sizes="32x32" href="https://placehold.co/32x32.png" />
         <link rel="icon" type="image/png" sizes="16x16" href="https://placehold.co/16x16.png" />
         <meta name="viewport" content="minimum-scale=1, initial-scale=1, width=device-width, shrink-to-fit=no, viewport-fit=cover" />
+        
+        {/* Google AdSense Script Placeholder */}
+        {/* SUBSTITUA 'ca-pub-XXXXXXXXXXXXXXXX' PELO SEU ID DE EDITOR REAL QUANDO TIVER UM */}
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
       </head>
       <body className="antialiased min-h-screen flex flex-col bg-background text-foreground">
         <ThemeProvider> {/* Wrap with ThemeProvider */}
