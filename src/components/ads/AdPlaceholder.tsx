@@ -1,8 +1,6 @@
-
 // src/components/ads/AdPlaceholder.tsx
 'use client';
 
-import { useEffect } from 'react';
 import { AlertTriangle } from 'lucide-react';
 
 interface AdPlaceholderProps {
@@ -10,7 +8,7 @@ interface AdPlaceholderProps {
   height?: number | string;
   label?: string;
   className?: string;
-  adSlot?: string; // Adicione esta propriedade se for usar para um bloco específico
+  adSlot?: string;
 }
 
 export function AdPlaceholder({
@@ -18,22 +16,12 @@ export function AdPlaceholder({
   height = 90,
   label = "Espaço Publicitário",
   className,
-  adSlot
+  adSlot // This prop remains for future use if the component evolves
 }: AdPlaceholderProps) {
 
-  // Este useEffect simula o push para adsbygoogle que você faria
-  // para blocos de anúncios específicos, APÓS o script principal ter carregado.
-  // Para anúncios automáticos, isso pode não ser estritamente necessário aqui,
-  // mas é uma boa prática para blocos.
-  useEffect(() => {
-    try {
-      // @ts-ignore
-      (window.adsbygoogle = window.adsbygoogle || []).push({});
-      console.log('AdPlaceholder: adsbygoogle.push({}) called for slot:', adSlot || 'auto/general');
-    } catch (e) {
-      console.error('AdSense push error:', e);
-    }
-  }, [adSlot]);
+  // The useEffect that called (window.adsbygoogle = window.adsbygoogle || []).push({});
+  // has been removed as it was causing errors for a visual placeholder.
+  // The main AdSense script in layout.tsx handles Auto Ads or general initialization.
 
   return (
     <div
@@ -52,7 +40,7 @@ export function AdPlaceholder({
              data-ad-slot={adSlot} // SEU ID DE BLOCO DE ANÚNCIO REAL
              data-ad-format="auto" // ou o formato que você configurou
              data-full-width-responsive="true"></ins>
-        E o useEffect acima ajudaria a inicializá-lo.
+        E um useEffect (cuidadosamente gerenciado) poderia ser usado para chamar .push({}) se necessário.
       */}
     </div>
   );
