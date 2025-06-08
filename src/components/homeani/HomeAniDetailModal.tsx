@@ -66,8 +66,8 @@ interface PlayerInfo { // For Plyr
 }
 
 interface ServerSelectionInfo {
-  sources: VideoSource[]; // Now holds the new VideoSource type
-  subtitleUrl?: string; // For direct URLs
+  sources: VideoSource[];
+  subtitleUrl?: string;
   title: string;
   baseId: string;
   seasonNumber?: number;
@@ -80,7 +80,6 @@ interface ProgressData {
   lastSaved: number;
 }
 
-// Regex to extract src from iframe code
 const IFRAME_SRC_REGEX = /<iframe[^>]+src="([^"]+)"/i;
 
 function extractSrcFromEmbed(embedCode: string): string | null {
@@ -90,9 +89,9 @@ function extractSrcFromEmbed(embedCode: string): string | null {
 
 
 export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onInitialActionConsumed }: HomeAniDetailModalProps) {
-  const [activePlayerInfo, setActivePlayerInfo] = useState<PlayerInfo | null>(null); // For Plyr
-  const [activeEmbedIframeSrc, setActiveEmbedIframeSrc] = useState<string | null>(null); // For iframe src
-  const [activePlayerTitle, setActivePlayerTitle] = useState<string | null>(null); // For both players
+  const [activePlayerInfo, setActivePlayerInfo] = useState<PlayerInfo | null>(null);
+  const [activeEmbedIframeSrc, setActiveEmbedIframeSrc] = useState<string | null>(null);
+  const [activePlayerTitle, setActivePlayerTitle] = useState<string | null>(null);
   const [serverSelectionInfo, setServerSelectionInfo] = useState<ServerSelectionInfo | null>(null);
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const plyrRef = useRef<({ plyr: PlyrJS }) | null>(null);
@@ -138,7 +137,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     onClose();
   }, [clearAllPlayers, onClose]);
 
-  const handlePlayerViewClose = useCallback(() => { // For both Plyr and Iframe views
+  const handlePlayerViewClose = useCallback(() => {
     clearAllPlayers();
   }, [clearAllPlayers]);
 
@@ -188,12 +187,31 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     setActivePlayerTitle(title);
   }, [toast, item, clearAllPlayers]);
 
-  const initiateEmbedPlayback = useCallback((embedCode: string, title: string) => {
+  const initiateEmbedPlayback = useCallback((
+    embedCode: string, 
+    title: string,
+    baseId?: string,
+    seasonNumber?: number,
+    episodeIndex?: number
+  ) => {
     const iframeSrc = extractSrcFromEmbed(embedCode);
     if (iframeSrc) {
       clearAllPlayers();
       setActiveEmbedIframeSrc(iframeSrc);
       setActivePlayerTitle(title);
+
+      if (baseId) {
+        let storageKeySuffix = baseId;
+        if (typeof seasonNumber === 'number' && typeof episodeIndex === 'number') {
+          storageKeySuffix += `-s${seasonNumber}-e${episodeIndex}`;
+        }
+        try {
+          localStorage.setItem(`video-last-played-${storageKeySuffix}`, JSON.stringify({ lastPlayed: Date.now() }));
+        } catch (e) {
+          console.error("Error saving embed interaction to localStorage:", e);
+        }
+      }
+
     } else {
       toast({ title: "Código de Embed Inválido", description: "Não foi possível extrair um URL de vídeo do código fornecido.", variant: "destructive"});
     }
@@ -202,7 +220,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
   const processSelectedSource = useCallback((
     source: VideoSource,
     title: string,
-    globalSubtitleUrl?: string, // For movie's global subtitle or episode's specific subtitle
+    globalSubtitleUrl?: string,
     baseId?: string,
     seasonNumber?: number,
     episodeIndex?: number
@@ -210,7 +228,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     if (source.sourceType === 'directUrl') {
       initiateDirectPlayback(source.content, title, globalSubtitleUrl, baseId, seasonNumber, episodeIndex);
     } else if (source.sourceType === 'embedCode') {
-      initiateEmbedPlayback(source.content, title);
+      initiateEmbedPlayback(source.content, title, baseId, seasonNumber, episodeIndex);
     }
   }, [initiateDirectPlayback, initiateEmbedPlayback]);
   
@@ -218,7 +236,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
   const promptOrPlay = useCallback((
     videoSources: VideoSource[] | undefined,
     title: string,
-    globalSubtitleUrl?: string, // For direct URLs: movie's linkLegendas or episode's linkLegenda
+    globalSubtitleUrl?: string,
     baseId?: string,
     seasonNumber?: number,
     episodeIndex?: number
@@ -241,8 +259,6 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     if (validSources.length === 1) {
       processSelectedSource(validSources[0], title, globalSubtitleUrl, baseId, seasonNumber, episodeIndex);
     } else {
-      // For multiple sources, the subtitleUrl passed to ServerSelectionInfo should be the global one.
-      // The specific source object doesn't carry its own subtitle, that's a level above (movie/episode).
       setServerSelectionInfo({ sources: validSources, subtitleUrl: globalSubtitleUrl, title, baseId, seasonNumber, episodeIndex });
     }
     return true;
@@ -420,7 +436,6 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
 
   if (!item && !(processingInitialAction && initialAction === 'play')) return null;
 
-  // Render player views first if active
   if (activeEmbedIframeSrc) {
     return (
       <div className="fixed inset-0 z-[100] bg-black/90 flex flex-col items-center justify-center p-2 sm:p-4">
@@ -476,8 +491,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     );
   }
   
-  // Render loading or content details
-  if (!item) { // Should only be hit if processingInitialAction is true but item is somehow null
+  if (!item) { 
       return ( 
         <Dialog open={isOpen} onOpenChange={(open) => !open && handleModalClose()}>
            <DialogContent className="sm:max-w-[600px] md:max-w-[800px] lg:max-w-[900px] p-0 max-h-[90vh] flex flex-col bg-card">
@@ -664,12 +678,12 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
             <div className="flex flex-col space-y-2 max-h-60 overflow-y-auto py-2">
               {serverSelectionInfo.sources.map((source, index) => (
                 <Button
-                  key={source.id || `${source.content.substring(0,10)}-${index}`} // Ensure key is somewhat unique
+                  key={source.id || `${source.content.substring(0,10)}-${index}`} 
                   className="cyberpunk-button-primary w-full justify-start text-left py-2.5 px-4"
                   onClick={() => processSelectedSource(
                     source,
                     serverSelectionInfo.title,
-                    serverSelectionInfo.subtitleUrl, // Global subtitle for directUrls
+                    serverSelectionInfo.subtitleUrl, 
                     serverSelectionInfo.baseId,
                     serverSelectionInfo.seasonNumber,
                     serverSelectionInfo.episodeIndex
@@ -702,4 +716,3 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     </>
   );
 }
-

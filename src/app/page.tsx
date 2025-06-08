@@ -21,15 +21,20 @@ interface ProgressData {
   lastSaved: number;
 }
 
+interface LastPlayedData {
+  lastPlayed: number;
+}
+
 interface ContinueWatchingItem extends StoredCineItem {
-  lastSaved: number;
+  lastSaved: number; // Timestamp for sorting (either lastSaved from progress or lastPlayed from interaction)
   progressTime?: number;
   progressDuration?: number;
   _playActionData?: { seasonNumber: number; episodeIndex: number };
+  interactionType?: 'direct' | 'embed'; // To differentiate how it was watched
 }
 
 export default function HomeAniPage() {
-  const { openModal } = useModal(); // Use the modal context
+  const { openModal } = useModal(); 
   const [continueWatchingItems, setContinueWatchingItems] = useState<ContinueWatchingItem[]>([]);
 
   const { data: allItems, isLoading, error, refetch } = useQuery<StoredCineItem[], Error>({
@@ -39,7 +44,6 @@ export default function HomeAniPage() {
 
   const activeItems = useMemo(() => allItems?.filter(item => item.status === 'ativo') || [], [allItems]);
 
-  // Effect to load "Continue Watching" items from localStorage
   useEffect(() => {
     if (!activeItems || activeItems.length === 0) {
         setContinueWatchingItems([]);
@@ -50,36 +54,59 @@ export default function HomeAniPage() {
     try {
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key && key.startsWith('video-progress-')) {
+        if (!key) continue;
+
+        let itemId: string | null = null;
+        let seasonNumber: number | undefined = undefined;
+        let episodeIndex: number | undefined = undefined;
+        let interactionData: any = null;
+        let interactionType: 'direct' | 'embed' | undefined = undefined;
+        let lastSavedTimestamp: number = 0;
+
+        if (key.startsWith('video-progress-')) {
           const progressString = localStorage.getItem(key);
           if (progressString) {
-            const progressData: ProgressData = JSON.parse(progressString);
-            const isMeaningfulProgress = progressData.time > 5 &&
-                                        (progressData.duration ? progressData.time < progressData.duration * 0.98 : true);
+            interactionData = JSON.parse(progressString) as ProgressData;
+            const isMeaningfulProgress = interactionData.time > 5 &&
+                                        (interactionData.duration ? interactionData.time < interactionData.duration * 0.98 : true);
+            if (!isMeaningfulProgress) continue;
 
-            if (isMeaningfulProgress) {
-              const itemIdMatch = key.match(/^video-progress-([a-zA-Z0-9]+)(?:-s(\d+)-e(\d+))?$/);
-              const itemId = itemIdMatch ? itemIdMatch[1] : null;
-              const seasonNumber = itemIdMatch && itemIdMatch[2] ? parseInt(itemIdMatch[2], 10) : undefined;
-              const episodeIndex = itemIdMatch && itemIdMatch[3] ? parseInt(itemIdMatch[3], 10) : undefined;
+            interactionType = 'direct';
+            lastSavedTimestamp = interactionData.lastSaved;
+            const match = key.match(/^video-progress-([a-zA-Z0-9]+)(?:-s(\d+)-e(\d+))?$/);
+            itemId = match ? match[1] : null;
+            seasonNumber = match && match[2] ? parseInt(match[2], 10) : undefined;
+            episodeIndex = match && match[3] ? parseInt(match[3], 10) : undefined;
+          }
+        } else if (key.startsWith('video-last-played-')) {
+          const lastPlayedString = localStorage.getItem(key);
+          if (lastPlayedString) {
+            interactionData = JSON.parse(lastPlayedString) as LastPlayedData;
+            interactionType = 'embed';
+            lastSavedTimestamp = interactionData.lastPlayed;
+            const match = key.match(/^video-last-played-([a-zA-Z0-9]+)(?:-s(\d+)-e(\d+))?$/);
+            itemId = match ? match[1] : null;
+            seasonNumber = match && match[2] ? parseInt(match[2], 10) : undefined;
+            episodeIndex = match && match[3] ? parseInt(match[3], 10) : undefined;
+          }
+        }
 
-              if (itemId) {
-                const matchingItem = activeItems.find(item => item.id === itemId);
-                // Avoid duplicates if multiple episodes of same series are in progress but we only show the series once
-                if (matchingItem && !loadedContinueWatching.some(cw => cw.id === matchingItem.id)) { 
-                  const continueItem: ContinueWatchingItem = {
-                    ...matchingItem,
-                    lastSaved: progressData.lastSaved,
-                    progressTime: progressData.time,
-                    progressDuration: progressData.duration,
-                  };
-                  if (typeof seasonNumber === 'number' && typeof episodeIndex === 'number' && matchingItem.contentType === 'series') {
-                    continueItem._playActionData = { seasonNumber, episodeIndex };
-                  }
-                  loadedContinueWatching.push(continueItem);
-                }
-              }
+        if (itemId && interactionType) {
+          const matchingItem = activeItems.find(item => item.id === itemId);
+          if (matchingItem && !loadedContinueWatching.some(cw => cw.id === matchingItem.id)) { 
+            const continueItem: ContinueWatchingItem = {
+              ...matchingItem,
+              lastSaved: lastSavedTimestamp,
+              interactionType: interactionType,
+            };
+            if (interactionType === 'direct' && interactionData) {
+              continueItem.progressTime = (interactionData as ProgressData).time;
+              continueItem.progressDuration = (interactionData as ProgressData).duration;
             }
+            if (typeof seasonNumber === 'number' && typeof episodeIndex === 'number' && matchingItem.contentType === 'series') {
+              continueItem._playActionData = { seasonNumber, episodeIndex };
+            }
+            loadedContinueWatching.push(continueItem);
           }
         }
       }
@@ -94,16 +121,14 @@ export default function HomeAniPage() {
   const heroItem = useMemo(() => {
     if (!activeItems || activeItems.length === 0) return null;
     
-    // Prioritize items marked for homepage destaque
     const featured = activeItems
         .filter(item => item.destaqueHome === true)
         .sort((a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime());
 
     if (featured.length > 0) {
-        return featured[0]; // Show the newest featured item
+        return featured[0];
     }
     
-    // Fallback: If no featured items, pick the most recent active item not in "Continue Watching"
     const continueWatchingIds = new Set(continueWatchingItems.map(cw => cw.id));
     const mostRecentActive = activeItems
       .filter(item => !continueWatchingIds.has(item.id))
@@ -113,12 +138,11 @@ export default function HomeAniPage() {
       return mostRecentActive[0];
     }
 
-    // Further Fallback: if all active items are in continue watching, pick the newest overall active item for hero
      if (activeItems.length > 0) {
         return activeItems.sort((a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime())[0];
     }
 
-    return null; // No suitable item found
+    return null; 
   }, [activeItems, continueWatchingItems]);
 
 
@@ -131,7 +155,7 @@ export default function HomeAniPage() {
 
     const genresMap: Map<string, StoredCineItem[]> = new Map();
     const miscellaneousItems: StoredCineItem[] = [];
-    const processedForGenreMap = new Set<string>(); // Keep track of items added to specific genres
+    const processedForGenreMap = new Set<string>(); 
 
     itemsForGenreRows.forEach(item => {
       let itemGenres = (item.generos || '')
@@ -224,7 +248,7 @@ export default function HomeAniPage() {
               key="continue-watching"
               title="Continue Assistindo"
               items={continueWatchingItems}
-              onCardClick={(item) => handleCardClick(item, true)} // Pass true to play directly
+              onCardClick={(item) => handleCardClick(item, true)} 
               icon={<PlaySquare className="mr-2 h-6 w-6" />}
             />
           )}
@@ -263,13 +287,13 @@ export default function HomeAniPage() {
   );
 }
 
-// Helper component for content rows
 interface ContentRowProps {
   title: string;
-  items: StoredCineItem[];
+  items: (StoredCineItem & { progressTime?: number; progressDuration?: number; _playActionData?: { seasonNumber: number; episodeIndex: number } })[];
   onCardClick: (item: StoredCineItem & { _playActionData?: { seasonNumber: number; episodeIndex: number } }) => void;
   icon?: React.ReactNode;
 }
+
 
 function ContentRow({ title, items, onCardClick, icon }: ContentRowProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -306,7 +330,7 @@ function ContentRow({ title, items, onCardClick, icon }: ContentRowProps) {
     if (!isDragging || !scrollContainerRef.current) return;
     e.preventDefault();
     const x = e.pageX - scrollContainerRef.current.offsetLeft;
-    const walk = (x - startX) * 2; // Multiply for faster scroll
+    const walk = (x - startX) * 2; 
     scrollContainerRef.current.scrollLeft = scrollLeftStart - walk;
   };
 
@@ -331,7 +355,6 @@ function ContentRow({ title, items, onCardClick, icon }: ContentRowProps) {
               key={item.id + ((item as ContinueWatchingItem).lastSaved || '')} 
               item={item as StoredCineItem & { progressTime?: number; progressDuration?: number }}
               onClick={() => {
-                // Prevent card click if it was a drag action
                 if (startX !== 0 && Math.abs(scrollContainerRef.current!.scrollLeft - scrollLeftStart) > 5) {
                     return;
                 }
@@ -346,4 +369,3 @@ function ContentRow({ title, items, onCardClick, icon }: ContentRowProps) {
     </section>
   );
 }
-
