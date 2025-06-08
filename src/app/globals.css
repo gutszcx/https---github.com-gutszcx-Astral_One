@@ -5,7 +5,7 @@
 
 @layer base {
   :root {
-    /* New Vivid & Abstract Theme (Light Background) */
+    /* Light Theme: Vivid & Abstract */
     --light-bg: 220 60% 96%; /* Very light blue for main background */
     --dark-fg: 230 50% 45%; /* Dark blue for main text */
     --card-bg-light: 0 0% 100%; /* White for cards */
@@ -19,8 +19,7 @@
     --yellow-accent: 50 100% 55%;
     --text-on-yellow: 230 50% 20%; /* Dark text for high contrast on yellow */
     
-    --green-chart: 130 60% 50%; /* Additional color for charts or specific highlights */
-
+    --green-chart: 130 60% 50%; 
     --pink-destructive: 325 100% 50%;
     --text-on-pink: 0 0% 100%; /* White text for high contrast on pink */
 
@@ -28,47 +27,37 @@
     --border-light-gray: 220 20% 85%;
     --input-border-gray: 220 15% 70%;
 
-
-    /* Mapping to Standard Theme Variables */
+    /* Standard Theme Variables Mappings (Light) */
     --background: var(--light-bg);
     --foreground: var(--dark-fg);
-
     --card: var(--card-bg-light);
     --card-foreground: var(--dark-fg);
-
     --popover: var(--card-bg-light);
     --popover-foreground: var(--dark-fg);
-
     --primary: var(--coral-primary);
     --primary-foreground: var(--text-on-coral);
-
     --secondary: var(--teal-secondary);
     --secondary-foreground: var(--text-on-teal);
-
     --muted: var(--card-bg-light); 
     --muted-foreground: var(--muted-text-gray-blue);
-
     --accent: var(--yellow-accent);
     --accent-foreground: var(--text-on-yellow);
-
     --destructive: var(--pink-destructive);
     --destructive-foreground: var(--text-on-pink);
-
     --border: var(--border-light-gray);
     --input: var(--input-border-gray); 
     --ring: var(--yellow-accent);
-
     --radius: 0.5rem;
 
-    /* Chart colors */
+    /* Chart colors (Light) */
     --chart-1: var(--coral-primary);
     --chart-2: var(--teal-secondary);
     --chart-3: var(--yellow-accent);
     --chart-4: var(--green-chart); 
     --chart-5: var(--pink-destructive);
 
-    /* Sidebar colors */
-    --sidebar-background: 220 55% 92%; /* Slightly darker than main light-bg, or a vibrant color if preferred */
+    /* Sidebar colors (Light) */
+    --sidebar-background: 220 55% 92%; 
     --sidebar-foreground: var(--dark-fg);
     --sidebar-primary: var(--coral-primary);
     --sidebar-primary-foreground: var(--text-on-coral);
@@ -76,6 +65,68 @@
     --sidebar-accent-foreground: var(--text-on-yellow);
     --sidebar-border: var(--border-light-gray);
     --sidebar-ring: var(--yellow-accent);
+  }
+
+  .dark {
+    /* Dark Theme: Vivid & Abstract */
+    --dark-theme-bg: 230 25% 12%; /* Deep dark blue, almost black */
+    --dark-theme-fg: 210 40% 95%; /* Very light, slightly cool white */
+    --dark-theme-card-bg: 230 25% 18%; /* Slightly lighter than main dark bg */
+    
+    --coral-primary-dark: 15 90% 70%; /* Coral may need to be slightly brighter/less saturated on dark */
+    --text-on-coral-dark: 230 30% 10%; 
+
+    --teal-secondary-dark: 175 65% 60%; /* Teal may need to be slightly brighter/less saturated */
+    --text-on-teal-dark: 230 30% 10%;
+
+    --yellow-accent-dark: 50 90% 60%; /* Yellow may need to be slightly brighter/less saturated */
+    --text-on-yellow-dark: 230 30% 10%;
+
+    --green-chart-dark: 130 55% 55%;
+    --pink-destructive-dark: 325 90% 60%;
+    --text-on-pink-dark: 0 0% 100%; /* White text still works */
+
+    --muted-text-dark: 210 15% 65%; /* Lighter muted text for dark bg */
+    --border-dark: 220 15% 30%; 
+    --input-border-dark: 220 15% 40%;
+
+    /* Standard Theme Variables Mappings (Dark) */
+    --background: var(--dark-theme-bg);
+    --foreground: var(--dark-theme-fg);
+    --card: var(--dark-theme-card-bg);
+    --card-foreground: var(--dark-theme-fg);
+    --popover: var(--dark-theme-card-bg);
+    --popover-foreground: var(--dark-theme-fg);
+    --primary: var(--coral-primary-dark);
+    --primary-foreground: var(--text-on-coral-dark);
+    --secondary: var(--teal-secondary-dark);
+    --secondary-foreground: var(--text-on-teal-dark);
+    --muted: var(--dark-theme-card-bg);
+    --muted-foreground: var(--muted-text-dark);
+    --accent: var(--yellow-accent-dark);
+    --accent-foreground: var(--text-on-yellow-dark);
+    --destructive: var(--pink-destructive-dark);
+    --destructive-foreground: var(--text-on-pink-dark);
+    --border: var(--border-dark);
+    --input: var(--input-border-dark);
+    --ring: var(--yellow-accent-dark); /* Ring can adapt */
+
+    /* Chart colors (Dark) - adjust if needed */
+    --chart-1: var(--coral-primary-dark);
+    --chart-2: var(--teal-secondary-dark);
+    --chart-3: var(--yellow-accent-dark);
+    --chart-4: var(--green-chart-dark); 
+    --chart-5: var(--pink-destructive-dark);
+
+    /* Sidebar colors (Dark) */
+    --sidebar-background: 230 25% 10%; 
+    --sidebar-foreground: var(--dark-theme-fg);
+    --sidebar-primary: var(--coral-primary-dark);
+    --sidebar-primary-foreground: var(--text-on-coral-dark);
+    --sidebar-accent: var(--yellow-accent-dark);
+    --sidebar-accent-foreground: var(--text-on-yellow-dark);
+    --sidebar-border: var(--border-dark);
+    --sidebar-ring: var(--yellow-accent-dark);
   }
 }
 
@@ -85,15 +136,19 @@
   }
   body {
     @apply bg-background text-foreground; 
-    font-family: 'Inter', sans-serif; /* Apply Inter font globally */
+    font-family: 'Inter', sans-serif;
   }
   img {
     image-rendering: auto;
   }
   input, textarea, select {
-    @apply bg-input;
+    @apply bg-input; /* Changed from bg-background to bg-input for better dark mode handling */
     @apply text-foreground;
     @apply placeholder:text-muted-foreground/70;
+  }
+   /* Ensure select dropdowns adopt theme too */
+  select option {
+    @apply bg-background text-foreground;
   }
 }
 

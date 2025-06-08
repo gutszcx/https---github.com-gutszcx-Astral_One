@@ -7,7 +7,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { HomeAniDetailModal } from '@/components/homeani/HomeAniDetailModal';
 import { useModal } from '@/contexts/ModalContext';
 import { Button } from '@/components/ui/button';
-import { Search as SearchIcon, Star, Loader2, User as UserIcon, LogOut, UserCircle, CalendarDays, History as HistoryIcon, ExternalLink, PlayCircle, LayoutDashboard, Settings } from 'lucide-react';
+import { Search as SearchIcon, Star, Loader2, User as UserIcon, LogOut, UserCircle, CalendarDays, History as HistoryIcon, ExternalLink, PlayCircle, LayoutDashboard, Settings, Sun, Moon } from 'lucide-react'; // Added Sun, Moon
 import { useState, useEffect } from 'react';
 import { SearchDialog } from '@/components/SearchDialog';
 import { NewsBanner } from '@/components/layout/NewsBanner';
@@ -16,6 +16,8 @@ import { getAuth, onAuthStateChanged, User, signOut } from 'firebase/auth';
 import { app } from '@/lib/firebase';
 import { usePathname, useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Label } from '@/components/ui/label'; // Added Label
+import { Switch } from '@/components/ui/switch'; // Added Switch
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,12 +31,14 @@ import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { RecentActivityProvider, useRecentActivity } from '@/contexts/RecentActivityContext';
 import type { ContinueWatchingItem } from '@/types';
+import { useTheme } from '@/contexts/ThemeContext'; // Import useTheme
 
 
 function AvatarDropdownContent() {
   const { user, handleSignOut } = useUserAuth();
   const { mostRecentItem } = useRecentActivity();
   const { openModal } = useModal();
+  const { theme, toggleTheme } = useTheme(); // Use theme context
 
   if (!user) return null;
 
@@ -81,7 +85,7 @@ function AvatarDropdownContent() {
         </div>
       </div>
 
-      <ScrollArea className="max-h-60 pr-1">
+      <ScrollArea className="max-h-72 pr-1"> {/* Increased max-h slightly for new item */}
         <div className="px-1 py-1">
           <DropdownMenuItem asChild>
             <Link href="/favorites" className="cursor-pointer">
@@ -89,12 +93,33 @@ function AvatarDropdownContent() {
               <span>Meus Favoritos</span>
             </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem asChild>
+          
+          {/* Theme Toggle Item */}
+          <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="focus:bg-transparent cursor-default">
+            <div className="flex items-center justify-between w-full">
+              <div className='flex items-center'>
+                {theme === 'light' ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
+                <Label htmlFor="theme-toggle-switch" className="text-sm font-normal cursor-pointer">
+                  Tema {theme === 'light' ? 'Claro' : 'Escuro'}
+                </Label>
+              </div>
+              <Switch
+                id="theme-toggle-switch"
+                checked={theme === 'dark'}
+                onCheckedChange={toggleTheme}
+                aria-label="Alternar tema claro/escuro"
+              />
+            </div>
+          </DropdownMenuItem>
+          
+          {/* Removed direct link to /settings, can be re-added if a settings page is needed later */}
+          {/* <DropdownMenuItem asChild>
             <Link href="/settings" className="cursor-pointer">
               <Settings className="mr-2 h-4 w-4" />
               <span>Configurações</span>
             </Link>
-          </DropdownMenuItem>
+          </DropdownMenuItem> */}
+
 
           {mostRecentItem && (
             <>
@@ -190,6 +215,7 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useUserAuth();
+   const { theme } = useTheme(); // Access theme for potential body class (already handled by ThemeProvider)
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -336,4 +362,3 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
     </RecentActivityProvider>
   );
 }
-

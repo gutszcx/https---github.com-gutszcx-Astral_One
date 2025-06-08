@@ -5,6 +5,7 @@ import './globals.css';
 import { QueryProvider } from '@/components/QueryProvider';
 import { ModalProvider } from '@/contexts/ModalContext';
 import { AppClientLayout } from './AppClientLayout'; // New client component
+import { ThemeProvider } from '@/contexts/ThemeContext'; // Import ThemeProvider
 
 export const metadata: Metadata = {
   title: 'Astral One',
@@ -39,11 +40,13 @@ export default function RootLayout({
         <meta name="viewport" content="minimum-scale=1, initial-scale=1, width=device-width, shrink-to-fit=no, viewport-fit=cover" />
       </head>
       <body className="antialiased min-h-screen flex flex-col bg-background text-foreground">
-        <QueryProvider>
-          <ModalProvider>
-            <AppClientLayout>{children}</AppClientLayout>
-          </ModalProvider>
-        </QueryProvider>
+        <ThemeProvider> {/* Wrap with ThemeProvider */}
+          <QueryProvider>
+            <ModalProvider>
+              <AppClientLayout>{children}</AppClientLayout>
+            </ModalProvider>
+          </QueryProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
