@@ -4,7 +4,7 @@ name: Deploy PWA to GitHub Pages
 on:
   push:
     branches:
-      - main # Ou a branch que você usa como principal
+      - master # Alterado de main para master
 
 jobs:
   build-and-deploy:
@@ -48,7 +48,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./out # A pasta de saída do Next.js para 'output: export'
           # Se você estiver usando um domínio personalizado para o GitHub Pages, adicione um arquivo CNAME
-          # à raiz do seu projeto (na branch 'main') ou configure-o nas configurações do repositório.
+          # à raiz do seu projeto (na branch 'master') ou configure-o nas configurações do repositório.
           # cname: your.custom.domain.com
           # publish_branch: gh-pages # Branch para onde será feito o deploy (padrão: gh-pages)
           # force_orphan: true # Cria uma branch 'gh-pages' limpa a cada deploy (recomendado)
