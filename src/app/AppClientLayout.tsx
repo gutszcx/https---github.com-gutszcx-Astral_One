@@ -252,14 +252,16 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
                 />
               </Link>
               {user && (
-                <div className="flex items-center space-x-1 md:space-x-2">
-                  <Button variant="ghost" size="icon" asChild>
-                    <Link href="/favorites" aria-label="Favoritos">
-                      <Star className="h-5 w-5 text-primary hover:text-accent" />
+                <div className="flex items-center space-x-2 md:space-x-3">
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link href="/favorites" aria-label="Favoritos" className="flex items-center">
+                      <Star className="h-5 w-5 text-primary mr-1 sm:mr-1.5" />
+                      <span className="hidden sm:inline">Favoritos</span>
                     </Link>
                   </Button>
-                  <Button variant="ghost" size="icon" onClick={() => setIsSearchDialogOpen(true)} aria-label="Pesquisar conteúdo">
-                    <SearchIcon className="h-5 w-5 text-primary hover:text-accent" />
+                  <Button variant="ghost" size="sm" onClick={() => setIsSearchDialogOpen(true)} aria-label="Pesquisar conteúdo">
+                    <SearchIcon className="h-5 w-5 text-primary mr-1 sm:mr-1.5" />
+                    <span className="hidden sm:inline">Pesquisar</span>
                   </Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
