@@ -117,7 +117,7 @@ function mapDocToStoredCineItem(document: { data: () => any; id: string }): Stor
         } as StoredSeriesItem;
     }
 
-    console.warn(\`Unknown or missing content type for document ID: \${document.id}. Data:\`, data);
+    console.warn("Unknown or missing content type for document ID: " + document.id + ". Data:", data);
     return {
         ...baseMappedItem,
         contentType: 'movie', 
@@ -428,3 +428,4 @@ export async function deleteUserPushToken(token: string): Promise<void> {
     // Not throwing error to client
   }
 }
+

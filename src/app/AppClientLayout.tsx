@@ -48,7 +48,7 @@ function AvatarDropdownContent() {
       const season = (item as any).temporadas?.find((s: any) => s.numeroTemporada === item._playActionData!.seasonNumber);
       const episode = season?.episodios?.[item._playActionData!.episodeIndex];
       if (episode) {
-        return \`\${item.tituloOriginal} - T\${season.numeroTemporada}E\${item._playActionData.episodeIndex + 1}: \${episode.titulo}\`;
+        return item.tituloOriginal + " - T" + season.numeroTemporada + "E" + (item._playActionData.episodeIndex + 1) + ": " + episode.titulo;
       }
     }
     return item.tituloOriginal;
@@ -137,8 +137,8 @@ function AvatarDropdownContent() {
                 <div className="flex items-center space-x-2">
                   <div className="relative w-12 h-[71px] rounded flex-shrink-0 overflow-hidden bg-muted">
                     <Image
-                      src={mostRecentItem.capaPoster || \`https://placehold.co/80x120.png?text=\${encodeURIComponent(mostRecentItem.tituloOriginal.substring(0,1))}\`}
-                      alt={\`Poster de \${getDisplayedTitle(mostRecentItem)}\`}
+                      src={mostRecentItem.capaPoster || `https://placehold.co/80x120.png?text=${encodeURIComponent(mostRecentItem.tituloOriginal.substring(0,1))}`}
+                      alt={`Poster de ${getDisplayedTitle(mostRecentItem)}`}
                       layout="fill"
                       objectFit="cover"
                       className="group-hover:scale-105 transition-transform duration-200"
@@ -151,7 +151,7 @@ function AvatarDropdownContent() {
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {mostRecentItem.contentType === 'movie' ? 'Filme' : 'Série'}
-                      {mostRecentItem.anoLancamento && \` - \${mostRecentItem.anoLancamento}\`}
+                      {mostRecentItem.anoLancamento && ` - ${mostRecentItem.anoLancamento}`}
                     </p>
                     <span className="text-xs text-primary group-hover:underline flex items-center mt-1">
                       <PlayCircle className="mr-1 h-3.5 w-3.5" /> Continuar
