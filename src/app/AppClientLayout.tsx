@@ -2,24 +2,25 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image'; // Added Image import
 import { Toaster } from "@/components/ui/toaster";
 import { HomeAniDetailModal } from '@/components/homeani/HomeAniDetailModal';
 import { useModal } from '@/contexts/ModalContext';
 import { Button } from '@/components/ui/button';
-import { Search as SearchIcon, Star, Loader2 } from 'lucide-react'; // Added Star icon and Loader2
-import { useState, useEffect } from 'react'; // Added useEffect
+import { Search as SearchIcon, Star, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { SearchDialog } from '@/components/SearchDialog';
 import { NewsBanner } from '@/components/layout/NewsBanner';
 import { FavoritesProvider } from '@/contexts/FavoritesContext';
-import { getAuth, onAuthStateChanged, User } from 'firebase/auth'; // Added Firebase auth imports
-import { app } from '@/lib/firebase'; // Import Firebase app instance
-import { usePathname, useRouter } from 'next/navigation'; // Added Next.js navigation hooks
+import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
+import { app } from '@/lib/firebase';
+import { usePathname, useRouter } from 'next/navigation';
 
 export function AppClientLayout({ children }: { children: React.ReactNode }) {
   const { selectedItem, isModalOpen, closeModal, initialModalAction, onInitialActionConsumed } = useModal();
   const [isSearchDialogOpen, setIsSearchDialogOpen] = useState(false);
-  const [isLoadingAuth, setIsLoadingAuth] = useState(true); // State for auth check loading
-  const [user, setUser] = useState<User | null>(null); // State for user
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
 
   const auth = getAuth(app);
   const router = useRouter();
@@ -52,9 +53,6 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // If user is not authenticated and we are not on the login page,
-  // this early return prevents rendering children until redirect happens.
-  // The redirect is handled by the useEffect above.
   if (!user && pathname !== '/login') {
     return (
        <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4">
@@ -64,7 +62,6 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
     );
   }
   
-  // If user is authenticated and on login page, show loading while redirecting.
   if (user && pathname === '/login') {
     return (
        <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4">
@@ -81,10 +78,18 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
       {pathname !== '/login' && (
         <header className="bg-card text-card-foreground p-4 shadow-md sticky top-0 z-50 border-b border-[hsl(var(--cyberpunk-border))]">
           <nav className="container mx-auto flex justify-between items-center">
-            <Link href="/" className="text-2xl font-bold text-primary hover:text-[hsl(var(--cyberpunk-highlight))] transition-colors">
-              Astral One
+            <Link href="/" className="hover:opacity-80 transition-opacity">
+              <Image
+                src="https://i.postimg.cc/ZKyGZfPs/Chat-GPT-Image-8-de-jun-de-2025-10-20-23.png"
+                alt="Astral One Logo"
+                width={130} // Adjusted width for header
+                height={39} // Adjusted height to maintain aspect ratio (approx 200/60 * 130/x)
+                className="rounded-sm" // small rounding if any
+                priority // Good to have for LCP elements if this is above the fold
+                data-ai-hint="website logo brand"
+              />
             </Link>
-            {user && ( // Only show nav links if user is authenticated
+            {user && (
               <div className="flex items-center space-x-4 md:space-x-6">
                 <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
                   Catálogo
@@ -114,7 +119,7 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
         initialAction={initialModalAction}
         onInitialActionConsumed={onInitialActionConsumed}
       />
-      {user && ( // Only show search dialog if user is authenticated
+      {user && (
          <SearchDialog
            isOpen={isSearchDialogOpen}
            onClose={() => setIsSearchDialogOpen(false)}
