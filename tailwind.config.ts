@@ -1,3 +1,4 @@
+
 import type {Config} from 'tailwindcss';
 
 export default {
@@ -10,9 +11,10 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['VT323', 'monospace'],
-        headline: ['VT323', 'monospace'],
-        code: ['VT323', 'monospace'],
+        // Changed from VT323 to Inter for body/headline, and a standard monospace for code
+        body: ['Inter', 'sans-serif'],
+        headline: ['Inter', 'sans-serif'],
+        code: ['Menlo', 'Consolas', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       colors: {
         background: 'hsl(var(--background))',
@@ -46,7 +48,7 @@ export default {
           foreground: 'hsl(var(--destructive-foreground))',
         },
         border: 'hsl(var(--border))',
-        input: 'hsl(var(--input))', // This is used for input BORDERS by ShadCN
+        input: 'hsl(var(--input))', 
         ring: 'hsl(var(--ring))',
         chart: {
           '1': 'hsl(var(--chart-1))',
@@ -67,9 +69,9 @@ export default {
         },
       },
       borderRadius: {
-        lg: 'var(--radius)', // Will be 0rem
-        md: 'var(--radius)', // Will be 0rem
-        sm: 'var(--radius)', // Will be 0rem
+        lg: 'var(--radius)',
+        md: 'var(--radius)',
+        sm: 'var(--radius)',
       },
       keyframes: {
         'accordion-down': {

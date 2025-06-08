@@ -5,81 +5,77 @@
 
 @layer base {
   :root {
-    /* Prime Video Inspired Theme (Dark Blue/Black, Cyan Accents) */
-    --prime-bg-dark: 220 30% 8%; /* Very dark blue, almost black */
-    --prime-fg-light: 210 25% 95%; /* Light gray / off-white */
+    /* New Vivid & Abstract Theme (Light Background) */
+    --light-bg: 220 60% 96%; /* Very light blue for main background */
+    --dark-fg: 230 50% 45%; /* Dark blue for main text */
+    --card-bg-light: 0 0% 100%; /* White for cards */
 
-    --prime-card-bg: 220 25% 12%; /* Slightly lighter dark blue for cards */
-    --prime-card-fg: var(--prime-fg-light);
+    --coral-primary: 15 100% 65%;
+    --text-on-coral: 230 50% 20%; /* Dark text for high contrast on coral */
 
-    --prime-primary-cyan: 190 80% 50%; /* Bright cyan for primary actions */
-    --prime-primary-cyan-fg: 220 30% 10%; /* Dark text for on-primary elements */
+    --teal-secondary: 175 70% 55%;
+    --text-on-teal: 230 50% 20%; /* Dark text for high contrast on teal */
 
-    --prime-accent-light-cyan: 190 70% 65%; /* Lighter cyan for hover/focus/secondary actions */
-    --prime-accent-light-cyan-fg: 220 30% 10%;
-
-    --prime-muted-fg: 210 15% 60%; /* Muted gray for secondary text */
-    --prime-border: 200 30% 25%;    /* Muted cyan/blue border */
-    --prime-input-border: 200 40% 35%; /* Slightly more prominent for inputs */
+    --yellow-accent: 50 100% 55%;
+    --text-on-yellow: 230 50% 20%; /* Dark text for high contrast on yellow */
     
-    --prime-destructive-red: 0 75% 55%;
-    --prime-destructive-red-fg: 0 0% 100%;
+    --green-chart: 130 60% 50%; /* Additional color for charts or specific highlights */
 
-    /* Chart colors - can be adjusted, using primary and accent for now */
-    --prime-chart-1: var(--prime-primary-cyan);
-    --prime-chart-2: var(--prime-accent-light-cyan);
-    --prime-chart-3: 50 100% 60%; /* A contrasting yellow for variety if needed */
-    --prime-chart-4: 280 70% 65%; /* A contrasting purple for variety */
-    --prime-chart-5: var(--prime-destructive-red);
+    --pink-destructive: 325 100% 50%;
+    --text-on-pink: 0 0% 100%; /* White text for high contrast on pink */
+
+    --muted-text-gray-blue: 210 15% 55%;
+    --border-light-gray: 220 20% 85%;
+    --input-border-gray: 220 15% 70%;
 
 
     /* Mapping to Standard Theme Variables */
-    --background: var(--prime-bg-dark);
-    --foreground: var(--prime-fg-light);
+    --background: var(--light-bg);
+    --foreground: var(--dark-fg);
 
-    --card: var(--prime-card-bg);
-    --card-foreground: var(--prime-card-fg);
+    --card: var(--card-bg-light);
+    --card-foreground: var(--dark-fg);
 
-    --popover: var(--prime-card-bg);
-    --popover-foreground: var(--prime-card-fg);
+    --popover: var(--card-bg-light);
+    --popover-foreground: var(--dark-fg);
 
-    --primary: var(--prime-primary-cyan);
-    --primary-foreground: var(--prime-primary-cyan-fg);
+    --primary: var(--coral-primary);
+    --primary-foreground: var(--text-on-coral);
 
-    --secondary: var(--prime-accent-light-cyan); /* Using accent as secondary for now */
-    --secondary-foreground: var(--prime-accent-light-cyan-fg);
+    --secondary: var(--teal-secondary);
+    --secondary-foreground: var(--text-on-teal);
 
-    --muted: var(--prime-card-bg); 
-    --muted-foreground: var(--prime-muted-fg);
+    --muted: var(--card-bg-light); 
+    --muted-foreground: var(--muted-text-gray-blue);
 
-    --accent: var(--prime-accent-light-cyan); /* Accent is the lighter cyan */
-    --accent-foreground: var(--prime-accent-light-cyan-fg);
+    --accent: var(--yellow-accent);
+    --accent-foreground: var(--text-on-yellow);
 
-    --destructive: var(--prime-destructive-red);
-    --destructive-foreground: var(--prime-destructive-red-fg);
+    --destructive: var(--pink-destructive);
+    --destructive-foreground: var(--text-on-pink);
 
-    --border: var(--prime-border);
-    --input: var(--prime-input-border); 
-    --ring: var(--prime-accent-light-cyan); /* Ring color for focus states */
+    --border: var(--border-light-gray);
+    --input: var(--input-border-gray); 
+    --ring: var(--yellow-accent);
 
-    --radius: 0.5rem; /* Prime video uses slightly rounded corners */
+    --radius: 0.5rem;
 
     /* Chart colors */
-    --chart-1: var(--prime-chart-1);
-    --chart-2: var(--prime-chart-2);
-    --chart-3: var(--prime-chart-3);
-    --chart-4: var(--prime-chart-4); 
-    --chart-5: var(--prime-chart-5);
+    --chart-1: var(--coral-primary);
+    --chart-2: var(--teal-secondary);
+    --chart-3: var(--yellow-accent);
+    --chart-4: var(--green-chart); 
+    --chart-5: var(--pink-destructive);
 
-    /* Sidebar colors - mapped to prime theme */
-    --sidebar-background: 220 28% 10%; /* Darker sidebar */
-    --sidebar-foreground: var(--prime-fg-light);
-    --sidebar-primary: var(--prime-primary-cyan);
-    --sidebar-primary-foreground: var(--prime-primary-cyan-fg);
-    --sidebar-accent: var(--prime-accent-light-cyan);
-    --sidebar-accent-foreground: var(--prime-accent-light-cyan-fg);
-    --sidebar-border: var(--prime-border);
-    --sidebar-ring: var(--prime-accent-light-cyan);
+    /* Sidebar colors */
+    --sidebar-background: 220 55% 92%; /* Slightly darker than main light-bg, or a vibrant color if preferred */
+    --sidebar-foreground: var(--dark-fg);
+    --sidebar-primary: var(--coral-primary);
+    --sidebar-primary-foreground: var(--text-on-coral);
+    --sidebar-accent: var(--yellow-accent);
+    --sidebar-accent-foreground: var(--text-on-yellow);
+    --sidebar-border: var(--border-light-gray);
+    --sidebar-ring: var(--yellow-accent);
   }
 }
 
@@ -89,24 +85,21 @@
   }
   body {
     @apply bg-background text-foreground; 
+    font-family: 'Inter', sans-serif; /* Apply Inter font globally */
   }
   img {
-    image-rendering: auto; /* Revert to auto for potentially higher quality images */
-    /* image-rendering: -moz-crisp-edges; 
-    image-rendering: -webkit-optimize-contrast; 
-    image-rendering: crisp-edges; 
-    -ms-interpolation-mode: nearest-neighbor;  */
+    image-rendering: auto;
   }
   input, textarea, select {
-    @apply bg-input; /* Using input color for background of form elements */
+    @apply bg-input;
     @apply text-foreground;
     @apply placeholder:text-muted-foreground/70;
   }
 }
 
-/* Component styles adjusted for new prime theme */
+/* Component styles adjusted for new vivid theme */
 @layer components {
-  /* Alert Dialog (used for TMDB server selection, delete confirmation) */
+  /* Alert Dialog */
   .cyberpunk-alert-dialog-content { 
     @apply bg-card border-[hsl(var(--border))] shadow-xl shadow-[hsl(var(--primary)/0.2)];
   }
@@ -118,22 +111,22 @@
   }
 
   /* Button styles */
-  .cyberpunk-button-primary { /* Main action button style */
+  .cyberpunk-button-primary {
     @apply bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-[hsl(var(--ring))];
-    @apply border-transparent; /* Remove border for primary filled button */
+    @apply border-transparent;
   }
    .cyberpunk-button-primary:focus-visible {
     @apply ring-2 ring-offset-2 ring-[hsl(var(--ring))] ring-offset-background;
   }
 
-  .cyberpunk-button-secondary { /* Secondary action, often outline */
+  .cyberpunk-button-secondary {
     @apply bg-transparent border border-primary text-primary hover:bg-primary/10 focus-visible:ring-[hsl(var(--ring))];
   }
   .cyberpunk-button-secondary:focus-visible {
     @apply ring-2 ring-offset-2 ring-[hsl(var(--ring))] ring-offset-background;
   }
 
-  .cyberpunk-button-cancel { /* Cancel or less important actions */
+  .cyberpunk-button-cancel {
     @apply bg-transparent border border-muted-foreground/50 text-muted-foreground hover:bg-muted-foreground/10 hover:text-foreground focus-visible:ring-[hsl(var(--ring))];
   }
    .cyberpunk-button-cancel:focus-visible {
@@ -142,9 +135,8 @@
 }
 
 @layer utilities {
-  .player-overlay-cyberpixel-bg { /* Renaming or re-styling this might be good for Prime theme */
+  .player-overlay-cyberpixel-bg {
     background-color: hsl(var(--background)); 
-    /* Prime Video doesn't have pixelated overlays, perhaps a subtle gradient or solid dark color */
     background-image: linear-gradient(45deg, hsla(var(--primary), 0.1) 0%, hsla(var(--accent), 0.05) 100%);
   }
 
@@ -156,11 +148,10 @@
     scrollbar-width: none;  
   }
 
-  /* Prime Video inspired login page background - simpler, darker */
   .login-page-custom-bg {
     background: 
-      radial-gradient(ellipse at top left, hsla(var(--primary), 0.1) 0%, transparent 50%),
-      radial-gradient(ellipse at bottom right, hsla(var(--accent), 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at top left, hsla(var(--primary), 0.15) 0%, transparent 50%),
+      radial-gradient(ellipse at bottom right, hsla(var(--accent), 0.12) 0%, transparent 50%),
       hsl(var(--background)); 
   }
 }

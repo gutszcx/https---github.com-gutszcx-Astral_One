@@ -22,7 +22,8 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet" />
+        {/* Changed font from VT323 to Inter */}
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
         <meta name="application-name" content="Astral One" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -30,16 +31,16 @@ export default function RootLayout({
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="msapplication-config" content="/icons/browserconfig.xml" /> 
-        <meta name="msapplication-TileColor" content="#FF1EB3" />
+        <meta name="msapplication-TileColor" content="#FF1EB3" /> {/* This color might need update based on new theme */}
         <meta name="msapplication-tap-highlight" content="no" />
-        <meta name="theme-color" content="#FF1EB3" />
+        <meta name="theme-color" content="#FF1EB3" /> {/* This color might need update based on new theme */}
         <link rel="apple-touch-icon" href="https://placehold.co/180x180.png" />
         <link rel="icon" type="image/png" sizes="32x32" href="https://placehold.co/32x32.png" />
         <link rel="icon" type="image/png" sizes="16x16" href="https://placehold.co/16x16.png" />
-        {/* Viewport should be managed by Next.js by default, but explicitly adding for clarity */}
         <meta name="viewport" content="minimum-scale=1, initial-scale=1, width=device-width, shrink-to-fit=no, viewport-fit=cover" />
       </head>
-      <body className="font-body antialiased min-h-screen flex flex-col bg-background text-foreground">
+      {/* Removed font-body from body, Tailwind config will handle it */}
+      <body className="antialiased min-h-screen flex flex-col bg-background text-foreground">
         <QueryProvider>
           <ModalProvider>
             <AppClientLayout>{children}</AppClientLayout>
