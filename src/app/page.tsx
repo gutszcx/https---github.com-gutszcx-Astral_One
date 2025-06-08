@@ -5,10 +5,10 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getContentItems } from '@/lib/firebaseService';
-import type { StoredCineItem, ContinueWatchingItem } from '@/types'; // Import ContinueWatchingItem
+import type { StoredCineItem, ContinueWatchingItem, StoredSeriesItem } from '@/types'; // Import ContinueWatchingItem
 import { HomeAniContentCard } from '@/components/homeani/HomeAniContentCard';
 import { HomeAniHeroCard } from '@/components/homeani/HomeAniHeroCard';
-import { Loader2, AlertTriangle, Flame, Tag, PlaySquare, Layers } from 'lucide-react';
+import { Loader2, AlertTriangle, Flame, Tag, PlaySquare, Layers, Sparkles } from 'lucide-react'; // Added Sparkles
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useModal } from '@/contexts/ModalContext';
@@ -195,6 +195,13 @@ export default function HomeAniPage() {
 
   }, [itemsForGenreRows]);
 
+  const newEpisodeSeries = useMemo(() => {
+    if (!activeItems) return [];
+    return activeItems
+      .filter(item => item.contentType === 'series')
+      .slice(0, 12) as StoredSeriesItem[]; // activeItems is already sorted by updatedAt desc
+  }, [activeItems]);
+
 
   const handleCardClick = (item: StoredCineItem & { _playActionData?: { seasonNumber: number; episodeIndex: number } }, playDirectly: boolean = false) => {
     openModal(item, playDirectly ? 'play' : null);
@@ -227,6 +234,11 @@ export default function HomeAniPage() {
 
   const genreRowItemsToDisplay = genreRows.map(genreRow => {
     const filteredItems = genreRow.items.filter(item => {
+        // Exclude items that might be shown in "Continue Watching" or "Em Alta" if those rows are present
+        // This helps avoid too much repetition if those special rows also pick items from these genres.
+        // const isContinueWatching = continueWatchingItems.some(cw => cw.id === item.id);
+        // return !isContinueWatching; 
+        // Decided to allow items to appear in multiple rows if they fit criteria.
         return true;
     });
     return { ...genreRow, items: filteredItems };
@@ -251,22 +263,33 @@ export default function HomeAniPage() {
             />
           )}
 
-          {continueWatchingItems.length > 0 && (
+          {/* "Em Alta" row. Could use a different data source or logic if "trending" means something other than "recently watched by user" */}
+          {continueWatchingItems.length > 0 && ( // Using continueWatchingItems for now as a proxy for "trending for user"
             <ContentRow
               key="trending-now"
               title="Em Alta"
-              items={continueWatchingItems}
+              items={continueWatchingItems} // You might want to sort or filter this differently for true trending
               onCardClick={(item) => handleCardClick(item)}
               icon={<Flame className="mr-2 h-6 w-6" />}
+            />
+          )}
+
+          {newEpisodeSeries.length > 0 && (
+             <ContentRow
+              key="new-episodes"
+              title="Novos Episódios"
+              items={newEpisodeSeries}
+              onCardClick={(item) => handleCardClick(item)}
+              icon={<Sparkles className="mr-2 h-6 w-6" />}
             />
           )}
 
           {genreRowItemsToDisplay.map(genreRow => {
             // If the genre title is one of the special rows handled above, skip it here.
             // This check might be too simplistic if genreRows could naturally be named "Continue Assistindo"
-            if ((genreRow.title === "Continue Assistindo" || genreRow.title === "Em Alta") && continueWatchingItems.length > 0) return null;
+            if ((genreRow.title === "Continue Assistindo" || genreRow.title === "Em Alta" || genreRow.title === "Novos Episódios") && (continueWatchingItems.length > 0 || newEpisodeSeries.length > 0)) return null;
             
-            if (genreRow.items.length === 0) return null;
+            if (genreRow.items.length === 0) return null; // Also skip if, after filtering, the genre row is empty
 
             return (
                 <ContentRow
@@ -279,7 +302,8 @@ export default function HomeAniPage() {
             );
            })}
 
-          {heroItem === null && genreRows.length === 0 && continueWatchingItems.length === 0 && (
+          {/* Message for when there is absolutely no content */}
+          {heroItem === null && genreRows.length === 0 && continueWatchingItems.length === 0 && newEpisodeSeries.length === 0 && (
             <div className="text-center py-20">
               <Flame className="h-24 w-24 text-primary mx-auto mb-6 opacity-50" />
               <h2 className="text-2xl font-semibold text-foreground mb-2">Sua Cineteca Está Vazia!</h2>
