@@ -1,31 +1,29 @@
 
 // src/types/index.ts
-import type { CineFormValues, VideoSource as FormVideoSource, EpisodeFormValues as OriginalEpisodeFormValues, SeasonFormValues as OriginalSeasonFormValues, EmbedUrlItem as FormEmbedUrlItem } from '@/lib/schemas';
+import type { CineFormValues, VideoSource as FormVideoSourceSchema, EpisodeFormValues as OriginalEpisodeFormValues, SeasonFormValues as OriginalSeasonFormValues } from '@/lib/schemas';
 
-// Re-define VideoSource for storage, ensuring consistency if schema changes
+// Updated VideoSource type for storage, reflecting new schema
 export interface VideoSource {
-  id?: string; // Optional ID, typically from useFieldArray or if you assign one
+  id?: string; 
   serverName: string;
-  url: string;
+  sourceType: 'directUrl' | 'embedCode';
+  content: string; // Holds URL or embed code
 }
 
-// Stored Embed URL type
-export interface StoredEmbedUrl {
-  id?: string; // Optional, if stored from form's useFieldArray structure
-  url: string;
-}
+// StoredEmbedUrl is no longer needed as it's merged into VideoSource
+// export interface StoredEmbedUrl { ... }
 
 export interface Episode {
-  id?: string; // Optional ID
+  id?: string; 
   titulo: string;
-  descricao: string; // Optional, but ensure it's string if present
-  duracao: number | null; // Optional
-  videoSources: VideoSource[];
-  linkLegenda: string; // Optional, but ensure it's string if present
+  descricao: string; 
+  duracao: number | null; 
+  videoSources: VideoSource[]; // Uses the new VideoSource type
+  linkLegenda: string; 
 }
 
 export interface Season {
-  id?: string; // Optional ID
+  id?: string; 
   numeroTemporada: number;
   episodios: Episode[];
 }
@@ -49,14 +47,14 @@ interface StoredBaseCineItem {
   tags: string;
   destaqueHome: boolean;
   status: 'ativo' | 'inativo';
-  embedUrls?: StoredEmbedUrl[]; // Added embedUrls
+  // embedUrls?: StoredEmbedUrl[]; // Removed
   createdAt?: string; // ISO string date
   updatedAt?: string; // ISO string date
 }
 
 export type StoredMovieItem = StoredBaseCineItem & {
   contentType: 'movie';
-  videoSources: VideoSource[];
+  videoSources: VideoSource[]; // Uses the new VideoSource type
   linkLegendas: string;
 };
 
@@ -69,14 +67,14 @@ export type StoredSeriesItem = StoredBaseCineItem & {
 export type StoredCineItem = StoredMovieItem | StoredSeriesItem;
 
 // Export form types for use elsewhere if needed, but primarily we use Stored types for fetched data
-export type { CineFormValues, FormVideoSource, OriginalEpisodeFormValues, OriginalSeasonFormValues, FormEmbedUrlItem };
+export type { CineFormValues, FormVideoSourceSchema as FormVideoSource, OriginalEpisodeFormValues, OriginalSeasonFormValues }; // Removed FormEmbedUrlItem
 
 // News Banner Types
 export const NEWS_BANNER_TYPES = ['none', 'info', 'success', 'warning', 'error'] as const;
 export type NewsBannerMessageType = (typeof NEWS_BANNER_TYPES)[number];
 
 export interface NewsBannerMessage {
-  id?: string; // Document ID, typically 'newsBannerControls'
+  id?: string; 
   message: string;
   type: NewsBannerMessageType;
   isActive: boolean;
@@ -104,9 +102,9 @@ export type FeedbackStatus = (typeof FEEDBACK_STATUSES)[number];
 
 export interface UserFeedbackItem {
   id: string;
-  userId?: string; // Optional, for future use with authentication
-  contentId?: string; // ID of the movie/series if feedback is specific
-  contentTitle?: string; // Title of the movie/series for context
+  userId?: string; 
+  contentId?: string; 
+  contentTitle?: string; 
   feedbackType: FeedbackType;
   message: string;
   status: FeedbackStatus;

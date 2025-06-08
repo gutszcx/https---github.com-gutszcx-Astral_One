@@ -1,7 +1,8 @@
+
 // src/components/cine-form/MovieFields.tsx
 'use client';
 
-import type { Control, UseFieldArrayRemove } from 'react-hook-form';
+import type { Control } from 'react-hook-form';
 import { useFieldArray } from 'react-hook-form';
 import {
   FormControl,
@@ -12,8 +13,10 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea'; // Added for embed code
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Trash2, Film } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Added
+import { PlusCircle, Trash2, Film, Link, Code } from 'lucide-react'; // Added Link and Code icons
 import type { MovieFormValues } from '@/lib/schemas';
 import { Separator } from '@/components/ui/separator';
 
@@ -38,7 +41,7 @@ export function MovieFields({ control }: MovieFieldsProps) {
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => append({ serverName: '', url: '' })}
+            onClick={() => append({ serverName: '', sourceType: 'directUrl', content: '' })}
           >
             <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Fonte
           </Button>
@@ -76,16 +79,58 @@ export function MovieFields({ control }: MovieFieldsProps) {
               />
               <FormField
                 control={control}
-                name={`videoSources.${index}.url`}
-                render={({ field }) => (
+                name={`videoSources.${index}.sourceType`}
+                render={({ field: typeField }) => (
                   <FormItem>
-                    <FormLabel className="text-xs">URL do Vídeo</FormLabel>
-                    <FormControl>
-                      <Input type="url" placeholder="https://exemplo.com/filme.mp4" {...field} />
-                    </FormControl>
+                    <FormLabel className="text-xs">Tipo de Fonte</FormLabel>
+                    <Select onValueChange={typeField.onChange} defaultValue={typeField.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o tipo" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="directUrl">
+                          <div className="flex items-center"><Link className="mr-2 h-3.5 w-3.5" />URL Direta</div>
+                        </SelectItem>
+                        <SelectItem value="embedCode">
+                          <div className="flex items-center"><Code className="mr-2 h-3.5 w-3.5" />Código de Embed</div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
+              />
+              <FormField
+                control={control}
+                name={`videoSources.${index}.content`}
+                render={({ field: contentField }) => {
+                  const currentSourceType = (control.getValues() as MovieFormValues).videoSources?.[index]?.sourceType;
+                  return (
+                    <FormItem>
+                      <FormLabel className="text-xs">
+                        {currentSourceType === 'embedCode' ? 'Código de Embed (iframe)' : 'URL do Vídeo'}
+                      </FormLabel>
+                      <FormControl>
+                        {currentSourceType === 'embedCode' ? (
+                          <Textarea
+                            placeholder="Cole o código de embed <iframe ...> aqui"
+                            {...contentField}
+                            rows={3}
+                          />
+                        ) : (
+                          <Input
+                            type="url"
+                            placeholder="https://exemplo.com/filme.mp4"
+                            {...contentField}
+                          />
+                        )}
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
             </div>
           ))}
@@ -99,11 +144,11 @@ export function MovieFields({ control }: MovieFieldsProps) {
         name="linkLegendas"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Link das Legendas (Global - Opcional)</FormLabel>
+            <FormLabel>Link das Legendas (Global para fontes diretas - Opcional)</FormLabel>
             <FormControl>
               <Input type="url" placeholder="https://exemplo.com/legenda.vtt" {...field} value={field.value ?? ''} />
             </FormControl>
-            <FormDescription>Insira o link direto para o arquivo de legenda (VTT, SRT, etc.). Esta legenda será usada como padrão se disponível.</FormDescription>
+            <FormDescription>Insira o link direto para o arquivo de legenda (VTT, SRT, etc.). Usado com URLs diretas.</FormDescription>
             <FormMessage />
           </FormItem>
         )}

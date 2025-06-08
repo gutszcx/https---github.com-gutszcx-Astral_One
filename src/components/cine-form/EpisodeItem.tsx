@@ -1,3 +1,4 @@
+
 // src/components/cine-form/EpisodeItem.tsx
 'use client';
 
@@ -13,8 +14,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Trash2, PlusCircle, Film } from 'lucide-react';
-import type { SeriesFormValues } from '@/lib/schemas';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Trash2, PlusCircle, Film, Link, Code } from 'lucide-react';
+import type { SeriesFormValues, VideoSource as VideoSourceType } from '@/lib/schemas'; // Import VideoSourceType
 import { Separator } from '@/components/ui/separator';
 
 interface EpisodeItemProps {
@@ -25,7 +27,7 @@ interface EpisodeItemProps {
   register: UseFormRegister<SeriesFormValues>;
 }
 
-export function EpisodeItem({ control, seasonIndex, episodeIndex, removeEpisode, register }: EpisodeItemProps) {
+export function EpisodeItem({ control, seasonIndex, episodeIndex, removeEpisode }: EpisodeItemProps) {
   const { fields: videoSourceFields, append: appendVideoSource, remove: removeVideoSource } = useFieldArray({
     control,
     name: `temporadas.${seasonIndex}.episodios.${episodeIndex}.videoSources`,
@@ -98,7 +100,7 @@ export function EpisodeItem({ control, seasonIndex, episodeIndex, removeEpisode,
             type="button"
             variant="outline"
             size="xs" 
-            onClick={() => appendVideoSource({ serverName: '', url: '' })}
+            onClick={() => appendVideoSource({ serverName: '', sourceType: 'directUrl', content: '' } as VideoSourceType)}
           >
             <PlusCircle className="mr-1 h-3 w-3" /> Adicionar Fonte
           </Button>
@@ -136,16 +138,63 @@ export function EpisodeItem({ control, seasonIndex, episodeIndex, removeEpisode,
               />
               <FormField
                 control={control}
-                name={`temporadas.${seasonIndex}.episodios.${episodeIndex}.videoSources.${sourceIndex}.url`}
-                render={({ field }) => (
+                name={`temporadas.${seasonIndex}.episodios.${episodeIndex}.videoSources.${sourceIndex}.sourceType`}
+                render={({ field: typeField }) => (
                   <FormItem>
-                    <FormLabel className="text-xs">URL do Vídeo</FormLabel>
-                    <FormControl>
-                      <Input type="url" placeholder="https://exemplo.com/ep1.mp4" {...field} className="text-xs h-8" />
-                    </FormControl>
+                    <FormLabel className="text-xs">Tipo de Fonte</FormLabel>
+                    <Select onValueChange={typeField.onChange} defaultValue={typeField.value}>
+                      <FormControl>
+                        <SelectTrigger className="text-xs h-8">
+                          <SelectValue placeholder="Selecione o tipo" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="directUrl">
+                           <div className="flex items-center"><Link className="mr-2 h-3.5 w-3.5" />URL Direta</div>
+                        </SelectItem>
+                        <SelectItem value="embedCode">
+                           <div className="flex items-center"><Code className="mr-2 h-3.5 w-3.5" />Código de Embed</div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
+              />
+              <FormField
+                control={control}
+                name={`temporadas.${seasonIndex}.episodios.${episodeIndex}.videoSources.${sourceIndex}.content`}
+                render={({ field: contentField }) => {
+                  const currentSourceType = (control.getValues() as SeriesFormValues)
+                    .temporadas?.[seasonIndex]
+                    ?.episodios?.[episodeIndex]
+                    ?.videoSources?.[sourceIndex]?.sourceType;
+                  return (
+                    <FormItem>
+                       <FormLabel className="text-xs">
+                        {currentSourceType === 'embedCode' ? 'Código de Embed (iframe)' : 'URL do Vídeo'}
+                      </FormLabel>
+                      <FormControl>
+                        {currentSourceType === 'embedCode' ? (
+                          <Textarea
+                            placeholder="Cole o código de embed <iframe ...> aqui"
+                            {...contentField}
+                            rows={3}
+                            className="text-xs"
+                          />
+                        ) : (
+                          <Input
+                            type="url"
+                            placeholder="https://exemplo.com/ep1.mp4"
+                            {...contentField}
+                            className="text-xs h-8"
+                          />
+                        )}
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
             </div>
           ))}
@@ -159,7 +208,7 @@ export function EpisodeItem({ control, seasonIndex, episodeIndex, removeEpisode,
         name={`temporadas.${seasonIndex}.episodios.${episodeIndex}.linkLegenda`}
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Link da Legenda (Global para Episódio - Opcional)</FormLabel>
+            <FormLabel>Link da Legenda (Para URLs diretas - Opcional)</FormLabel>
             <FormControl>
               <Input type="url" placeholder="https://exemplo.com/ep1.vtt" {...field} value={field.value ?? ''}/>
             </FormControl>

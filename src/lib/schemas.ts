@@ -22,18 +22,29 @@ export const GENERO_OPTIONS = [ // Example, can be fetched or expanded
 export const videoSourceSchema = z.object({
   id: z.string().optional(), // For useFieldArray key
   serverName: z.string().min(1, "Nome do servidor é obrigatório."),
-  // Allow empty string initially to avoid validation error before user types, but require valid URL if not empty
-  url: z.string().refine(val => val === '' || z.string().url().safeParse(val).success, {
-    message: "URL do vídeo inválida."
-  }),
+  sourceType: z.enum(['directUrl', 'embedCode'], { required_error: "Tipo de fonte é obrigatório."}).default('directUrl'),
+  content: z.string().min(1, "URL ou código de embed é obrigatório."),
+}).refine(data => {
+  if (data.sourceType === 'directUrl') {
+    return z.string().url().safeParse(data.content).success;
+  }
+  if (data.sourceType === 'embedCode') {
+    // Basic check for iframe tag, can be improved
+    return data.content.toLowerCase().includes('<iframe');
+  }
+  return true; // Should not happen due to enum
+}, {
+  message: "Conteúdo inválido para o tipo de fonte selecionado (URL para 'URL Direta', código <iframe> para 'Código de Embed').",
+  path: ["content"],
 });
 export type VideoSource = z.infer<typeof videoSourceSchema>;
 
-export const embedUrlItemSchema = z.object({
-  id: z.string().optional(), // For useFieldArray key
-  url: z.string().url({ message: "URL de embed inválida." }).or(z.literal('')),
-});
-export type EmbedUrlItem = z.infer<typeof embedUrlItemSchema>;
+// EmbedUrlItem schema is no longer needed as it's merged into videoSourceSchema.
+// export const embedUrlItemSchema = z.object({
+//   id: z.string().optional(), 
+//   url: z.string().url({ message: "URL de embed inválida." }).or(z.literal('')),
+// });
+// export type EmbedUrlItem = z.infer<typeof embedUrlItemSchema>;
 
 export const episodeSchema = z.object({
   id: z.string().optional(), // for useFieldArray key
@@ -69,7 +80,7 @@ export const baseContentSchema = z.object({
   tags: z.string().optional(),
   destaqueHome: z.boolean().optional().default(false),
   status: z.enum(['ativo', 'inativo']).default('ativo'),
-  embedUrls: z.array(embedUrlItemSchema).optional().default([]), // Added embedUrls
+  // embedUrls: z.array(embedUrlItemSchema).optional().default([]), // Removed, merged into videoSources
 });
 
 export const movieSchema = baseContentSchema.extend({
@@ -110,7 +121,7 @@ export const defaultMovieValues: MovieFormValues = {
   tags: '',
   destaqueHome: false,
   status: 'ativo',
-  embedUrls: [], // Added
+  // embedUrls: [], // Removed
   videoSources: [],
   linkLegendas: '',
 };
@@ -133,7 +144,7 @@ export const defaultSeriesValues: SeriesFormValues = {
   tags: '',
   destaqueHome: false,
   status: 'ativo',
-  embedUrls: [], // Added
+  // embedUrls: [], // Removed
   totalTemporadas: 1,
   temporadas: [{ numeroTemporada: 1, episodios: [{ titulo: '', videoSources: [], linkLegenda: ''}] }],
 };

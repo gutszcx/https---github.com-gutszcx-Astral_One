@@ -5,8 +5,8 @@
 import Image from 'next/image';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
+import type { PlyrJS } from 'plyr-react';
 import 'plyr-react/plyr.css';
-import type PlyrJS from 'plyr';
 import {
   Dialog,
   DialogContent,
@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { StoredCineItem, StoredMovieItem, StoredSeriesItem, VideoSource, StoredEmbedUrl } from '@/types';
+import type { StoredCineItem, StoredMovieItem, StoredSeriesItem, VideoSource } from '@/types'; // Updated VideoSource import
 import { Film, Tv, Clapperboard, Clock, PlayCircle, X, ListVideo, Loader2, Heart, MessageCircleQuestion, ArrowDownCircle } from 'lucide-react';
 import {
   Accordion,
@@ -40,7 +40,6 @@ import { useFavorites } from '@/contexts/FavoritesContext';
 import { cn } from '@/lib/utils';
 import { FeedbackDialog } from '@/components/feedback/FeedbackDialog';
 
-// Dynamically import Plyr to ensure it's only loaded on the client-side
 const Plyr = dynamic(() => import('plyr-react').then(mod => mod.default), {
   ssr: false,
   loading: () => (
@@ -60,15 +59,15 @@ interface HomeAniDetailModalProps {
   onInitialActionConsumed?: () => void;
 }
 
-interface PlayerInfo {
+interface PlayerInfo { // For Plyr
   plyrSource: PlyrJS.SourceInfo;
   title: string;
   storageKey: string;
 }
 
 interface ServerSelectionInfo {
-  sources: VideoSource[];
-  subtitleUrl?: string;
+  sources: VideoSource[]; // Now holds the new VideoSource type
+  subtitleUrl?: string; // For direct URLs
   title: string;
   baseId: string;
   seasonNumber?: number;
@@ -81,10 +80,19 @@ interface ProgressData {
   lastSaved: number;
 }
 
+// Regex to extract src from iframe code
+const IFRAME_SRC_REGEX = /<iframe[^>]+src="([^"]+)"/i;
+
+function extractSrcFromEmbed(embedCode: string): string | null {
+  const match = embedCode.match(IFRAME_SRC_REGEX);
+  return match ? match[1] : null;
+}
+
+
 export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onInitialActionConsumed }: HomeAniDetailModalProps) {
-  const [activePlayerInfo, setActivePlayerInfo] = useState<PlayerInfo | null>(null);
-  const [activeEmbedUrl, setActiveEmbedUrl] = useState<string | null>(null);
-  const [embedPlayerTitle, setEmbedPlayerTitle] = useState<string | null>(null);
+  const [activePlayerInfo, setActivePlayerInfo] = useState<PlayerInfo | null>(null); // For Plyr
+  const [activeEmbedIframeSrc, setActiveEmbedIframeSrc] = useState<string | null>(null); // For iframe src
+  const [activePlayerTitle, setActivePlayerTitle] = useState<string | null>(null); // For both players
   const [serverSelectionInfo, setServerSelectionInfo] = useState<ServerSelectionInfo | null>(null);
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const plyrRef = useRef<({ plyr: PlyrJS }) | null>(null);
@@ -108,7 +116,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     }
   }, []);
 
-  const handleModalClose = useCallback(() => {
+  const clearAllPlayers = useCallback(() => {
     const playerInstance = plyrRef.current?.plyr;
     if (playerInstance && activePlayerInfo) {
       saveVideoProgress(playerInstance, activePlayerInfo.storageKey);
@@ -117,32 +125,25 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
       }
     }
     setActivePlayerInfo(null);
-    setActiveEmbedUrl(null);
-    setEmbedPlayerTitle(null);
+    setActiveEmbedIframeSrc(null);
+    setActivePlayerTitle(null);
     setServerSelectionInfo(null);
+  }, [activePlayerInfo, saveVideoProgress]);
+
+  const handleModalClose = useCallback(() => {
+    clearAllPlayers();
     setIsFeedbackDialogOpen(false);
     hasTriggeredInitialPlay.current = false;
     setProcessingInitialAction(false);
     onClose();
-  }, [activePlayerInfo, onClose, saveVideoProgress]);
+  }, [clearAllPlayers, onClose]);
 
-  const handlePlayerClose = useCallback(() => {
-    const playerInstance = plyrRef.current?.plyr;
-    if (playerInstance && activePlayerInfo) {
-      saveVideoProgress(playerInstance, activePlayerInfo.storageKey);
-       if (typeof playerInstance.stop === 'function') {
-        playerInstance.stop();
-      }
-    }
-    setActivePlayerInfo(null);
-  }, [activePlayerInfo, saveVideoProgress]);
+  const handlePlayerViewClose = useCallback(() => { // For both Plyr and Iframe views
+    clearAllPlayers();
+  }, [clearAllPlayers]);
 
-  const handleEmbedPlayerClose = useCallback(() => {
-    setActiveEmbedUrl(null);
-    setEmbedPlayerTitle(null);
-  }, []);
-  
-  const initiatePlayback = useCallback((
+
+  const initiateDirectPlayback = useCallback((
     videoUrl: string,
     title: string,
     subtitleUrl?: string,
@@ -151,7 +152,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     episodeIndex?: number
   ) => {
     if (!baseId) {
-        console.error("Cannot initiate playback without a baseId for storageKey.");
+        console.error("Cannot initiate direct playback without a baseId for storageKey.");
         toast({ title: "Erro Interno", description: "Não foi possível identificar o conteúdo para salvar progresso.", variant: "destructive"});
         return;
     }
@@ -182,56 +183,70 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
           ]
         : [],
     };
-
+    clearAllPlayers();
     setActivePlayerInfo({ plyrSource: plyrSourceConfig, title, storageKey });
-    setActiveEmbedUrl(null); // Ensure embed player is closed
-    setEmbedPlayerTitle(null);
-    setServerSelectionInfo(null);
-  }, [toast, item]);
+    setActivePlayerTitle(title);
+  }, [toast, item, clearAllPlayers]);
 
+  const initiateEmbedPlayback = useCallback((embedCode: string, title: string) => {
+    const iframeSrc = extractSrcFromEmbed(embedCode);
+    if (iframeSrc) {
+      clearAllPlayers();
+      setActiveEmbedIframeSrc(iframeSrc);
+      setActivePlayerTitle(title);
+    } else {
+      toast({ title: "Código de Embed Inválido", description: "Não foi possível extrair um URL de vídeo do código fornecido.", variant: "destructive"});
+    }
+  }, [toast, clearAllPlayers]);
 
-  const promptOrPlay = useCallback((
-    sources: VideoSource[] | undefined,
+  const processSelectedSource = useCallback((
+    source: VideoSource,
     title: string,
-    subtitleUrl?: string,
+    globalSubtitleUrl?: string, // For movie's global subtitle or episode's specific subtitle
     baseId?: string,
     seasonNumber?: number,
-    episodeIndex?: number,
-    movieEmbedUrls?: StoredEmbedUrl[] // Only for movies
+    episodeIndex?: number
+  ) => {
+    if (source.sourceType === 'directUrl') {
+      initiateDirectPlayback(source.content, title, globalSubtitleUrl, baseId, seasonNumber, episodeIndex);
+    } else if (source.sourceType === 'embedCode') {
+      initiateEmbedPlayback(source.content, title);
+    }
+  }, [initiateDirectPlayback, initiateEmbedPlayback]);
+  
+
+  const promptOrPlay = useCallback((
+    videoSources: VideoSource[] | undefined,
+    title: string,
+    globalSubtitleUrl?: string, // For direct URLs: movie's linkLegendas or episode's linkLegenda
+    baseId?: string,
+    seasonNumber?: number,
+    episodeIndex?: number
   ) => {
     if (!baseId) {
       toast({ title: "Conteúdo Inválido", description: "ID do conteúdo não encontrado.", variant: "destructive" });
       return false;
     }
 
-    const validDirectSources = sources?.filter(s => s.url && s.url.trim() !== '') || [];
+    const validSources = videoSources?.filter(s => s.content && s.content.trim() !== '') || [];
 
-    if (validDirectSources.length > 0) {
-      if (validDirectSources.length === 1) {
-        initiatePlayback(validDirectSources[0].url, title, subtitleUrl, baseId, seasonNumber, episodeIndex);
-      } else {
-        setServerSelectionInfo({ sources: validDirectSources, subtitleUrl, title, baseId, seasonNumber, episodeIndex });
-      }
-      return true;
-    } else if (item?.contentType === 'movie' && movieEmbedUrls && movieEmbedUrls.length > 0) {
-      // This block is for movies with embed URLs when no direct sources are found
-      const firstEmbed = movieEmbedUrls[0];
-      if (firstEmbed && firstEmbed.url) {
-        setActiveEmbedUrl(firstEmbed.url);
-        setEmbedPlayerTitle(title);
-        setActivePlayerInfo(null);
-        setServerSelectionInfo(null);
-        return true;
-      }
+    if (validSources.length === 0) {
+      const message = item?.contentType === 'movie' 
+          ? "Nenhuma fonte de vídeo (URL direta ou embed) disponível para este filme."
+          : "Nenhuma fonte de vídeo (URL direta ou embed) disponível para este episódio.";
+      toast({ title: "Sem Fontes de Vídeo", description: message, variant: "default" });
+      return false;
     }
-
-    // If we reach here, no playable source (direct or embed for movies) was found
-    const message = item?.contentType === 'movie' 
-        ? "Nenhum link de vídeo ou embed disponível para este filme."
-        : "Nenhum link de vídeo disponível para este episódio.";
-    toast({ title: "Sem Fontes de Vídeo", description: message, variant: "default" });
-    return false;
-  }, [initiatePlayback, toast, item]);
+    
+    if (validSources.length === 1) {
+      processSelectedSource(validSources[0], title, globalSubtitleUrl, baseId, seasonNumber, episodeIndex);
+    } else {
+      // For multiple sources, the subtitleUrl passed to ServerSelectionInfo should be the global one.
+      // The specific source object doesn't carry its own subtitle, that's a level above (movie/episode).
+      setServerSelectionInfo({ sources: validSources, subtitleUrl: globalSubtitleUrl, title, baseId, seasonNumber, episodeIndex });
+    }
+    return true;
+  }, [processSelectedSource, toast, item]);
 
 
   useEffect(() => {
@@ -244,32 +259,30 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
   }, [isOpen, initialAction, item]);
 
   useEffect(() => {
-    if (isOpen && item && !activePlayerInfo && !serverSelectionInfo && !activeEmbedUrl) {
+    if (isOpen && item && !activePlayerInfo && !activeEmbedIframeSrc && !serverSelectionInfo) {
         toast({
             title: "Conteúdo Carregado!",
             description: "Role a página para cima para encontrar opções de reprodução, temporadas e episódios.",
             duration: 5000, 
         });
     }
-  }, [isOpen, item, activePlayerInfo, serverSelectionInfo, activeEmbedUrl, toast]);
+  }, [isOpen, item, activePlayerInfo, activeEmbedIframeSrc, serverSelectionInfo, toast]);
 
 
   useEffect(() => {
-    if (isOpen && initialAction === 'play' && item && !activePlayerInfo && !serverSelectionInfo && !activeEmbedUrl && !hasTriggeredInitialPlay.current && processingInitialAction) {
+    if (isOpen && initialAction === 'play' && item && !activePlayerInfo && !activeEmbedIframeSrc && !serverSelectionInfo && !hasTriggeredInitialPlay.current && processingInitialAction) {
       hasTriggeredInitialPlay.current = true;
   
       const playData = item._playActionData;
   
       if (item.contentType === 'movie') {
         const movieItem = item as StoredMovieItem;
-        // Pass movieItem.embedUrls to promptOrPlay
-        promptOrPlay(movieItem.videoSources, movieItem.tituloOriginal, movieItem.linkLegendas, movieItem.id, undefined, undefined, movieItem.embedUrls);
+        promptOrPlay(movieItem.videoSources, movieItem.tituloOriginal, movieItem.linkLegendas, movieItem.id);
       } else if (item.contentType === 'series' && playData) {
         const seriesItem = item as StoredSeriesItem;
         const season = seriesItem.temporadas?.find(s => s.numeroTemporada === playData.seasonNumber);
         const episode = season?.episodios?.[playData.episodeIndex];
         if (episode) {
-          // Episodes currently don't have their own embedUrls, so we don't pass them here
           promptOrPlay(episode.videoSources, `${seriesItem.tituloOriginal} - T${season!.numeroTemporada}E${playData.episodeIndex + 1}: ${episode.titulo}`, episode.linkLegenda, seriesItem.id, season!.numeroTemporada, playData.episodeIndex);
         } else {
           toast({ title: "Episódio Não Encontrado", description: "Não foi possível encontrar os dados deste episódio.", variant: "default" });
@@ -287,7 +300,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     }
   
   }, [
-    isOpen, initialAction, item, activePlayerInfo, serverSelectionInfo, activeEmbedUrl,
+    isOpen, initialAction, item, activePlayerInfo, serverSelectionInfo, activeEmbedIframeSrc,
     promptOrPlay, onInitialActionConsumed, toast, processingInitialAction
   ]);
 
@@ -341,13 +354,8 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
       toast({ title: "Erro de Reprodução", description: userMessage, variant: "destructive" });
   }, [toast]);
 
-  const handlePlayerWaiting = useCallback(() => {
-    // This function is kept for structural consistency, can be used in future
-  }, []);
-
-  const handlePlayerPlaying = useCallback(() => {
-    // This function is kept for structural consistency, can be used in future
-  }, []);
+  const handlePlayerWaiting = useCallback(() => {}, []);
+  const handlePlayerPlaying = useCallback(() => {}, []);
 
 
   useEffect(() => {
@@ -412,23 +420,23 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
 
   if (!item && !(processingInitialAction && initialAction === 'play')) return null;
 
-
-  if (activeEmbedUrl) {
+  // Render player views first if active
+  if (activeEmbedIframeSrc) {
     return (
       <div className="fixed inset-0 z-[100] bg-black/90 flex flex-col items-center justify-center p-2 sm:p-4">
         <div className="w-full max-w-4xl overflow-hidden">
           <div className="flex justify-between items-center p-3 sm:p-4">
             <h2 className="text-lg sm:text-xl font-semibold text-[hsl(var(--neon-green-accent))] truncate">
-              {embedPlayerTitle || 'Player de Embed'}
+              {activePlayerTitle || 'Player de Embed'}
             </h2>
-            <Button variant="ghost" size="icon" onClick={handleEmbedPlayerClose} aria-label="Fechar player de embed">
+            <Button variant="ghost" size="icon" onClick={handlePlayerViewClose} aria-label="Fechar player de embed">
               <X className="h-5 w-5 text-[hsl(var(--neon-green-accent))] hover:text-[hsl(var(--cyberpunk-highlight))]" />
             </Button>
           </div>
           <div className="aspect-video w-full relative bg-black">
             <iframe
-              src={activeEmbedUrl}
-              title={embedPlayerTitle || 'Vídeo Incorporado'}
+              src={activeEmbedIframeSrc}
+              title={activePlayerTitle || 'Vídeo Incorporado'}
               frameBorder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
@@ -440,16 +448,15 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     );
   }
 
-
   if (activePlayerInfo) {
     return (
       <div className="fixed inset-0 z-[100] bg-black/90 flex flex-col items-center justify-center p-2 sm:p-4">
         <div className="w-full max-w-4xl overflow-hidden">
           <div className="flex justify-between items-center p-3 sm:p-4">
             <h2 className="text-lg sm:text-xl font-semibold text-[hsl(var(--neon-green-accent))] truncate">
-              {activePlayerInfo.title}
+              {activePlayerTitle || activePlayerInfo.title}
             </h2>
-            <Button variant="ghost" size="icon" onClick={handlePlayerClose} aria-label="Fechar player">
+            <Button variant="ghost" size="icon" onClick={handlePlayerViewClose} aria-label="Fechar player">
               <X className="h-5 w-5 text-[hsl(var(--neon-green-accent))] hover:text-[hsl(var(--cyberpunk-highlight))]" />
             </Button>
           </div>
@@ -469,7 +476,8 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     );
   }
   
-  if (!item) {
+  // Render loading or content details
+  if (!item) { // Should only be hit if processingInitialAction is true but item is somehow null
       return ( 
         <Dialog open={isOpen} onOpenChange={(open) => !open && handleModalClose()}>
            <DialogContent className="sm:max-w-[600px] md:max-w-[800px] lg:max-w-[900px] p-0 max-h-[90vh] flex flex-col bg-card">
@@ -581,13 +589,11 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
                     </div>
 
                     {item.contentType === 'movie' && 
-                      (((item as StoredMovieItem).videoSources && (item as StoredMovieItem).videoSources.filter(vs => vs.url && vs.url.trim() !== '').length > 0) ||
-                       ((item as StoredMovieItem).embedUrls && (item as StoredMovieItem).embedUrls!.filter(em => em.url && em.url.trim() !== '').length > 0)
-                      ) && (
+                      (item as StoredMovieItem).videoSources && (item as StoredMovieItem).videoSources.filter(vs => vs.content && vs.content.trim() !== '').length > 0 && (
                       <Button
                         onClick={() => {
                             const movieItem = item as StoredMovieItem;
-                            promptOrPlay(movieItem.videoSources, movieItem.tituloOriginal, movieItem.linkLegendas, movieItem.id, undefined, undefined, movieItem.embedUrls);
+                            promptOrPlay(movieItem.videoSources, movieItem.tituloOriginal, movieItem.linkLegendas, movieItem.id);
                         }}
                         className="mt-4 w-full sm:w-auto cyberpunk-button-primary font-semibold shadow-lg"
                         size="lg"
@@ -613,7 +619,7 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
                                             <p className="font-medium text-sm flex items-center"><Clapperboard className="mr-2 h-4 w-4 text-primary/80" />Ep. {episodeIndex + 1}: {episode.titulo}</p>
                                             {episode.duracao && (<p className="text-xs text-muted-foreground flex items-center mt-0.5"><Clock className="mr-1.5 h-3 w-3" /> {episode.duracao} min</p>)}
                                           </div>
-                                          {episode.videoSources && episode.videoSources.filter(vs => vs.url && vs.url.trim() !== '').length > 0 && (
+                                          {episode.videoSources && episode.videoSources.filter(vs => vs.content && vs.content.trim() !== '').length > 0 && (
                                              <Button 
                                                 variant="ghost" size="sm"
                                                 className="text-primary hover:text-primary/80"
@@ -658,18 +664,19 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
             <div className="flex flex-col space-y-2 max-h-60 overflow-y-auto py-2">
               {serverSelectionInfo.sources.map((source, index) => (
                 <Button
-                  key={source.id || `${source.url}-${index}`}
+                  key={source.id || `${source.content.substring(0,10)}-${index}`} // Ensure key is somewhat unique
                   className="cyberpunk-button-primary w-full justify-start text-left py-2.5 px-4"
-                  onClick={() => initiatePlayback(
-                    source.url,
+                  onClick={() => processSelectedSource(
+                    source,
                     serverSelectionInfo.title,
-                    serverSelectionInfo.subtitleUrl,
+                    serverSelectionInfo.subtitleUrl, // Global subtitle for directUrls
                     serverSelectionInfo.baseId,
                     serverSelectionInfo.seasonNumber,
                     serverSelectionInfo.episodeIndex
                   )}
                 >
-                  <ListVideo className="mr-2 h-4 w-4" /> {source.serverName || `Servidor ${index + 1}`}
+                  <ListVideo className="mr-2 h-4 w-4" /> {source.serverName || `Fonte ${index + 1}`}
+                   <Badge variant="outline" className="ml-auto text-xs">{source.sourceType === 'directUrl' ? 'URL' : 'Embed'}</Badge>
                 </Button>
               ))}
             </div>
@@ -695,4 +702,3 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
     </>
   );
 }
-
