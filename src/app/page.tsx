@@ -2,7 +2,7 @@
 // src/app/page.tsx (HomeAni Homepage - Netflix Style Genre Rows)
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'; // Added useRef and useCallback
 import { useQuery } from '@tanstack/react-query';
 import { getContentItems } from '@/lib/firebaseService';
 import type { StoredCineItem } from '@/types';
@@ -13,6 +13,7 @@ import { Loader2, AlertTriangle, Flame, Tag, PlaySquare, Layers } from 'lucide-r
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useModal } from '@/contexts/ModalContext'; // Import useModal
+import { cn } from '@/lib/utils'; // Added cn
 
 interface ProgressData {
   time: number;
@@ -122,8 +123,6 @@ export default function HomeAniPage() {
 
 
   const itemsForGenreRows = useMemo(() => {
-    // Now, all active items are considered for genre rows.
-    // Duplication with Hero/Continue Watching is possible but ensures all items with genres are listed.
     return activeItems;
   }, [activeItems]);
 
@@ -142,8 +141,6 @@ export default function HomeAniPage() {
         .map(g => g.charAt(0).toUpperCase() + g.slice(1).toLowerCase());
 
       if (itemGenres.length === 0) {
-        // Add to miscellaneous only if not already processed for a specific genre (though this condition is moot here)
-        // and not already in miscellaneous.
         if (!miscellaneousItems.find(i => i.id === item.id)) {
             miscellaneousItems.push(item);
         }
@@ -156,23 +153,15 @@ export default function HomeAniPage() {
               genresMap.get(genre)!.push(item);
           }
         });
-        processedForGenreMap.add(item.id); // Mark item as processed for specific genres
+        processedForGenreMap.add(item.id); 
       }
     });
     
-    // Ensure items only in "Continue Watching" or "Hero" (if they have no genres) also go to "Diversos"
-    // if they weren't caught by the specific genre logic and are not the hero or in continue watching.
-    // This part might be redundant if itemsForGenreRows now includes everything.
-    // The original logic for miscellaneousItems handles items with no genres correctly.
 
     const sortedGenreRows = Array.from(genresMap.entries())
       .map(([genre, items]) => ({ title: genre, items, icon: <Tag className="mr-2 h-6 w-6" /> }))
       .sort((a, b) => a.title.localeCompare(b.title));
 
-    // Add miscellaneous items, ensuring they weren't already part of a specific genre row
-    // if `itemsForGenreRows` logic was more exclusive before.
-    // With `itemsForGenreRows = activeItems`, an item with no genre will go to miscellaneous.
-    // An item with genres will go to specific genre rows.
     const finalMiscellaneousItems = miscellaneousItems.filter(item => !processedForGenreMap.has(item.id));
 
 
@@ -214,33 +203,9 @@ export default function HomeAniPage() {
     );
   }
 
-  // Filter heroItem and continueWatchingItems from main genre display if they are already shown in their dedicated rows
   const genreRowItemsToDisplay = genreRows.map(genreRow => {
     const filteredItems = genreRow.items.filter(item => {
-        const isHero = heroItem?.id === item.id;
-        const isContinueWatching = continueWatchingItems.some(cw => cw.id === item.id);
-        
-        // If the row is "Continue Assistindo", all its items are fine.
-        if (genreRow.title === "Continue Assistindo") return true;
-
-        // For other genre rows, only include if NOT the hero and NOT in continue watching list.
-        // This is to prevent triple display if an item is hero, continue, AND in a genre.
-        // However, the main `itemsForGenreRows` now includes everything, so this filtering
-        // is done at the display stage of the rows themselves, except for the dedicated Continue Watching row.
-        // The Continue Watching row below explicitly uses `continueWatchingItems`.
-        // Other genre rows use `genreRows` which are derived from all `activeItems`.
-        // So, we need to filter hero and continue items from *those specific genre rows* if they'd duplicate.
-
-        // Let's refine the logic for genreRows source itself.
-        // itemsForGenreRows = activeItems.
-        // The genreRows calculation populates genresMap.
-        // The ContentRow component is responsible for rendering.
-        // It's simpler to let genreRows contain all items and then decide duplication at render,
-        // OR filter itemsForGenreRows initially.
-        // The change made was to itemsForGenreRows, so items are now included.
-        // Duplication is now accepted to ensure visibility.
-
-        return true; // With the change to itemsForGenreRows, we accept potential duplication.
+        return true; 
     });
     return { ...genreRow, items: filteredItems };
   }).filter(genreRow => genreRow.items.length > 0);
@@ -265,12 +230,8 @@ export default function HomeAniPage() {
           )}
 
           {genreRowItemsToDisplay.map(genreRow => {
-            // Ensure we don't re-render "Continue Assistindo" if it was part of genreRows
             if (genreRow.title === "Continue Assistindo" && continueWatchingItems.length > 0) return null;
             
-            // Filter out items that are ALREADY in the continueWatchingItems list from other genre rows
-            // to prevent them from appearing in, for example, "Action" AND "Continue Watching".
-            // Hero item can still be duplicated.
             const itemsForThisRow = genreRow.items.filter(item => 
                 !continueWatchingItems.some(cw => cw.id === item.id && genreRow.title !== "Continue Assistindo")
             );
@@ -298,7 +259,6 @@ export default function HomeAniPage() {
         </div>
       </main>
       
-      {/* HomeAniDetailModal is now rendered in RootLayout */}
     </>
   );
 }
@@ -312,7 +272,44 @@ interface ContentRowProps {
 }
 
 function ContentRow({ title, items, onCardClick, icon }: ContentRowProps) {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeftStart, setScrollLeftStart] = useState(0);
+
   if (!items || items.length === 0) return null;
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!scrollContainerRef.current) return;
+    setIsDragging(true);
+    setStartX(e.pageX - scrollContainerRef.current.offsetLeft);
+    setScrollLeftStart(scrollContainerRef.current.scrollLeft);
+    scrollContainerRef.current.style.cursor = 'grabbing';
+    scrollContainerRef.current.style.userSelect = 'none';
+  };
+
+  const handleMouseLeave = () => {
+    if (!scrollContainerRef.current) return;
+    setIsDragging(false);
+    scrollContainerRef.current.style.cursor = 'grab';
+    scrollContainerRef.current.style.removeProperty('user-select');
+  };
+
+  const handleMouseUp = () => {
+    if (!scrollContainerRef.current) return;
+    setIsDragging(false);
+    scrollContainerRef.current.style.cursor = 'grab';
+    scrollContainerRef.current.style.removeProperty('user-select');
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isDragging || !scrollContainerRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - scrollContainerRef.current.offsetLeft;
+    const walk = (x - startX) * 2; // Multiply for faster scroll
+    scrollContainerRef.current.scrollLeft = scrollLeftStart - walk;
+  };
+
 
   return (
     <section>
@@ -321,15 +318,28 @@ function ContentRow({ title, items, onCardClick, icon }: ContentRowProps) {
         <h2 className="text-xl sm:text-2xl font-semibold text-foreground">{title}</h2>
       </div>
       <div className="relative">
-        <div className="flex space-x-3 sm:space-x-4 pb-4 overflow-x-auto scrollbar-hide pl-2 sm:pl-0">
+        <div
+          ref={scrollContainerRef}
+          className="flex space-x-3 sm:space-x-4 pb-4 overflow-x-auto scrollbar-hide pl-2 sm:pl-0 cursor-grab active:cursor-grabbing"
+          onMouseDown={handleMouseDown}
+          onMouseLeave={handleMouseLeave}
+          onMouseUp={handleMouseUp}
+          onMouseMove={handleMouseMove}
+        >
           {items.map((item) => (
             <HomeAniContentCard 
-              key={item.id + ((item as ContinueWatchingItem).lastSaved || '')} // Ensure key is unique if item appears in multiple rows with different contexts
+              key={item.id + ((item as ContinueWatchingItem).lastSaved || '')} 
               item={item as StoredCineItem & { progressTime?: number; progressDuration?: number }}
-              onClick={() => onCardClick(item as ContinueWatchingItem)}
+              onClick={() => {
+                // Prevent card click if it was a drag action
+                if (startX !== 0 && Math.abs(scrollContainerRef.current!.scrollLeft - scrollLeftStart) > 5) {
+                    return;
+                }
+                onCardClick(item as ContinueWatchingItem)
+              }}
             />
           ))}
-          <div className="flex-shrink-0 w-px h-px" /> {/* Spacer for scroll */}
+          <div className="flex-shrink-0 w-px h-px" /> 
         </div>
       </div>
       <Separator className="my-8 bg-border/50" />
