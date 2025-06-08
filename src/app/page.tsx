@@ -29,13 +29,18 @@ interface LastPlayedData {
 // ContinueWatchingItem is now imported from @/types
 
 export default function HomeAniPage() {
-  const { openModal } = useModal();
+  const { openModal, isModalOpen } = useModal(); // Destructure isModalOpen
   const { updateMostRecentItem } = useRecentActivity(); // Get updater from context
   const [continueWatchingItems, setContinueWatchingItems] = useState<ContinueWatchingItem[]>([]);
+
+  const refetchIntervalTime = 300000; // 5 minutos (300000 ms)
 
   const { data: allItems, isLoading, error, refetch } = useQuery<StoredCineItem[], Error>({
     queryKey: ['contentItemsHomeAni'],
     queryFn: getContentItems,
+    refetchInterval: isModalOpen ? false : refetchIntervalTime, // Atualiza apenas se o modal não estiver aberto
+    refetchIntervalInBackground: false, // Não busca se a aba estiver em segundo plano
+    refetchOnWindowFocus: true, // Busca ao focar na janela
   });
 
   const activeItems = useMemo(() => allItems?.filter(item => item.status === 'ativo') || [], [allItems]);
