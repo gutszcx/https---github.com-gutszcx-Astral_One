@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { StoredCineItem, StoredMovieItem, StoredSeriesItem, VideoSource } from '@/types'; // Updated VideoSource import
+import type { StoredCineItem, StoredMovieItem, StoredSeriesItem, VideoSource, Season, Episode } from '@/types'; // Updated VideoSource import
 import { Film, Tv, Clapperboard, Clock, PlayCircle, X, ListVideo, Loader2, Heart, MessageCircleQuestion, ArrowDownCircle } from 'lucide-react';
 import {
   Accordion,
@@ -288,20 +288,56 @@ export function HomeAniDetailModal({ item, isOpen, onClose, initialAction, onIni
   useEffect(() => {
     if (isOpen && initialAction === 'play' && item && !activePlayerInfo && !activeEmbedIframeSrc && !serverSelectionInfo && !hasTriggeredInitialPlay.current && processingInitialAction) {
       hasTriggeredInitialPlay.current = true;
-  
       const playData = item._playActionData;
   
       if (item.contentType === 'movie') {
         const movieItem = item as StoredMovieItem;
         promptOrPlay(movieItem.videoSources, movieItem.tituloOriginal, movieItem.linkLegendas, movieItem.id);
-      } else if (item.contentType === 'series' && playData) {
+      } else if (item.contentType === 'series') {
         const seriesItem = item as StoredSeriesItem;
-        const season = seriesItem.temporadas?.find(s => s.numeroTemporada === playData.seasonNumber);
-        const episode = season?.episodios?.[playData.episodeIndex];
-        if (episode) {
-          promptOrPlay(episode.videoSources, `${seriesItem.tituloOriginal} - T${season!.numeroTemporada}E${playData.episodeIndex + 1}: ${episode.titulo}`, episode.linkLegenda, seriesItem.id, season!.numeroTemporada, playData.episodeIndex);
+        let seasonToPlay: Season | undefined;
+        let episodeToPlay: Episode | undefined;
+        let episodeIndexToPlay: number = 0;
+        let seasonNumberToPlay: number = 1;
+
+        if (playData) { // If specific playData is provided (e.g., from Continue Watching)
+          seasonToPlay = seriesItem.temporadas?.find(s => s.numeroTemporada === playData.seasonNumber);
+          episodeToPlay = seasonToPlay?.episodios?.[playData.episodeIndex];
+          if (seasonToPlay && episodeToPlay) {
+            episodeIndexToPlay = playData.episodeIndex;
+            seasonNumberToPlay = playData.seasonNumber;
+          } else {
+            // Fallback if playData is invalid
+            seasonToPlay = undefined;
+            episodeToPlay = undefined;
+          }
+        }
+        
+        if (!episodeToPlay) { // If no valid playData, or if it's a generic 'play' action for a series (e.g. from New Episodes)
+          // Default to first episode of the latest season
+          if (seriesItem.temporadas && seriesItem.temporadas.length > 0) {
+            // Sort seasons by numeroTemporada descending to get the latest first
+            const sortedSeasons = [...seriesItem.temporadas].sort((a, b) => b.numeroTemporada - a.numeroTemporada);
+            seasonToPlay = sortedSeasons[0]; // Latest season
+            if (seasonToPlay && seasonToPlay.episodios && seasonToPlay.episodios.length > 0) {
+              episodeToPlay = seasonToPlay.episodios[0]; // First episode of that season
+              episodeIndexToPlay = 0;
+              seasonNumberToPlay = seasonToPlay.numeroTemporada;
+            }
+          }
+        }
+
+        if (episodeToPlay && seasonToPlay) {
+          promptOrPlay(
+            episodeToPlay.videoSources, 
+            `${seriesItem.tituloOriginal} - T${seasonNumberToPlay}E${episodeIndexToPlay + 1}: ${episodeToPlay.titulo}`, 
+            episodeToPlay.linkLegenda, 
+            seriesItem.id, 
+            seasonNumberToPlay, 
+            episodeIndexToPlay
+          );
         } else {
-          toast({ title: "Episódio Não Encontrado", description: "Não foi possível encontrar os dados deste episódio.", variant: "default" });
+          toast({ title: "Nenhum Episódio para Iniciar", description: "Não foi possível encontrar um episódio padrão para iniciar a reprodução. O modal será aberto normalmente.", variant: "default" });
         }
       }
   

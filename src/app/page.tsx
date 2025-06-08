@@ -279,7 +279,7 @@ export default function HomeAniPage() {
               key="new-episodes"
               title="Novos Episódios"
               items={newEpisodeSeries}
-              onCardClick={(item) => handleCardClick(item)}
+              onCardClick={(item) => handleCardClick(item, true)}
               icon={<Sparkles className="mr-2 h-6 w-6" />}
             />
           )}
