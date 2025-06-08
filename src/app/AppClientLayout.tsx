@@ -251,7 +251,7 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
           router.push('/');
           setIsShowingThemedLoader(false); 
           themedLoaderTimerId.current = null;
-        }, 10000); // Changed from 15000 to 10000
+        }, 6000); // Changed from 10000 to 6000
       }
     } else {
       if (isShowingThemedLoader) {
