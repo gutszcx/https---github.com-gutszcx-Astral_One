@@ -22,6 +22,7 @@ const withPWA = NextPWAPlugin({
 });
 
 const nextConfig: NextConfig = {
+  output: 'export', // Adicionado para habilitar a exportação estática
   /* config options here */
   typescript: {
     ignoreBuildErrors: true,
@@ -30,6 +31,7 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
+    unoptimized: true, // Necessário para `output: 'export'` se não estiver usando um loader de imagem customizado compatível
     remotePatterns: [
       {
         protocol: 'https',
