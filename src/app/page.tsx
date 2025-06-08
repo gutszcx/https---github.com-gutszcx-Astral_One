@@ -232,15 +232,11 @@ export default function HomeAniPage() {
   };
 
 
-  if (isLoading) {
-    return (
-      <main className="flex-grow container mx-auto px-4 py-8">
-        <div className="flex flex-col items-center justify-center text-center h-[80vh]">
-          <Loader2 className="h-16 w-16 animate-spin text-primary mb-4" />
-          <p className="text-lg text-muted-foreground">Carregando sua experiência Astral One...</p>
-        </div>
-      </main>
-    );
+  if (isLoading && !allItems?.length) { // Show loader only if loading AND no items yet to prevent flash of loader if data is cached
+    // This specific loading screen is removed by user request.
+    // You can add a different, more minimal loading indicator here if desired,
+    // or rely on the conditional rendering below to show content once ready.
+    // For example, a simple <p>Carregando...</p> or a skeleton UI.
   }
 
   if (error) {
@@ -327,7 +323,7 @@ export default function HomeAniPage() {
            })}
 
           {/* Message for when there is absolutely no content */}
-          {heroItem === null && genreRows.length === 0 && continueWatchingItems.length === 0 && newEpisodeSeries.length === 0 && (
+          {heroItem === null && genreRows.length === 0 && continueWatchingItems.length === 0 && newEpisodeSeries.length === 0 && !isLoading && (
             <div className="text-center py-20">
               <Flame className="h-24 w-24 text-primary mx-auto mb-6 opacity-50" />
               <h2 className="text-2xl font-semibold text-foreground mb-2">Sua Cineteca Está Vazia!</h2>
@@ -427,5 +423,3 @@ function ContentRow({ title, items, onCardClick, icon }: ContentRowProps) {
     </section>
   );
 }
-
-
