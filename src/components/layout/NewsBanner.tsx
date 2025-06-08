@@ -78,7 +78,7 @@ export function NewsBanner() {
     if (isVisible && bannerMessage?.isActive) {
       timerId = setTimeout(() => {
         handleDismiss();
-      }, 5000); // 5 seconds
+      }, 15000); // Changed from 5000 to 15000 (15 seconds)
     }
 
     return () => {
