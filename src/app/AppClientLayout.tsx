@@ -251,7 +251,7 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
           router.push('/');
           setIsShowingThemedLoader(false); 
           themedLoaderTimerId.current = null;
-        }, 6000); // Changed from 10000 to 6000
+        }, 6000);
       }
     } else {
       if (isShowingThemedLoader) {
@@ -331,12 +331,7 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
                 <div className="flex items-center space-x-2 md:space-x-3">
                  {user && ( 
                     <>
-                       <Button variant="ghost" size="sm" asChild>
-                        <Link href="/manage" aria-label="Painel" className="flex items-center">
-                          <LayoutDashboard className="h-5 w-5 text-primary mr-1 sm:mr-1.5" />
-                          <span className="hidden sm:inline">Painel</span>
-                        </Link>
-                      </Button>
+                      {/* Botão Painel removido daqui */}
                       <Button variant="ghost" size="sm" asChild>
                         <Link href="/favorites" aria-label="Favoritos" className="flex items-center">
                           <Star className="h-5 w-5 text-primary mr-1 sm:mr-1.5" />
