@@ -307,7 +307,7 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
         <main className="flex-grow">
           {children}
         </main>
-        <NewsBanner />
+        {pathname !== '/manage' && <NewsBanner />}
         <Toaster />
         <HomeAniDetailModal
           item={selectedItem}
@@ -326,3 +326,4 @@ export function AppClientLayout({ children }: { children: React.ReactNode }) {
     </RecentActivityProvider>
   );
 }
+
